@@ -5,6 +5,9 @@
 
 namespace hirzel
 {
+#if defined(_WIN32) || defined(_WIN64)
+	void initWindowsConsole();
+#endif
 	struct Log
 	{
 		unsigned int level = 0;
@@ -26,6 +29,7 @@ namespace hirzel
 
 		void log(unsigned int level, const std::string& classname, const std::string& msg);
 	public:
+		Logger() = default;
 		Logger(const std::string& classname);
 
 		void info(const std::string& msg);

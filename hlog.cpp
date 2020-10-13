@@ -4,6 +4,9 @@
 #include <iostream>
 #include <fstream>
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#endif
 
 #define HLOG_INFO			0
 #define HLOG_INFO_STR		"[INFO]   "
@@ -37,6 +40,15 @@
 
 namespace hirzel
 {
+#if defined(_WIN32) || defined(_WIN64)
+	void initWindowsConsole()
+	{
+		DWORD outMode = 0;
+		HANDLE outHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+		GetConsoleMode(outHandle, &outMode);
+		SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+	}
+#endif
 	const char *colors[] = HLOG_COLORS;
 
 	Log::Log(unsigned int level, const std::string& classname, const std::string& msg)
