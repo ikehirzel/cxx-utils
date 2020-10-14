@@ -1,4 +1,4 @@
-#include "loger.h"
+#include "logger.h"
 
 #include <chrono>
 #include <iostream>
@@ -23,8 +23,6 @@
 #define HLOG_FATAL			4
 #define HLOG_FATAL_STR		"[FATAL]  "
 
-#define HLOG_LOG_PATH "./report.log"
-
 #define HLOG_LEVELS { HLOG_INFO_STR, HLOG_SUCCESS_STR,\
 	HLOG_WARNING_STR, HLOG_ERROR_STR, HLOG_FATAL_STR }
 
@@ -40,15 +38,8 @@
 
 namespace hirzel
 {
-#if defined(_WIN32) || defined(_WIN64)
-	void initWindowsConsole()
-	{
-		DWORD outMode = 0;
-		HANDLE outHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-		GetConsoleMode(outHandle, &outMode);
-		SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-	}
-#endif
+	std::string logfilename, loggername;
+	static std::vector<Log> logs;
 	const char *colors[] = HLOG_COLORS;
 
 	Log::Log(unsigned int level, const std::string& classname, const std::string& msg)
@@ -64,10 +55,12 @@ namespace hirzel
 	{
 		const char *levels[] = HLOG_LEVELS;
 		std::string str;
+
 		if (classname.empty())
 		{
 			classname = "NULL";
 		}
+
 		str = "[";
 		str += timestamp;
 		str += "] ";
@@ -76,6 +69,7 @@ namespace hirzel
 		str += classname;
 		str += "]\t : ";
 		str += msg;
+
 		return str;
 	}
 
@@ -85,54 +79,70 @@ namespace hirzel
 		std::cout << output << std::endl;
 	}
 
-	std::vector<Log> Logger::logs;
-
-	Logger::Logger(const std::string& classname)
+	void log_init(const std::string& _logfilename)
 	{
-		this->classname = classname;
+		logfilename = _logfilename;
+
+#if defined(_WIN32) || defined(_WIN64)
+		DWORD outMode = 0;
+		HANDLE outHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+		GetConsoleMode(outHandle, &outMode);
+		SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+#endif
 	}
 
-	void Logger::log(unsigned int level, const std::string& classname, const std::string& msg)
+	void log_set_name(const std::string& _loggername)
 	{
-		Log l(level, classname, msg);
+		loggername = _loggername;
+	}
+
+	void push(unsigned int level, const std::string& msg)
+	{
+		Log l(level, loggername, msg);
 		logs.push_back(l);
 		l.print();
 	}
 
-	void Logger::info(const std::string& msg)
+	void log_info(const std::string& msg)
 	{
-		log(HLOG_INFO, classname, msg);
+		push(HLOG_INFO, msg);
 	}
 
-	void Logger::success(const std::string& msg)
+	void log_success(const std::string& msg)
 	{
-		log(HLOG_SUCCESS, classname, msg);
+		push(HLOG_SUCCESS, msg);
 	}
 
-	void Logger::warning(const std::string& msg)
+	void log_warning(const std::string& msg)
 	{
-		log(HLOG_WARNING, classname, msg);
+		push(HLOG_WARNING, msg);
 	}
 
-	void Logger::error(const std::string& msg)
+	void log_error(const std::string& msg)
 	{
-		log(HLOG_ERROR, classname, msg);
+		push(HLOG_ERROR, msg);
 	}
 
-	void Logger::fatal(const std::string& msg)
+	void log_fatal(const std::string& msg)
 	{
-		log(HLOG_FATAL, classname, msg);
+		push(HLOG_FATAL, msg);
 	}
 
-	void Logger::dump()
+	void log_dump()
 	{
+		if(logfilename.empty())
+		{
+			push(HLOG_ERROR, "The logger has not been initialized!");
+		}
+		
 		std::ofstream file;
-		file.open(HLOG_LOG_PATH);
+		file.open(logfilename);
 
 		for (Log l : logs)
 		{
 			file << l.content() << std::endl;
 		}
+
 		file.close();
 	}
 }
