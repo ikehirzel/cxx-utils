@@ -1,4 +1,4 @@
-libhlog.so
 test/
-bin/
+build/
+.vscode/
 

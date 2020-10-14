@@ -1,6 +1,6 @@
-Logger
+Fountain
 ========
-A simple cross platform C++ info logging library
+A simple cross platform C++ info logging library -- like a fountain pen for your program
 
 It relies on ascii escape sequences so if using windows, Windows 10 is required.
 
@@ -8,13 +8,13 @@ Example
 ========
 ```c++
 	// contents of main.cpp
-	#include <logger.h>
+	#include <fountain.h>
 
 	int main()
 	{
-		hirzel::Logger l;
-		l.info("This is an info message");
-		l.dump(); // puts all logs into "./report.log"
+		log_init("./report.log");
+		log_info("This is an info message");
+		log_dump(); // puts all logs into "./report.log"
 		return 0;
 	}
 ```
