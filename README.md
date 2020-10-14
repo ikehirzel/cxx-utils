@@ -1,16 +1,14 @@
-HLog
+Logger
 ========
-A simple C++ info logging library
+A simple cross platform C++ info logging library
 
-As of right now, it is only supported on UNIX-like systems due to relying on ascii escape sequences.
-
-I have future plans to extend this to support the windows api.
+It relies on ascii escape sequences so if using windows, Windows 10 is required.
 
 Example
 ========
 ```c++
-	// contents of exampleplugin.cpp
-	#include "hlog.h"
+	// contents of main.cpp
+	#include <logger.h>
 
 	int main()
 	{
