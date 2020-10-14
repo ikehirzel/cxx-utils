@@ -1,12 +1,8 @@
-TinyPlug
+pluginlib
 ========
 A C++11 single-header cross-platform plugin handling library
 
-It has no external depencies and therefore will simply work by just including **tinyplug.h**.
-
-
-I have future plans to extend this to allow for scripting languages, but for right now it  is
-only compatible with compiled shared libraries.
+It has no external depencies and therefore will simply work by just including **plugin.h**.
 
 NOTE: Care must be taken when executing functions. They are stored as (void (*)()) function pointers but when executed they are casted to the type specified by the templates. This can cause segmentation faults if the wrong type is used for a stored function
 
@@ -36,13 +32,13 @@ Examples
 	// contents of main.cpp
 	#include <iostream>
 	#include <string>
-	#include "tinyplug.h"
+	#include "plugin.h"
 
 	using namespace std;
 
 	int main()
 	{
-		tinyplug::Plugin p;
+		hirzel::Plugin p;
 
 		p.loadLibrary("./exampleplugin.dll");
 		p.loadFunction("double_value");
