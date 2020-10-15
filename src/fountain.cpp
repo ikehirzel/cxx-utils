@@ -3,6 +3,7 @@
 #include <chrono>
 #include <iostream>
 #include <fstream>
+#include <stdarg.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
@@ -103,29 +104,34 @@ namespace hirzel
 		l.print();
 	}
 
-	void log_info(const std::string& msg)
+	void log_info(const std::string& str, ...)
 	{
-		push(HLOG_INFO, msg);
+		#include "strfbody.h"
+		push(HLOG_INFO, out + '\n');
 	}
 
-	void log_success(const std::string& msg)
+	void log_success(const std::string& str, ...)
 	{
-		push(HLOG_SUCCESS, msg);
+		#include "strfbody.h"
+		push(HLOG_SUCCESS, out + '\n');
 	}
 
-	void log_warning(const std::string& msg)
+	void log_warning(const std::string& str, ...)
 	{
-		push(HLOG_WARNING, msg);
+		#include "strfbody.h"
+		push(HLOG_WARNING, out + '\n');
 	}
 
-	void log_error(const std::string& msg)
+	void log_error(const std::string& str, ...)
 	{
-		push(HLOG_ERROR, msg);
+		#include "strfbody.h"
+		push(HLOG_ERROR, out + '\n');
 	}
 
-	void log_fatal(const std::string& msg)
+	void log_fatal(const std::string& str, ...)
 	{
-		push(HLOG_FATAL, msg);
+		#include "strfbody.h"
+		push(HLOG_FATAL, out + '\n');
 	}
 
 	void log_dump()
@@ -145,4 +151,17 @@ namespace hirzel
 
 		file.close();
 	}
+	
+	std::string strf(const std::string& str, ...)
+	{
+		#include "strfbody.h"
+		return out;
+	}
+	
+	void print(const std::string& str, ...)
+	{
+		#include "strfbody.h"
+		std::cout << out;
+	}
+
 }

@@ -20,11 +20,13 @@ namespace hirzel
 	void log_init(const std::string& _logfilename);
 	void log_set_name(const std::string& _loggername);
 
-	void log_info(const std::string& msg);
-	void log_success(const std::string& msg);
-	void log_warning(const std::string& msg);
-	void log_error(const std::string& msg);
-	void log_fatal(const std::string& msg);
+	void log_info(const std::string& str, ...);
+	void log_success(const std::string& str, ...);
+	void log_warning(const std::string& str, ...);
+	void log_error(const std::string& str, ...);
+	void log_fatal(const std::string& str, ...);
 
 	void log_dump();
+	std::string strf(const std::string& str, ...);
+	void print(const std::string& str, ...);
 }
