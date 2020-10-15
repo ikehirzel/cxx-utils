@@ -107,31 +107,31 @@ namespace hirzel
 	void log_info(const std::string& str, ...)
 	{
 		#include "strfbody.h"
-		push(HLOG_INFO, out + '\n');
+		push(HLOG_INFO, out);
 	}
 
 	void log_success(const std::string& str, ...)
 	{
 		#include "strfbody.h"
-		push(HLOG_SUCCESS, out + '\n');
+		push(HLOG_SUCCESS, out);
 	}
 
 	void log_warning(const std::string& str, ...)
 	{
 		#include "strfbody.h"
-		push(HLOG_WARNING, out + '\n');
+		push(HLOG_WARNING, out);
 	}
 
 	void log_error(const std::string& str, ...)
 	{
 		#include "strfbody.h"
-		push(HLOG_ERROR, out + '\n');
+		push(HLOG_ERROR, out);
 	}
 
 	void log_fatal(const std::string& str, ...)
 	{
 		#include "strfbody.h"
-		push(HLOG_FATAL, out + '\n');
+		push(HLOG_FATAL, out);
 	}
 
 	void log_dump()
