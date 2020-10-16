@@ -1,6 +1,6 @@
 Fountain
 ========
-A simple cross platform C++ info logging library -- like a fountain pen for your program
+A simple cross platform C++ info logging library.
 
 It relies on ascii escape sequences so if using windows, Windows 10 is required.
 
@@ -13,7 +13,8 @@ Example
 	int main()
 	{
 		log_init("./report.log");
-		log_info("This is an info message");
+		info("This is an info message");
+		errorf("This is a formatted %s\n", "error message");
 		log_dump(); // puts all logs into "./report.log"
 		return 0;
 	}
