@@ -4,83 +4,48 @@
 #include <iostream>
 #include <fstream>
 #include <stdarg.h>
+#include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #endif
 
-#define HLOG_INFO			0
-#define HLOG_INFO_STR		"[INFO]   "
+#define FOUNTAIN_INFO_STR		"[INFO]   "
+#define FOUNTAIN_SUCCESS_STR	"[SUCCESS]"
+#define FOUNTAIN_WARNING_STR	"[WARNING]"
+#define FOUNTAIN_ERROR_STR		"[ERROR]  "
+#define FOUNTAIN_FATAL_STR		"[FATAL]  "
 
-#define HLOG_SUCCESS		1
-#define HLOG_SUCCESS_STR	"[SUCCESS]"
-
-#define HLOG_WARNING		2
-#define HLOG_WARNING_STR	"[WARNING]"
-
-#define HLOG_ERROR			3
-#define HLOG_ERROR_STR		"[ERROR]  "
-
-#define HLOG_FATAL			4
-#define HLOG_FATAL_STR		"[FATAL]  "
-
-#define HLOG_LEVELS { HLOG_INFO_STR, HLOG_SUCCESS_STR,\
-	HLOG_WARNING_STR, HLOG_ERROR_STR, HLOG_FATAL_STR }
+#define FOUNTAIN_LEVELS { FOUNTAIN_INFO_STR, FOUNTAIN_SUCCESS_STR,\
+	FOUNTAIN_WARNING_STR, FOUNTAIN_ERROR_STR, FOUNTAIN_FATAL_STR }
 
 #define color(x) 		"\033["#x"m"
-#define HLOG_RESET		color(0)
-#define HLOG_WHITE		color(37)
-#define HLOG_GREEN		color(32)
-#define HLOG_YELLOW		color(33)
-#define HLOG_RED		color(31)
-#define HLOG_BRIGHT_RED	color(1;31)
+#define FOUNTAIN_RESET		color(0)
+#define FOUNTAIN_WHITE		color(37)
+#define FOUNTAIN_GREEN		color(32)
+#define FOUNTAIN_YELLOW		color(33)
+#define FOUNTAIN_RED		color(31)
+#define FOUNTAIN_BRIGHT_RED	color(1;31)
 
-#define HLOG_COLORS { HLOG_WHITE, HLOG_GREEN, HLOG_YELLOW, HLOG_RED, HLOG_BRIGHT_RED }
+#define FOUNTAIN_COLORS { FOUNTAIN_WHITE, FOUNTAIN_GREEN,\
+	FOUNTAIN_YELLOW, FOUNTAIN_RED, FOUNTAIN_BRIGHT_RED }
+
+#define FOUNTAIN_BUF_LEN		256
+#define FOUNTAIN_NAME_BUF_LEN	24
+
+#ifndef FOUNTAIN_TAB_SIZE
+#define FOUNTAIN_TAB_SIZE 4
+#endif
 
 namespace hirzel
 {
-	std::string logfilename, loggername;
-	static std::vector<Log> logs;
-	const char *colors[] = HLOG_COLORS;
+	static std::string logfilename;
+	static std::vector<std::string> logs;
+	
+	const char *colors[] = FOUNTAIN_COLORS;
+	const char *levels[] = FOUNTAIN_LEVELS;
 
-	Log::Log(unsigned int level, const std::string& classname, const std::string& msg)
-	{
-		this->level = level;
-		this->classname = classname;
-		this->msg = msg;
-		timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>
-			(std::chrono::system_clock::now().time_since_epoch()).count());
-	}
-
-	std::string Log::content()
-	{
-		const char *levels[] = HLOG_LEVELS;
-		std::string str;
-
-		if (classname.empty())
-		{
-			classname = "NULL";
-		}
-
-		str = "[";
-		str += timestamp;
-		str += "] ";
-		str += levels[level];
-		str += " [";
-		str += classname;
-		str += "]\t : ";
-		str += msg;
-
-		return str;
-	}
-
-	void Log::print()
-	{
-		std::string output = colors[level] + content() + HLOG_RESET;
-		std::cout << output << std::endl;
-	}
-
-	void log_init(const std::string& _logfilename)
+	void log_init(const char* _logfilename)
 	{
 		logfilename = _logfilename;
 
@@ -92,76 +57,87 @@ namespace hirzel
 #endif
 	}
 
-	void log_set_name(const std::string& _loggername)
+	void log_push(int level, const char* name, int line, const char* str, ...)
 	{
-		loggername = _loggername;
+		va_list list;
+		va_start(list, str);
+	
+		uint32_t timestamp = std::chrono::duration_cast<std::chrono::seconds>
+			(std::chrono::system_clock::now().time_since_epoch()).count();
+		
+		char log_buf[FOUNTAIN_BUF_LEN];
+		char msg_buf[FOUNTAIN_BUF_LEN / 4];
+		char name_buf[FOUNTAIN_NAME_BUF_LEN*2];
+		char line_buf[6];
+		
+		sprintf(line_buf, "%d", line);
+		int line_len = strlen(line_buf);
+		line_buf[line_len] = 0;
+		
+		strcpy(name_buf, name);
+		int name_len = strlen(name_buf);
+		name_buf[name_len] = 0;
+		
+		int tot_len = name_len + line_len + 1;
+		
+		name_buf[name_len] = ':';
+		for (int i = name_len + 1; i < tot_len; i++)
+		{
+			name_buf[i] = line_buf[i - (name_len + 1)];
+		}
+		//printf("name: %s len: %d\n", name_buf, name_len);
+		
+		int diff = FOUNTAIN_NAME_BUF_LEN - tot_len;
+		
+		// name is too long and has to be trimmed
+		if(diff < 0)
+		{
+			name_buf[FOUNTAIN_NAME_BUF_LEN] = 0;
+		}
+		// name is either short or the perfect size;
+		else
+		{
+			char tmp[FOUNTAIN_NAME_BUF_LEN];
+			strcpy(tmp, name_buf);
+			for (int i = 0; i < diff; i++)
+			{
+				name_buf[i] = ' ';
+			}
+			//char[FOUNTAIN_NAME_BUF_LEN - tot_len];
+			for (int i = diff; i < FOUNTAIN_NAME_BUF_LEN; i++)
+			{
+				name_buf[i] = tmp[i - diff];
+			}
+			name_buf[FOUNTAIN_NAME_BUF_LEN] = 0;
+			
+		}
+		// creating the buffer for the log message
+		vsprintf(msg_buf, str, list);
+		// creating buffer for log output
+		sprintf(log_buf, "| %s | [%d] %s : %s", name_buf, timestamp, levels[level], msg_buf);
+		// printing log with colors
+		printf("%s%s%s\n", colors[level], log_buf, FOUNTAIN_RESET);
+		// creating string for log and pushing to vector
+		std::string log = std::string(log_buf);
+		logs.push_back(log);
 	}
-
-	void push(unsigned int level, const std::string& msg)
-	{
-		Log l(level, loggername, msg);
-		logs.push_back(l);
-		l.print();
-	}
-
-	void log_info(const std::string& str, ...)
-	{
-		#include "strfbody.h"
-		push(HLOG_INFO, out);
-	}
-
-	void log_success(const std::string& str, ...)
-	{
-		#include "strfbody.h"
-		push(HLOG_SUCCESS, out);
-	}
-
-	void log_warning(const std::string& str, ...)
-	{
-		#include "strfbody.h"
-		push(HLOG_WARNING, out);
-	}
-
-	void log_error(const std::string& str, ...)
-	{
-		#include "strfbody.h"
-		push(HLOG_ERROR, out);
-	}
-
-	void log_fatal(const std::string& str, ...)
-	{
-		#include "strfbody.h"
-		push(HLOG_FATAL, out);
-	}
-
+	
 	void log_dump()
 	{
 		if(logfilename.empty())
 		{
-			push(HLOG_ERROR, "The logger has not been initialized!");
+			std::cout << "The logger has not been initialized!\n";
+			return;
 		}
 		
 		std::ofstream file;
 		file.open(logfilename);
 
-		for (Log l : logs)
+		for (std::string l : logs)
 		{
-			file << l.content() << std::endl;
+			file << l << std::endl;
 		}
 
 		file.close();
 	}
-	
-	std::string strf(const std::string& str, ...)
-	{
-		#include "strfbody.h"
-		return out;
-	}
-	
-	void print(const std::string& str, ...)
-	{
-		#include "strfbody.h"
-		std::cout << out;
-	}
-
 }

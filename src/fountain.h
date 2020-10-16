@@ -3,30 +3,31 @@
 #include <string>
 #include <vector>
 
+#define FOUNTAIN_INFO		0
+#define FOUNTAIN_SUCCESS	1
+#define FOUNTAIN_WARNING	2
+#define FOUNTAIN_ERROR		3
+#define FOUNTAIN_FATAL		4
+
 namespace hirzel
-{
-	struct Log
-	{
-		unsigned int level = 0;
-		std::string classname = "";
-		std::string msg = "";
-		std::string timestamp = "";
-
-		Log(unsigned int level, const std::string& classname, const std::string& msg);
-		std::string content();
-		void print();
-	};
-
-	void log_init(const std::string& _logfilename);
-	void log_set_name(const std::string& _loggername);
-
-	void log_info(const std::string& str, ...);
-	void log_success(const std::string& str, ...);
-	void log_warning(const std::string& str, ...);
-	void log_error(const std::string& str, ...);
-	void log_fatal(const std::string& str, ...);
-
+{	
+	void log_init(const char* _logfilename);
+	void log_push(int level, const char* name, int line, const char* str, ...);
 	void log_dump();
-	std::string strf(const std::string& str, ...);
-	void print(const std::string& str, ...);
+	
 }
+
+#define info(msg)			hirzel::log_push(FOUNTAIN_INFO, __FILE__, __LINE__, msg, NULL)
+#define infof(msg, ...)		hirzel::log_push(FOUNTAIN_INFO, __FILE__, __LINE__, msg, __VA_ARGS__)
+
+#define success(msg)		hirzel::log_push(FOUNTAIN_SUCCESS, __FILE__, __LINE__, msg, NULL)
+#define successf(msg, ...)	hirzel::log_push(FOUNTAIN_SUCCESS, __FILE__, __LINE__, msg, __VA_ARGS__)
+
+#define warning(msg)		hirzel::log_push(FOUNTAIN_WARNING, __FILE__, __LINE__, msg, NULL)
+#define warningf(msg, ...)	hirzel::log_push(FOUNTAIN_WARNING, __FILE__, __LINE__, msg, __VA_ARGS__)
+
+#define error(msg)			hirzel::log_push(FOUNTAIN_ERROR, __FILE__, __LINE__, msg, NULL)
+#define errorf(msg, ...)	hirzel::log_push(FOUNTAIN_ERROR, __FILE__, __LINE__, msg, __VA_ARGS__)
+
+#define fatal(msg)			hirzel::log_push(FOUNTAIN_FATAL, __FILE__, __LINE__, msg, NULL)
+#define fatalf(msg, ...)	hirzel::log_push(FOUNTAIN_FATAL, __FILE__, __LINE__, msg, __VA_ARGS__)
