@@ -41,6 +41,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <stdlib.h>
 #include <iostream>
+#include <string>
 
 namespace hirzel
 {
@@ -87,7 +88,8 @@ namespace hirzel
 		var(double d);
 
 		var(char c);
-		var(const char *c);
+		var(const char* c);
+		var(const std::string& s);
 
 		var(bool b);
 
@@ -98,7 +100,8 @@ namespace hirzel
 		float as_float();
 		double as_double();
 		char as_char();
-		const char *as_str();
+		std::string as_string();
+		const char* c_str();
 
 		bool as_bool();
 
@@ -155,7 +158,7 @@ namespace hirzel
 #define HIRZEL_VAR_FLOAT_TYPE	2
 #define HIRZEL_VAR_DOUBLE_TYPE	3
 #define HIRZEL_VAR_CHAR_TYPE	4
-#define HIRZEL_VAR_CSTR_TYPE	5
+#define HIRZEL_VAR_STR_TYPE		5
 #define HIRZEL_VAR_BOOL_TYPE	6
 
 namespace hirzel
@@ -188,11 +191,6 @@ namespace hirzel
 			}
 			return size;
 		}
-
-		void itoa(char *str, long long int val)
-		{
-
-		}
 	}
 
 	var::var(const void *_data, const std::type_info* _typeinfo, int _type, int _size)
@@ -221,7 +219,8 @@ namespace hirzel
 	var::var(unsigned long long i) : var(&i, &typeid(unsigned long long), HIRZEL_VAR_UINT_TYPE, sizeof(unsigned long long)) {}
 
 	var::var(char c) : var(&c, &typeid(char), HIRZEL_VAR_CHAR_TYPE, sizeof(char)) {}
-	var::var(const char *c) : var(c, &typeid(const char*), HIRZEL_VAR_CSTR_TYPE, details::cstr_len(c) + 1) {}
+	var::var(const char *c) : var(c, &typeid(const char*), HIRZEL_VAR_STR_TYPE, details::cstr_len(c) + 1) {}
+	var::var(const std::string& s) : var(&s.c_str(), &typeid(const char*), HIRZEL_VAR_STR_TYPE, s.size() + 1) {}
 
 	var::var(float f) : var(&f, &typeid(float), HIRZEL_VAR_FLOAT_TYPE, sizeof(float)) {}
 	var::var(double d) : var(&d, &typeid(double), HIRZEL_VAR_DOUBLE_TYPE, sizeof(double)) {}
@@ -253,6 +252,7 @@ namespace hirzel
 				out = *(double*)data;
 				break;
 
+			case HIRZEL_VAR_STR_TYPE:
 			default:
 				throw bad_var_cast();
 				break;
@@ -280,6 +280,7 @@ namespace hirzel
 				out = *(double*)data;
 				break;
 
+			case HIRZEL_VAR_STR_TYPE:
 			default:
 				throw bad_var_cast();
 				break;
@@ -300,6 +301,7 @@ namespace hirzel
 			
 			case HIRZEL_VAR_FLOAT_TYPE:
 				out = *(float*)data;
+				break;
 
 			case HIRZEL_VAR_INT_TYPE:
 			case HIRZEL_VAR_UINT_TYPE:
@@ -309,6 +311,7 @@ namespace hirzel
 				out = i;
 				break;
 
+			case HIRZEL_VAR_STR_TYPE:
 			default:
 				throw bad_var_cast();
 				break;
@@ -324,12 +327,6 @@ namespace hirzel
 
 		switch(primtype)
 		{
-			case HIRZEL_VAR_DOUBLE_TYPE:
-				return *(double*)data;
-			
-			case HIRZEL_VAR_FLOAT_TYPE:
-				return *(float*)data;
-
 			case HIRZEL_VAR_INT_TYPE:
 			case HIRZEL_VAR_UINT_TYPE:
 			case HIRZEL_VAR_BOOL_TYPE:
@@ -338,6 +335,13 @@ namespace hirzel
 				out = (double)i;
 				break;
 
+			case HIRZEL_VAR_DOUBLE_TYPE:
+				return *(double*)data;
+			
+			case HIRZEL_VAR_FLOAT_TYPE:
+				return *(float*)data;
+
+			case HIRZEL_VAR_STR_TYPE:
 			default:
 				throw bad_var_cast();
 				break;
@@ -350,10 +354,16 @@ namespace hirzel
 		char out = 0;
 		switch(primtype)
 		{
+			case HIRZEL_VAR_INT_TYPE:
+			case HIRZEL_VAR_UINT_TYPE:
 			case HIRZEL_VAR_BOOL_TYPE:
 			case HIRZEL_VAR_CHAR_TYPE:
 				details::write_bytes(&out, data, size);
 				break;
+
+			case HIRZEL_VAR_FLOAT_TYPE:
+			case HIRZEL_VAR_DOUBLE_TYPE:
+			case HIRZEL_VAR_STR_TYPE:
 			default:
 				throw bad_var_cast();
 				break;
@@ -383,6 +393,7 @@ namespace hirzel
 				out = (bool)(*(double*)data);
 				break;
 
+			case HIRZEL_VAR_STR_TYPE:
 			default:
 				throw bad_var_cast();
 		}
@@ -390,18 +401,54 @@ namespace hirzel
 	}
 
 	// Todo: acutally flesh this out
-	const char *var::as_str()
+	std::string var::as_string()
 	{
+		std::string out;
+		long long i = 0;
+		float f = 0;
+		double d = 0;
+		switch(primtype)
+		{
+			case HIRZEL_VAR_INT_TYPE:
+			case HIRZEL_VAR_UINT_TYPE:
+			case HIRZEL_VAR_BOOL_TYPE:
+			case HIRZEL_VAR_CHAR_TYPE:
+				details::write_bytes(&i, data, size);
+				out = (bool)i;
+				break;
 
-		//if(strrep)
-		//{
-		//	return (const char*)strrep;
-		//}
-		//else
-		//{
-		//	throw bad_var_cast();
-		//}
-		return (const char *)data;
+			case HIRZEL_VAR_FLOAT_TYPE:
+				details::write_bytes(&f, data, size);
+				out = std::to_string(f);
+				break;
+
+			case HIRZEL_VAR_DOUBLE_TYPE:
+				details::write_bytes(&d, data, size);
+				out = std::to_string(d);
+				break;
+
+			case HIRZEL_VAR_STR_TYPE:
+				out = std::string((const char*)data);
+				break;
+
+			default:
+				throw bad_var_cast();
+		}
+		return out;
+	}
+
+	const char* var::c_str()
+	{
+		switch (primtype)
+		{
+			case HIRZEL_VAR_STR_TYPE:
+				return (const char *)data;
+				break;
+
+			default:
+				throw bad_var_cast();
+				break;
+		}
 	}
 
 	var& var::operator=(const var& other)
