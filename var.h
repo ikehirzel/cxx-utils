@@ -41,7 +41,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include <stdlib.h>
-#include <iostream>
 #include <string>
 
 namespace hirzel
@@ -148,10 +147,8 @@ namespace hirzel
 
 #ifdef HIRZEL_VAR_DEFINITION
 
-#include <iostream>
 #include <string>
 #include <cstdlib>
-
 
 // type defines
 #define HIRZEL_VAR_INT_TYPE		0
