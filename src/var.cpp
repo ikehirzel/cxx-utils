@@ -1,6 +1,3 @@
-#pragma once
-#include <typeinfo>
-
 /*
 	Copyright 2020 Ike Hirzel
 
@@ -20,6 +17,7 @@ PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIG
 HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 /*
 	Brief: Intended not to be an improvement of std::any from C++17 but rather one
@@ -40,117 +38,11 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <stdlib.h>
-#include <string>
-
-namespace hirzel
-{
-	struct bad_var_cast : public std::exception 
-	{
-		const char *what() const throw()
-		{
-			return "Invalid cast of hirzel::var";
-		}
-	};
-
-	class var
-	{
-	private:
-		// raw pointer to data
-		void *data = nullptr;
-		// type of data
-		int primtype = -1;
-		// size of data in bytes
-		unsigned int size = 0;
-		const std::type_info* typeinfo = nullptr;
-		// constructor for primitives
-		var(const void* _data, const std::type_info* _typeinfo, int type, int size);
-		// constructor for other value types
-		var(const void* _data, const std::type_info* _typeinfo, int _size);
-	public:
-
-		var();
-		var(const var& other);
-		template <typename T>
-		var(const T& val) : var(&val, &typeid(T), sizeof(T)){}
-
-		var(short i);
-		var(int i);
-		var(long i);
-		var(long long i);
-
-		var(unsigned short i);
-		var(unsigned int i);
-		var(unsigned long i);
-		var(unsigned long long i);
-		
-		var(float f);
-		var(double d);
-
-		var(char c);
-		var(const char* c);
-		var(const std::string& s);
-
-		var(bool b);
-
-		~var();
-		
-		long long as_int();
-		unsigned long long as_uint();
-		float as_float();
-		double as_double();
-		char as_char();
-		std::string as_string();
-		const char* c_str();
-
-		bool as_bool();
-
-		inline const char *as_bytes() const
-		{
-			return (const char*)data;
-		}
-
-		inline unsigned int byte_count() const
-		{
-			return size;
-		}
-
-		inline const std::type_info* type() const
-		{
-			return typeinfo;
-		}
-
-		inline int primitive_type() const
-		{
-			return primtype;
-		}
-
-		template <typename T>
-		T as()
-		{
-			T out;
-			if(*typeinfo == typeid(T))
-			{
-				out = *(T*)data;
-			}
-			else
-			{
-				throw bad_var_cast();
-			}
-			return out;
-		}
-
-
-		var& operator=(const var& other);
-	};
-}
-
-#ifdef HIRZEL_VAR_DEFINITION
+#include "var.h"
 
 #include <string>
 #include <cstdlib>
 
-// type defines
 #define HIRZEL_VAR_INT_TYPE		0
 #define HIRZEL_VAR_UINT_TYPE	1
 #define HIRZEL_VAR_FLOAT_TYPE	2
@@ -175,7 +67,6 @@ namespace hirzel
 
 			return dst;
 		}
-
 
 		// simple strlen implementation to avoid including cstring
 		unsigned int cstr_len(const char* str)
@@ -460,6 +351,3 @@ namespace hirzel
 		return *this;
 	}
 }
-
-#undef HIRZEL_VAR_DEFINITION
-#endif
