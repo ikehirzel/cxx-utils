@@ -33,6 +33,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /*
 	Todo:
 		* Fix as_str() conversions
+		* Add support for wstring/ wchar
 		* add common arithmetic operators
 		* implement a char* that will serve as the string representation of the var
 			this will naturally require implementation of conversion methods like itoa()
@@ -115,7 +116,7 @@ namespace hirzel
 			return size;
 		}
 
-		const std::type_info* type() const
+		inline const std::type_info* type() const
 		{
 			return typeinfo;
 		}
@@ -220,7 +221,7 @@ namespace hirzel
 
 	var::var(char c) : var(&c, &typeid(char), HIRZEL_VAR_CHAR_TYPE, sizeof(char)) {}
 	var::var(const char *c) : var(c, &typeid(const char*), HIRZEL_VAR_STR_TYPE, details::cstr_len(c) + 1) {}
-	var::var(const std::string& s) : var(&s.c_str(), &typeid(const char*), HIRZEL_VAR_STR_TYPE, s.size() + 1) {}
+	var::var(const std::string& s) : var(s.c_str(), &typeid(const char*), HIRZEL_VAR_STR_TYPE, s.size() + 1) {}
 
 	var::var(float f) : var(&f, &typeid(float), HIRZEL_VAR_FLOAT_TYPE, sizeof(float)) {}
 	var::var(double d) : var(&d, &typeid(double), HIRZEL_VAR_DOUBLE_TYPE, sizeof(double)) {}
