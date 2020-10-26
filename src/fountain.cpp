@@ -3,7 +3,6 @@
 #include <hirzel/var.h>
 
 #include <ctime>
-#include <iostream>
 #include <fstream>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -27,10 +26,9 @@
 #define FOUNTAIN_RED		color(31)
 #define FOUNTAIN_BRIGHT_RED	color(1;31)
 
-#define FOUNTAIN_COLORS { FOUNTAIN_WHITE, FOUNTAIN_GREEN,\
+#define FOUNTAIN_COLORS { FOUNTAIN_RESET, FOUNTAIN_GREEN,\
 	FOUNTAIN_YELLOW, FOUNTAIN_RED, FOUNTAIN_BRIGHT_RED }
 
-#define FOUNTAIN_BUF_LEN		256
 #define FOUNTAIN_NAME_BUF_LEN	24
 
 #ifndef FOUNTAIN_TAB_SIZE
@@ -60,14 +58,8 @@ namespace hirzel
 		std::string out;
 		std::string tmp;
 
-		int bytes;
-		double f;
-		long long d;
-		unsigned long long u;
-		char c;
-
 		size_t oi = 0, li = 0;
-		out.resize(256, 0);
+		out.resize(str.size(), 0);
 
 		for(size_t i = 0; i < str.size(); i++)
 		{
@@ -79,91 +71,138 @@ namespace hirzel
 			}
 
 			i++;
+			if (i > str.size())
+			{
+				break;
+			}
 
+			tmp.clear();
+			if(li > vars.size() - 1)
+			{
+				throw std::out_of_range("Not enough vars supplied to fulfill format!");
+				return out;
+			}
 			switch(str[i])
 			{
 				case FOUNTAIN_INT:
-					std::cout << "INT\n";
+					tmp = std::to_string(vars[li].as_int());
 					break;
 
 				case FOUNTAIN_UINT:
-					std::cout << "UINT\n";
+					tmp = std::to_string(vars[li].as_uint());
 					break;
 
 				case FOUNTAIN_STRING:
-					std::cout << "STRING\n";
+					tmp = vars[li].as_string();
 					break;
 
-				case FOUNTAIN_CHAR:
-					std::cout << "CHAR\n";
+				case FOUNTAIN_FLOAT:
+					tmp = std::to_string(vars[li].as_double());
 					break;
+
+				// the following cases skip the string copy section for efficiency
+				case FOUNTAIN_CHAR:
+					out[oi] = vars[li].as_char();
+					oi++;
+					li++;
+					continue;
+				
+				case FOUNTAIN_PERCENT:
+					out[oi] = '%';
+					oi++;
+					continue;
 			}
+
+			//resizing to avoid out of bounds
+			out.resize(out.size() + tmp.size());
+
+			// contents of tmp will be copied into out
+			for (size_t j = 0; j < tmp.size(); j++)
+			{
+				out[oi] = tmp[j];
+				oi++;
+			}
+
+			li++;
 		}
 
 		out.shrink_to_fit();
 		return out;
 	}
 
+	void printf(const std::string& str, const std::vector<var>& vars)
+	{
+		std::string out = formatstr(str, vars);
+		for (size_t i = 0; i < out.size(); i++)
+		{
+			putchar(out[i]);
+		}
+	}
+
 	void log_init(const std::string& _logfilename)
 	{
 		hirzel::logfilename = _logfilename;
-
 #if defined(_WIN32) || defined(_WIN64)
 		DWORD outMode = 0;
 		HANDLE outHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 		GetConsoleMode(outHandle, &outMode);
 		SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
-
 	}
+
 	void log_push(int level, const char* name, int line, const std::string& str, const std::vector<var>& list)
 	{
-		std::cout << "LEVEL: " << level << std::endl;
-		std::cout << "NAME: " << name << std::endl;
-		std::cout << "LINE: " << line << std::endl;
-		std::cout << "VARS: \n";
-		for(var v : list)
-		{
-			std::cout << v.as_string() << std::endl;
-		}
-		/*
-		va_list list;
-		va_start(list, str);
-		uintmax_t timestamp = time(NULL);
-		
+
+		unsigned long timestamp = time(NULL);
 		std::string name_str, log, msg, line_buf;
 		std::string name_buf(FOUNTAIN_NAME_BUF_LEN, ' ');
 		
 		line_buf = std::to_string(line);
-		name_str = name + ':' + line_buf;
+		name_str = std::string(name) + ':' + line_buf;
 		name_str = name_buf + name_str;
 		int spaces = FOUNTAIN_NAME_BUF_LEN - name_str.size();
-		std::cout << "MAybe it break\n";
+
 		for (int i = 0; i < FOUNTAIN_NAME_BUF_LEN; i++)
 		{
 			name_buf[i] = name_str[i - spaces];
 		}
-		std::cout << "it no break\n";
+
 		for(char &c : name_buf)
 		{
-			if(c == 0)
+			if(c == 0 || c == 32)
 			{
-				c = ' ';
+				c = '.';
 			}
 		}
 
-		msg = vstrf(str, list);
-		log = strf("| %s | [%d] %s : %s", &name_buf, timestamp, levels[level], &msg);
+		msg = formatstr(str, list);
+		log = formatstr("| %s | [%d] %s : %s\n", { name_buf, timestamp, levels[level], msg});
+
+		const char *pos = nullptr;
+
+		for (pos = colors[level]; *pos != 0; pos++)
+		{
+			putchar(*pos);
+		}
+
+		for (size_t i = 0; i < log.size(); i++)
+		{
+			putchar(log[i]);
+		}
+
+		for (pos = FOUNTAIN_RESET; *pos != 0; pos++)
+		{
+			putchar(*pos);
+		}
 
 		logs.push_back(log);
-		*/
 	}
 	
 	void log_dump()
 	{
 		if(logfilename.empty())
 		{
-			std::cout << "The logger has not been initialized!\n";
+			puts("The logger has not been initialized!");
 			return;
 		}
 		

@@ -121,7 +121,7 @@ namespace hirzel
 		data = nullptr;
 	}
 
-	long long var::as_int()
+	long long var::as_int() const
 	{
 		long long out = 0;
 		switch(primtype)
@@ -149,7 +149,7 @@ namespace hirzel
 		return out;
 	}
 
-	unsigned long long var::as_uint()
+	unsigned long long var::as_uint() const
 	{
 		unsigned long long out = 0;
 		switch(primtype)
@@ -178,7 +178,7 @@ namespace hirzel
 		return out;
 	}
 
-	float var::as_float()
+	float var::as_float() const
 	{
 		double out = 0;
 		long long int i = 0;
@@ -209,7 +209,7 @@ namespace hirzel
 		return out;
 	}
 
-	double var::as_double()
+	double var::as_double() const
 	{
 		double out = 0;
 		long long i = 0;
@@ -238,7 +238,7 @@ namespace hirzel
 		return out;
 	}
 
-	char var::as_char()
+	char var::as_char() const
 	{
 		char out = 0;
 		switch(primtype)
@@ -261,7 +261,7 @@ namespace hirzel
 		return out;
 	}
 
-	bool var::as_bool()
+	bool var::as_bool() const
 	{
 		bool out = false;
 		long long int i = 0;
@@ -290,7 +290,7 @@ namespace hirzel
 	}
 
 	// Todo: acutally flesh this out
-	std::string var::as_string()
+	std::string var::as_string() const
 	{
 		std::string out;
 		long long i = 0;
@@ -326,7 +326,7 @@ namespace hirzel
 		return out;
 	}
 
-	const char* var::c_str()
+	const char* var::c_str() const
 	{
 		switch (primtype)
 		{
