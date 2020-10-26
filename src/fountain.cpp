@@ -1,10 +1,10 @@
 #include "fountain.h"
 
-#include <chrono>
+#include <hirzel/var.h>
+
+#include <ctime>
 #include <iostream>
 #include <fstream>
-#include <stdarg.h>
-#include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
@@ -19,7 +19,7 @@
 #define FOUNTAIN_LEVELS { FOUNTAIN_INFO_STR, FOUNTAIN_SUCCESS_STR,\
 	FOUNTAIN_WARNING_STR, FOUNTAIN_ERROR_STR, FOUNTAIN_FATAL_STR }
 
-#define color(x) 		"\033["#x"m"
+#define color(x) 			"\033["#x"m"
 #define FOUNTAIN_RESET		color(0)
 #define FOUNTAIN_WHITE		color(37)
 #define FOUNTAIN_GREEN		color(32)
@@ -34,8 +34,18 @@
 #define FOUNTAIN_NAME_BUF_LEN	24
 
 #ifndef FOUNTAIN_TAB_SIZE
-#define FOUNTAIN_TAB_SIZE 4
+#define FOUNTAIN_TAB_SIZE		4
 #endif
+
+#define FOUNTAIN_STRING			's'
+#define FOUNTAIN_CHAR			'c'
+#define FOUNTAIN_INT			'd'
+#define FOUNTAIN_UINT			'u'
+#define FOUNTAIN_OCTAL			'o'
+#define FOUNTAIN_HEXLOWER		'x'
+#define FOUNTAIN_HEXUPPER		'X'
+#define FOUNTAIN_FLOAT			'f'
+#define FOUNTAIN_PERCENT		'%'
 
 namespace hirzel
 {
@@ -45,9 +55,58 @@ namespace hirzel
 	const char *colors[] = FOUNTAIN_COLORS;
 	const char *levels[] = FOUNTAIN_LEVELS;
 
-	void log_init(const char* _logfilename)
+	std::string formatstr(const std::string& str, const std::vector<var>& vars)
 	{
-		logfilename = _logfilename;
+		std::string out;
+		std::string tmp;
+
+		int bytes;
+		double f;
+		long long d;
+		unsigned long long u;
+		char c;
+
+		size_t oi = 0, li = 0;
+		out.resize(256, 0);
+
+		for(size_t i = 0; i < str.size(); i++)
+		{
+			while (str[i] != '%' && i < str.size())
+			{
+				out[oi] = str[i];
+				oi++;
+				i++;
+			}
+
+			i++;
+
+			switch(str[i])
+			{
+				case FOUNTAIN_INT:
+					std::cout << "INT\n";
+					break;
+
+				case FOUNTAIN_UINT:
+					std::cout << "UINT\n";
+					break;
+
+				case FOUNTAIN_STRING:
+					std::cout << "STRING\n";
+					break;
+
+				case FOUNTAIN_CHAR:
+					std::cout << "CHAR\n";
+					break;
+			}
+		}
+
+		out.shrink_to_fit();
+		return out;
+	}
+
+	void log_init(const std::string& _logfilename)
+	{
+		hirzel::logfilename = _logfilename;
 
 #if defined(_WIN32) || defined(_WIN64)
 		DWORD outMode = 0;
@@ -55,71 +114,49 @@ namespace hirzel
 		GetConsoleMode(outHandle, &outMode);
 		SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
-	}
 
-	void log_push(int level, const char* name, int line, const char* str, ...)
+	}
+	void log_push(int level, const char* name, int line, const std::string& str, const std::vector<var>& list)
 	{
+		std::cout << "LEVEL: " << level << std::endl;
+		std::cout << "NAME: " << name << std::endl;
+		std::cout << "LINE: " << line << std::endl;
+		std::cout << "VARS: \n";
+		for(var v : list)
+		{
+			std::cout << v.as_string() << std::endl;
+		}
+		/*
 		va_list list;
 		va_start(list, str);
-	
-		uint32_t timestamp = std::chrono::duration_cast<std::chrono::seconds>
-			(std::chrono::system_clock::now().time_since_epoch()).count();
+		uintmax_t timestamp = time(NULL);
 		
-		char log_buf[FOUNTAIN_BUF_LEN];
-		char msg_buf[FOUNTAIN_BUF_LEN / 4];
-		char name_buf[FOUNTAIN_NAME_BUF_LEN*2];
-		char line_buf[6];
+		std::string name_str, log, msg, line_buf;
+		std::string name_buf(FOUNTAIN_NAME_BUF_LEN, ' ');
 		
-		sprintf(line_buf, "%d", line);
-		int line_len = strlen(line_buf);
-		line_buf[line_len] = 0;
-		
-		strcpy(name_buf, name);
-		int name_len = strlen(name_buf);
-		name_buf[name_len] = 0;
-		
-		int tot_len = name_len + line_len + 1;
-		
-		name_buf[name_len] = ':';
-		for (int i = name_len + 1; i < tot_len; i++)
+		line_buf = std::to_string(line);
+		name_str = name + ':' + line_buf;
+		name_str = name_buf + name_str;
+		int spaces = FOUNTAIN_NAME_BUF_LEN - name_str.size();
+		std::cout << "MAybe it break\n";
+		for (int i = 0; i < FOUNTAIN_NAME_BUF_LEN; i++)
 		{
-			name_buf[i] = line_buf[i - (name_len + 1)];
+			name_buf[i] = name_str[i - spaces];
 		}
-		//printf("name: %s len: %d\n", name_buf, name_len);
-		
-		int diff = FOUNTAIN_NAME_BUF_LEN - tot_len;
-		
-		// name is too long and has to be trimmed
-		if(diff < 0)
+		std::cout << "it no break\n";
+		for(char &c : name_buf)
 		{
-			name_buf[FOUNTAIN_NAME_BUF_LEN] = 0;
-		}
-		// name is either short or the perfect size;
-		else
-		{
-			char tmp[FOUNTAIN_NAME_BUF_LEN];
-			strcpy(tmp, name_buf);
-			for (int i = 0; i < diff; i++)
+			if(c == 0)
 			{
-				name_buf[i] = ' ';
+				c = ' ';
 			}
-			//char[FOUNTAIN_NAME_BUF_LEN - tot_len];
-			for (int i = diff; i < FOUNTAIN_NAME_BUF_LEN; i++)
-			{
-				name_buf[i] = tmp[i - diff];
-			}
-			name_buf[FOUNTAIN_NAME_BUF_LEN] = 0;
-			
 		}
-		// creating the buffer for the log message
-		vsprintf(msg_buf, str, list);
-		// creating buffer for log output
-		sprintf(log_buf, "| %s | [%d] %s : %s", name_buf, timestamp, levels[level], msg_buf);
-		// printing log with colors
-		printf("%s%s%s\n", colors[level], log_buf, FOUNTAIN_RESET);
-		// creating string for log and pushing to vector
-		std::string log = std::string(log_buf);
+
+		msg = vstrf(str, list);
+		log = strf("| %s | [%d] %s : %s", &name_buf, timestamp, levels[level], &msg);
+
 		logs.push_back(log);
+		*/
 	}
 	
 	void log_dump()
