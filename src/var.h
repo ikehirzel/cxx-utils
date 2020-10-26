@@ -78,15 +78,14 @@ namespace hirzel
 
 		~var();
 		
-		long long as_int();
-		unsigned long long as_uint();
-		float as_float();
-		double as_double();
-		char as_char();
-		std::string as_string();
-		const char* c_str();
-
-		bool as_bool();
+		long long as_int() const;
+		unsigned long long as_uint() const;
+		float as_float() const;
+		double as_double() const;
+		char as_char() const;
+		std::string as_string() const;
+		const char* c_str() const;
+		bool as_bool() const;
 
 		inline const char *as_bytes() const
 		{
