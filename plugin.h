@@ -27,7 +27,7 @@ namespace hirzel
 {
 	class Plugin
 	{
-	protected:
+	private:
 	// Stored handle of library
 	void *lib = nullptr;
 	// Stores pointers to the functions
@@ -55,18 +55,23 @@ namespace hirzel
 			}
 			else
 			{
+				#ifdef PLUGINLIB_DEBUG
 				std::cout << "Plugin::Plugin() : Binding of functions cannot continue!\n";
+				#endif
 			}
 		}
 
 		// Frees loaded handle
 		~Plugin()
 		{
-			#if OS_IS_WINDOWS
-			FreeLibrary((HINSTANCE)lib);
-			#else
-			dlclose(lib);
-			#endif
+			if(lib)
+			{
+				#if OS_IS_WINDOWS
+				FreeLibrary((HINSTANCE)lib);
+				#else
+				dlclose(lib);
+				#endif
+			}
 		}
 
 		// Loads library handle from local dynamic library
@@ -74,7 +79,9 @@ namespace hirzel
 		{
 			if(lib)
 			{
+				#ifdef PLUGINLIB_DEBUG
 				std::cout << "Plugin::loadLibrary() : A library is already loaded! aborting..." << std::endl;
+				#endif
 				return;
 			}
 
@@ -86,7 +93,9 @@ namespace hirzel
 
 			if(!lib)
 			{
+				#ifdef PLUGINLIB_DEBUG
 				std::cout << "Plugin::loadLibrary() : Failed to load library: '" << filename << "'\n";
+				#endif
 			}
 		}
 
@@ -99,7 +108,9 @@ namespace hirzel
 			//guard against unloaded library
 			if(!lib)
 			{
+				#ifdef PLUGINLIB_DEBUG
 				std::cout << "Plugin::bindFunction() : Library has not been loaded! Cannot continue with loading function: '" + funcname + "()'\n";
+				#endif
 				return;
 			}
 
@@ -113,7 +124,9 @@ namespace hirzel
 			// guard against unbound function
 			if(!func)
 			{
+				#ifdef PLUGINLIB_DEBUG
 				std::cout << "Plugin::bindFunction() : Failed to bind to function: '" << funcname << "()'\n";
+				#endif
 			}
 
 			// putting function into map
@@ -127,7 +140,9 @@ namespace hirzel
 			// guard against function
 			if(!func)
 			{
+				#ifdef PLUGINLIB_DEBUG
 				std::cout << "Plugin::execute() : Failed to find function: '" + funcname + "()'\n";
+				#endif
 			}
 			else
 			{
@@ -144,7 +159,9 @@ namespace hirzel
 			// guard against function
 			if(!func)
 			{
+				#ifdef PLUGINLIB_DEBUG
 				std::cout << "Plugin::execute() : Failed to find function: '" + funcname + "()'\n";
+				#endif
 				return out;
 			}
 			else
