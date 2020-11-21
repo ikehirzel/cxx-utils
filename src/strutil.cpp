@@ -194,12 +194,21 @@ namespace hirzel
 		return out;
 	}
 
-	void replace_regex(std::string& str, const std::string& regex, const std::string& replacement)
+	void find_and_purge(std::string& str, const std::string& token)
 	{
 		size_t pos;
-		while((pos = str.find(regex)) != std::string::npos)
+		while((pos = str.find(token)) != std::string::npos)
 		{
-			str.replace(pos, regex.size(), replacement);
+			str.erase(pos, token.size());
+		}
+	}
+
+	void find_and_replace(std::string& str, const std::string& token, const std::string& replacement)
+	{
+		size_t pos;
+		while((pos = str.find(token)) != std::string::npos)
+		{
+			str.replace(pos, token.size(), replacement);
 
 		}
 	}

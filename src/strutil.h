@@ -14,7 +14,8 @@ namespace hirzel
 
 	std::string purge_delims(const std::string& str, const std::string& delims, bool delim_invisible = false);
 	std::string replace_delims(const std::string& str, const std::string& delims, char replacement);
-	void replace_regex(std::string& str, const std::string& regex, const std::string& replacement);
+	void find_and_purge(std::string& str, const std::string& token);
+	void find_and_replace(std::string& str, const std::string& token, const std::string& replacement);
 
 	std::string get_folder(const std::string& filepath);
 	std::string get_filename(const std::string& filepath);
