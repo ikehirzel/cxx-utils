@@ -55,32 +55,6 @@ namespace hirzel
 
 		for (size_t i = 0; i < str.size(); i++)
 		{
-			// checking if char is a delimiter to be ignored
-			bool is_delim = false;
-			if (delim_invisible)
-			{
-				is_delim |= is_invisible(str[i]);
-			}
-
-			for (char d : delims)
-			{
-				if (d == str[i])
-				{
-					is_delim = true;
-					break;
-				}
-			}
-			// if is delim, take chunk and as token
-			if (is_delim)
-			{
-				if (token.size() > 0)
-				{
-					tokens.push_back(token);
-				}
-				token.clear();
-				continue;
-			}
-
 			int token_index = -1;
 			// check if the next chunk is a save delim
 			for (unsigned j = 0; j < preset_tokens.size(); j++)
@@ -132,6 +106,34 @@ namespace hirzel
 				i += preset_tokens[token_index].size() - 1;
 				continue;
 			}
+
+			// checking if char is a delimiter to be ignored
+			bool is_delim = false;
+			if (delim_invisible)
+			{
+				is_delim |= is_invisible(str[i]);
+			}
+
+			for (char d : delims)
+			{
+				if (d == str[i])
+				{
+					is_delim = true;
+					break;
+				}
+			}
+			// if is delim, take chunk and as token
+			if (is_delim)
+			{
+				if (token.size() > 0)
+				{
+					tokens.push_back(token);
+				}
+				token.clear();
+				continue;
+			}
+
+			
 
 			token += str[i];
 		}
