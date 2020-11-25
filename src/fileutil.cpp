@@ -38,7 +38,8 @@ namespace hirzel
 		return lines;
 	}
 	
-	std::string read_string(const std::string& filename)
+	std::string read_string(const std::string& filename, const std::string& line_ending_fmt,
+		bool ignore_empty_lines)
 	{
 		std::string text, line;
 		std::ifstream fin(filename);
@@ -47,54 +48,22 @@ namespace hirzel
 		{
 			while (std::getline(fin, line))
 			{
-				if(line.empty())
+				if(line.empty() && ignore_empty_lines)
 				{
 					continue;
 				}
-				if (line.back() == '\r')
-				{
-					line.resize(line.size() - 1);
-				}
-				text += line;
-			}
-			fin.close();
-		}
-		else
-		{
-			#ifdef HXUTILS_DEBUG
-			std::cout << "FileUtil::read_file_as_string() : Failed to open '" + filename + "'" << std::endl;
-			#endif
-		}
-		return text;
-	}
 
-	std::string read_rawstring(const std::string& filename)
-	{
-		std::string text, line;
-		std::ifstream fin(filename);
-		
-		if (fin.is_open())
-		{
-			while (std::getline(fin, line))
-			{
-				if(line.empty())
+				while (line.back() == '\r' || line.back() == '\n')
 				{
-					continue;
+					line.pop_back();
 				}
-				if (line.back() == '\r')
-				{
-					line[line.size() - 1] = '\n';
-				}
-				text += line;
+
+				text += line + line_ending_fmt;
 			}
+
 			fin.close();
 		}
-		else
-		{
-			#ifdef HXUTILS_DEBUG
-			std::cout << "FileUtil::read_file_as_string() : Failed to open '" + filename + "'" << std::endl;
-			#endif
-		}
+
 		return text;
 	}
 
@@ -105,7 +74,7 @@ namespace hirzel
 
 		for (std::string str : lines)
 		{
-			tokens.push_back(tokenize(str, ","));
+			tokens.push_back(tokenize(str, ",", false, false));
 		}
 		return tokens;
 	}

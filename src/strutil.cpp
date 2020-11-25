@@ -2,12 +2,13 @@
 #include <iostream>
 namespace hirzel
 {
-	bool is_invisible(char c)
+	bool is_invisible(unsigned char c)
 	{
 		return (c < 33) || (c == 127);
 	}
 
-	std::vector<std::string> tokenize(const std::string& str, const std::string& delims, bool delim_invisible)
+	std::vector<std::string> tokenize(const std::string& str, const std::string& delims,
+		bool ignore_invisible, bool save_delims)
 	{
 		std::string token;
 		std::vector<std::string> tokens;
@@ -15,10 +16,6 @@ namespace hirzel
 		for (char c : str)
 		{
 			bool is_delim = false;
-			if (delim_invisible)
-			{
-				is_delim |= is_invisible(c);
-			}
 			for (char d : delims)
 			{
 				if (d == c)
@@ -27,19 +24,27 @@ namespace hirzel
 					break;
 				}
 			}
+
 			if (is_delim)
 			{
-				if (token.size() > 0)
+				if (!token.empty())
 				{
 					tokens.push_back(token);
+					token.clear();
 				}
-				token.clear();
+				if (save_delims)
+				{
+					tokens.push_back(std::string(1, c));
+				}
 				continue;
 			}
+
+			if (ignore_invisible && is_invisible(c)) continue;
+
 			token += c;
 		}
 
-		if (token.size() > 0)
+		if (!token.empty())
 		{
 			tokens.push_back(token);
 		}
@@ -47,23 +52,22 @@ namespace hirzel
 		return tokens;
 	}
 
-	std::vector<std::string> tokenize(const std::string& str, const std::string& delims,
-		const std::vector<std::string>& preset_tokens, bool delim_invisible)
+	std::vector<std::string> tokenize(const std::string& str, const std::vector<std::string>& delims,
+		bool ignore_invisible, bool save_delims)
 	{
 		std::string token;
 		std::vector<std::string> tokens;
 
 		for (size_t i = 0; i < str.size(); i++)
 		{
-			int token_index = -1;
+			int delim_index = -1;
 			// check if the next chunk is a save delim
-			for (unsigned j = 0; j < preset_tokens.size(); j++)
+			for (unsigned j = 0; j < delims.size(); j++)
 			{
-				const std::string& del = preset_tokens[j];
-				// test
-				if (str[i] == del[0])
+				// test the first character of the delimiters
+				if (str[i] == delims[j][0])
 				{
-					unsigned end = i + del.size();
+					unsigned end = i + delims[j].size();
 					// the rest of the string is not long enough to be that token
 					if (end > str.size())
 					{
@@ -73,9 +77,15 @@ namespace hirzel
 					unsigned di = 0;
 					// comparing the two strings
 					for (unsigned c = i; c < end; c++)
-					{
-						if (str[c] != del[di])
+					{	
+						if (str[c] != delims[j][di])
 						{
+							if (ignore_invisible && is_invisible(str[c]))
+							{
+								i++;
+								end++;
+								if (end <= str.size()) continue;
+							}
 							equal = false;
 							break;
 						}
@@ -85,55 +95,33 @@ namespace hirzel
 					if (equal)
 					{
 						// checking if the index has been set yet
-						if (token_index < 0 || (token_index >= 0 && del.size() > preset_tokens[token_index].size()))
+						if (delim_index < 0 || (delim_index >= 0 && delims[j].size() > delims[delim_index].size()))
 						{
-							token_index = j;
+							delim_index = j;
 						}
 					}
 
 
 				}
 			}
+
 			// delim is set
-			if (token_index >= 0)
+			if (delim_index >= 0)
 			{
 				if (token.size() > 0)
 				{
 					tokens.push_back(token);
+					token.clear();
 				}
-				token.clear();
-				tokens.push_back(preset_tokens[token_index]);
-				i += preset_tokens[token_index].size() - 1;
+				if (save_delims)
+				{
+					tokens.push_back(delims[delim_index]);
+				}
+				i += delims[delim_index].size() - 1;
 				continue;
 			}
 
-			// checking if char is a delimiter to be ignored
-			bool is_delim = false;
-			if (delim_invisible)
-			{
-				is_delim |= is_invisible(str[i]);
-			}
-
-			for (char d : delims)
-			{
-				if (d == str[i])
-				{
-					is_delim = true;
-					break;
-				}
-			}
-			// if is delim, take chunk and as token
-			if (is_delim)
-			{
-				if (token.size() > 0)
-				{
-					tokens.push_back(token);
-				}
-				token.clear();
-				continue;
-			}
-
-			
+			if (ignore_invisible && is_invisible(str[i])) continue;
 
 			token += str[i];
 		}
