@@ -11,6 +11,9 @@ namespace hirzel
 	namespace str
 	{
 		bool is_invisible(unsigned char c);
+		bool is_alpha(unsigned char c);
+		bool is_digit(unsigned char c);
+		bool is_special(unsigned char c);
 
 		// tokenize a string with single char delimiters
 		std::vector<std::string> tokenize(const std::string& str, const std::string& delims,

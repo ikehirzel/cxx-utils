@@ -9,8 +9,23 @@ namespace hirzel
 			return (c < 33) || (c == 127);
 		}
 
+		bool is_alpha(unsigned char c)
+		{
+			return (c > 64  && c < 91) || (c > 96 && c < 123);
+		}
+
+		bool is_digit(unsigned char c)
+		{
+			return (c > 47 && c < 58);
+		}
+
+		bool is_special(unsigned char c)
+		{
+			return (c > 32 && c < 48) || (c > 57 && c < 65) || (c > 90 && c < 97) || (c > 122 && c < 127);
+		}
+
 		std::vector<std::string> tokenize(const std::string &str, const std::string &delims,
-										  bool ignore_invisible, bool save_delims)
+			bool ignore_invisible, bool save_delims)
 		{
 			std::string token;
 			std::vector<std::string> tokens;
@@ -56,7 +71,7 @@ namespace hirzel
 		}
 
 		std::vector<std::string> tokenize(const std::string &str, const std::vector<std::string> &delims,
-										  bool ignore_invisible, bool save_delims)
+			bool ignore_invisible, bool save_delims)
 		{
 			std::string token;
 			std::vector<std::string> tokens;
