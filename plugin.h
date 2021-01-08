@@ -7,8 +7,10 @@
 #pragma once
 
 #include <string>
+#ifdef PLUGINLIB_DEBUG
 #include <iostream>
-#include <map>
+#endif
+#include <unordered_map>
 #include <vector>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -31,7 +33,7 @@ namespace hirzel
 	// Stored handle of library
 	void *lib = nullptr;
 	// Stores pointers to the functions
-	std::map<std::string, void(*)()> functions;
+	std::unordered_map<std::string, void(*)()> functions;
 
 	public:
 		Plugin() = default;
@@ -39,18 +41,18 @@ namespace hirzel
 		// Constructor that will load library on creation
 		Plugin(const std::string& filename)
 		{
-			loadLibrary(filename);
+			load_library(filename);
 		}
 
 		Plugin(const std::string& filename, const std::vector<std::string>& funcnames)
 		{
-			loadLibrary(filename);
+			load_library(filename);
 
 			if(lib)
 			{
 				for(std::string s : funcnames)
 				{
-					bindFunction(s);
+					bind_function(s);
 				}
 			}
 			else
@@ -75,7 +77,7 @@ namespace hirzel
 		}
 
 		// Loads library handle from local dynamic library
-		void loadLibrary(const std::string& filename)
+		void load_library(const std::string& filename)
 		{
 			if(lib)
 			{
@@ -100,7 +102,7 @@ namespace hirzel
 		}
 
 		// loads function into function pointer map
-		void bindFunction(const std::string& funcname)
+		void bind_function(const std::string& funcname)
 		{
 			// function pointer that will be stored
 			void (*func)();
@@ -133,28 +135,10 @@ namespace hirzel
 			functions[funcname] = func;
 		}
 
-		template <typename ...Args>
-		void execute(const std::string& funcname, Args... a)
-		{
-			void (*func)(Args...) = (void(*)(Args...))functions[funcname];
-			// guard against function
-			if(!func)
-			{
-				#ifdef PLUGINLIB_DEBUG
-				std::cout << "Plugin::execute() : Failed to find function: '" + funcname + "()'\n";
-				#endif
-			}
-			else
-			{
-				(*func)(a...);
-			}
-		}
-
 		// calls function from plugin's map
 		template <typename T, typename ...Args>
 		T execute(const std::string& funcname, Args... a)
 		{
-			T out;
 			T(*func)(Args...) = (T(*)(Args...))functions[funcname];
 			// guard against function
 			if(!func)
@@ -162,13 +146,15 @@ namespace hirzel
 				#ifdef PLUGINLIB_DEBUG
 				std::cout << "Plugin::execute() : Failed to find function: '" + funcname + "()'\n";
 				#endif
-				return out;
+				return T();
 			}
 			else
 			{
-				out = (*func)(a...);
-				return out;
+				return (*func)(a...);
 			}
 		}
+
+		inline bool is_loaded() const { return (lib != nullptr); }
+		inline bool is_bound(const std::string& funcname) const { return functions.count(funcname); }
 	};
 }
