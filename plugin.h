@@ -24,6 +24,7 @@
 
 namespace hirzel
 {
+	typedef void(*func_ptr)();
 	class Plugin
 	{
 	private:
@@ -31,8 +32,7 @@ namespace hirzel
 	void *lib = nullptr;
 	// Stores pointers to the functions
 	std::string filename, err_glob;
-	std::unordered_map<std::string, void(*)()> functions;
-	std::unordered_map<std::string, void*> variables;
+	std::unordered_map<std::string, func_ptr> functions;
 
 	public:
 		Plugin() = default;
@@ -97,7 +97,7 @@ namespace hirzel
 		void bind_function(const std::string& funcname)
 		{
 			// function pointer that will be stored
-			void (*func)();
+			func_ptr func;
 
 			//guard against unloaded library
 			if(!lib)
@@ -108,9 +108,9 @@ namespace hirzel
 
 			//loading function from library
 			#if OS_IS_WINDOWS
-			func = (void(*)())GetProcAddress((HINSTANCE)lib, funcname.c_str());
+			func = (func_ptr)GetProcAddress((HINSTANCE)lib, funcname.c_str());
 			#else
-			func = (void(*)())dlsym(lib, funcname.c_str());
+			func = (func_ptr)dlsym(lib, funcname.c_str());
 			#endif
 
 			// guard against unbound function
@@ -141,12 +141,15 @@ namespace hirzel
 			}
 			else
 			{
-				return (*func)(a...);
+				return func(a...);
 			}
 		}
-
 		inline bool is_lib_bound() const { return (lib != nullptr); }
 		inline bool is_func_bound(const std::string& funcname) const { return functions.count(funcname); }
+		inline func_ptr get_func(const std::string& funcname)
+		{
+			return functions[funcname];
+		}
 		inline std::string get_error()
 		{
 			std::string out = err_glob;
