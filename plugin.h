@@ -7,9 +7,6 @@
 #pragma once
 
 #include <string>
-#ifdef PLUGINLIB_DEBUG
-#include <iostream>
-#endif
 #include <unordered_map>
 #include <vector>
 
@@ -33,33 +30,27 @@ namespace hirzel
 	// Stored handle of library
 	void *lib = nullptr;
 	// Stores pointers to the functions
+	std::string filename, err_glob;
 	std::unordered_map<std::string, void(*)()> functions;
+	std::unordered_map<std::string, void*> variables;
 
 	public:
 		Plugin() = default;
-
-		// Constructor that will load library on creation
-		Plugin(const std::string& filename)
+		Plugin(const std::string& _filename, const std::vector<std::string>& funcnames = {})
 		{
-			load_library(filename);
-		}
-
-		Plugin(const std::string& filename, const std::vector<std::string>& funcnames)
-		{
-			load_library(filename);
+			filename = _filename;
+			bind_library(filename);
 
 			if(lib)
 			{
-				for(std::string s : funcnames)
+				for(const std::string& s : funcnames)
 				{
 					bind_function(s);
 				}
 			}
 			else
 			{
-				#ifdef PLUGINLIB_DEBUG
-				std::cout << "Plugin::Plugin() : Binding of functions cannot continue!\n";
-				#endif
+				err_glob += filename + ": binding of functions could not continue!\n";
 			}
 		}
 
@@ -77,13 +68,11 @@ namespace hirzel
 		}
 
 		// Loads library handle from local dynamic library
-		void load_library(const std::string& filename)
+		void bind_library(const std::string& filename)
 		{
 			if(lib)
 			{
-				#ifdef PLUGINLIB_DEBUG
-				std::cout << "Plugin::loadLibrary() : A library is already loaded! aborting..." << std::endl;
-				#endif
+				err_glob += "plugin: a library is already loaded! overwriting is not alllowed.\n";
 				return;
 			}
 
@@ -95,9 +84,12 @@ namespace hirzel
 
 			if(!lib)
 			{
-				#ifdef PLUGINLIB_DEBUG
-				std::cout << "Plugin::loadLibrary() : Failed to load library: '" << filename << "'\n";
+				#if OS_IS_WINDOWS
+				err_glob += GetLastError();
+				#else
+				err_glob += dlerror();
 				#endif
+				err_glob += '\n';
 			}
 		}
 
@@ -110,9 +102,7 @@ namespace hirzel
 			//guard against unloaded library
 			if(!lib)
 			{
-				#ifdef PLUGINLIB_DEBUG
-				std::cout << "Plugin::bindFunction() : Library has not been loaded! Cannot continue with loading function: '" + funcname + "()'\n";
-				#endif
+				err_glob += filename + ": lib has not been bound! cannot continue with binding function: '" + funcname + "()'.\n";
 				return;
 			}
 
@@ -126,9 +116,12 @@ namespace hirzel
 			// guard against unbound function
 			if(!func)
 			{
-				#ifdef PLUGINLIB_DEBUG
-				std::cout << "Plugin::bindFunction() : Failed to bind to function: '" << funcname << "()'\n";
+				#if OS_IS_WINDOWS
+				err_glob += GetLastError();
+				#else
+				err_glob += dlerror();
 				#endif
+				err_glob += '\n';
 			}
 
 			// putting function into map
@@ -143,9 +136,7 @@ namespace hirzel
 			// guard against function
 			if(!func)
 			{
-				#ifdef PLUGINLIB_DEBUG
-				std::cout << "Plugin::execute() : Failed to find function: '" + funcname + "()'\n";
-				#endif
+				err_glob += filename + ": function '" + funcname + "()' is not bound!\n";
 				return T();
 			}
 			else
@@ -154,7 +145,13 @@ namespace hirzel
 			}
 		}
 
-		inline bool is_loaded() const { return (lib != nullptr); }
-		inline bool is_bound(const std::string& funcname) const { return functions.count(funcname); }
+		inline bool is_lib_bound() const { return (lib != nullptr); }
+		inline bool is_func_bound(const std::string& funcname) const { return functions.count(funcname); }
+		inline std::string get_error()
+		{
+			std::string out = err_glob;
+			err_glob.clear();
+			return out;
+		}
 	};
 }
