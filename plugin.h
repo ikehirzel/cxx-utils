@@ -102,7 +102,7 @@ namespace hirzel
 		}
 
 		// loads function into function pointer map
-		void bind_function(const std::string& funcname)
+		func_ptr bind_function(const std::string& funcname)
 		{
 			// function pointer that will be stored
 			func_ptr func;
@@ -111,7 +111,7 @@ namespace hirzel
 			if(!lib)
 			{
 				error = filepath + ": lib has not been bound! cannot continue with binding function: '" + funcname + "()'.";
-				return;
+				return nullptr;
 			}
 
 			//loading function from library
@@ -131,11 +131,13 @@ namespace hirzel
 				#endif
 				
 				bound = false;
+				return nullptr;
 			}
 			else
 			{
 				// putting function into map
 				functions[funcname] = func;
+				return func;
 			}
 		}
 
