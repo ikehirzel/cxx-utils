@@ -5,6 +5,7 @@
 #include <ctime>
 #include <fstream>
 #include <cstdint>
+#include <iostream>
 #include <mutex>
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
@@ -117,7 +118,7 @@ namespace hirzel
 		const char *_colors[] = FOUNTAIN_COLORS;
 		const char *_levels[] = FOUNTAIN_LEVELS;
 
-		std::string format_str(const std::string &str, const std::vector<var> &vars)
+		std::string format(const std::string &str, const std::vector<var> &vars)
 		{
 			std::string out;
 			std::string tmp;
@@ -141,9 +142,9 @@ namespace hirzel
 				}
 
 				tmp.clear();
-				if (li > vars.size() - 1)
+				if (li >= vars.size())
 				{
-					throw std::out_of_range("Not enough vars supplied to fulfill format!");
+					throw std::out_of_range("fountain::format(): Not enough vars supplied!");
 					return out;
 				}
 
@@ -159,7 +160,6 @@ namespace hirzel
 
 				*/
 
-				
 				switch (str[i])
 				{
 				case FOUNTAIN_INT:
@@ -227,9 +227,9 @@ namespace hirzel
 			return out;
 		}
 
-		void print_fmt(const std::string &str, const std::vector<var> &vars)
+		void print(const std::string &str, const std::vector<var> &vars)
 		{
-			std::string out = format_str(str, vars);
+			std::string out = format(str, vars);
 			for (size_t i = 0; i < out.size(); i++)
 			{
 				putchar(out[i]);
@@ -291,8 +291,8 @@ namespace hirzel
 				}
 			}
 			
-			msg = format_str(str, list);
-			log = format_str("%s| %s | [%s] %s : %s" FOUNTAIN_RESET "\n", { _colors[level], name_buf, std::string(timebuf), _levels[level], msg });
+			msg = format(str, list);
+			log = format("%s| %s | [%s] %s : %s" FOUNTAIN_RESET "\n", { _colors[level], name_buf, std::string(timebuf), _levels[level], msg });
 
 			if (_push_logs)
 			{
