@@ -34,12 +34,12 @@ namespace hirzel
 #ifndef EXCLUDE_FOUNTAIN_MACROS
 
 // macro for printFmt for convenience as it allows for variadic 
-#define PRINT(msg, ...)	hirzel::fountain::print(msg, { __VA_ARGS__ });
-#define DEBUG(msg, ...)	hirzel::fountain::log(FOUNTAIN_DEBUG, __FILE__, __LINE__, msg, { __VA_ARGS__} )
+#define PRINT(msg, ...)		hirzel::fountain::print(msg, { __VA_ARGS__ });
+#define DEBUG(msg, ...)		hirzel::fountain::log(FOUNTAIN_DEBUG, __FILE__, __LINE__, msg, { __VA_ARGS__} )
 #define INFO(msg, ...)		hirzel::fountain::log(FOUNTAIN_INFO, __FILE__, __LINE__, msg, { __VA_ARGS__} )
 #define SUCCESS(msg, ...)	hirzel::fountain::log(FOUNTAIN_SUCCESS, __FILE__, __LINE__, msg, { __VA_ARGS__ })
 #define WARNING(msg, ...)	hirzel::fountain::log(FOUNTAIN_WARNING, __FILE__, __LINE__, msg, { __VA_ARGS__ })
-#define ERROR(msg, ...)	hirzel::fountain::log(FOUNTAIN_ERROR, __FILE__, __LINE__, msg, { __VA_ARGS__ })
-#define FATAL(msg, ...)	hirzel::fountain::log(FOUNTAIN_FATAL, __FILE__, __LINE__, msg, { __VA_ARGS__ })
+#define ERROR(msg, ...)		hirzel::fountain::log(FOUNTAIN_ERROR, __FILE__, __LINE__, msg, { __VA_ARGS__ })
+#define FATAL(msg, ...)		hirzel::fountain::log(FOUNTAIN_FATAL, __FILE__, __LINE__, msg, { __VA_ARGS__ })
 
 #endif
