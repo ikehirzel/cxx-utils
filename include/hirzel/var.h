@@ -30,6 +30,7 @@
 #include <typeinfo>
 #include <stdlib.h>
 #include <string>
+#include <initializer_list>
 
 namespace hirzel
 {
@@ -52,6 +53,7 @@ namespace hirzel
 			char* _string;
 			uintmax_t _unsigned;
 			intmax_t _integer = 0;
+			var* _array;
 		};
 		Data _data;
 		// type of data
@@ -78,28 +80,32 @@ namespace hirzel
 		var(float f);
 		var(double d);
 
+		var(bool b);
+
 		var(char c);
 		var(char* c);
 		var(const char* c);
 		var(const std::string& s);
 
-		var(bool b);
+		var(const std::initializer_list<var>& list);
 
 		~var();
 		
-		intmax_t as_int() const;
-		uintmax_t as_uint() const;
-		float as_float() const;
-		double as_double() const;
-		char as_char() const;
-		std::string as_string() const;
-		bool as_bool() const;
+		intmax_t to_int() const;
+		uintmax_t to_uint() const;
+		float to_float() const;
+		double to_double() const;
+		char to_char() const;
+		std::string to_string() const;
+		bool to_bool() const;
 
 		inline Data data() const { return _data; }
 		inline unsigned size() const { return _size; }
-		inline char type() const { return _type; }
+		inline int type() const { return (int)_type; }
 
 		var& operator=(const var& other);
+		var& operator[](size_t i);
+		const var& operator[](size_t i) const;
 	};
 }
 
@@ -122,7 +128,9 @@ namespace hirzel
 		FLOAT_TYPE,
 		CHAR_TYPE,
 		STR_TYPE,
-		BOOL_TYPE
+		BOOL_TYPE,
+		ARRAY_TYPE,
+		MAP_TYPE
 	};
 
 	var::var(const var& other)
@@ -142,7 +150,7 @@ namespace hirzel
 	}
 
 #define VAR_CONSTRUCTOR_IMPL(valtype, member, type) var::var(valtype val)\
-{ _data.member = val; _type = type; _size = sizeof(valtype); }
+{ _data.member = val; _type = type; _size = sizeof(_data.member); }
 
 	VAR_CONSTRUCTOR_IMPL(short, _integer, INT_TYPE);
 	VAR_CONSTRUCTOR_IMPL(int, _integer, INT_TYPE);
@@ -175,15 +183,33 @@ namespace hirzel
 	var::var(char *c) : var((const char*)c) {}
 	var::var(const std::string& s) : var(s.c_str()) {}
 
-	var::~var()
+	var::var(const std::initializer_list<var>& list)
 	{
-		if (_type == STR_TYPE)
+		_size = list.size();
+		_type = ARRAY_TYPE;
+		_data._array = new var[_size];
+		int i = 0;
+		for (const var& v : list)
 		{
-			delete _data._string;
+			_data._array[i++] = v;
 		}
 	}
 
-	intmax_t var::as_int() const
+	var::~var()
+	{
+		switch (_type)
+		{
+		case STR_TYPE:
+			delete[] _data._string;
+			break;
+
+		case ARRAY_TYPE:
+			delete[] _data._array;
+			break;
+		}
+	}
+
+	intmax_t var::to_int() const
 	{
 		switch(_type)
 		{
@@ -207,7 +233,7 @@ namespace hirzel
 		return 0;
 	}
 
-	uintmax_t var::as_uint() const
+	uintmax_t var::to_uint() const
 	{
 		switch(_type)
 		{
@@ -230,7 +256,7 @@ namespace hirzel
 		return 0;
 	}
 
-	double var::as_double() const
+	double var::to_double() const
 	{
 		switch(_type)
 		{
@@ -253,7 +279,7 @@ namespace hirzel
 		return 0.0;
 	}
 
-	char var::as_char() const
+	char var::to_char() const
 	{
 		switch(_type)
 		{
@@ -277,7 +303,7 @@ namespace hirzel
 		return 0;
 	}
 
-	bool var::as_bool() const
+	bool var::to_bool() const
 	{
 		switch(_type)
 		{
@@ -299,7 +325,7 @@ namespace hirzel
 		return false;
 	}
 
-	std::string var::as_string() const
+	std::string var::to_string() const
 	{
 		switch(_type)
 		{
@@ -344,5 +370,18 @@ namespace hirzel
 
 		return *this;
 	}
+
+	var& var::operator[](size_t i)
+	{
+		switch (_type)
+		{
+		case ARRAY_TYPE:
+			return _data._array[i];
+		}
+		// this is placeholder code
+		return *this;
+	}
+
+	//const var& var::operator[](size_t i) const {}
 }
 #endif
