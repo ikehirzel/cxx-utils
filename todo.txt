@@ -1,3 +1,0 @@
-Add arithmetic operators
-clean up code
-add non const conversions that will allow for direct modification of the memory
