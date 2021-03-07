@@ -27,10 +27,10 @@
 #ifndef VAR_H
 #define VAR_H
 
-#include <typeinfo>
-#include <stdlib.h>
+#include <iostream>
 #include <string>
-#include <initializer_list>
+#include <unordered_map>
+#include <vector>
 
 namespace hirzel
 {
@@ -45,25 +45,38 @@ namespace hirzel
 	class var
 	{
 	private:
+
 		union Data
 		{
 			bool _boolean;
 			char _character;
 			double _float;
-			char* _string;
+			std::string* _string;
 			uintmax_t _unsigned;
 			intmax_t _integer = 0;
-			var* _array;
+			std::vector<var>* _array;
+			std::unordered_map<std::string, var>* _map;
 		};
 		Data _data;
 		// type of data
 		char _type = 0;
-		// size of data in bytes
-		unsigned _size = 0;
-		// universal constructor
 	public:
 
+		enum
+		{
+			NULL_TYPE,
+			INT_TYPE,
+			UINT_TYPE,
+			FLOAT_TYPE,
+			CHAR_TYPE,
+			BOOL_TYPE,
+			STR_TYPE,
+			ARRAY_TYPE,
+			MAP_TYPE
+		};
+
 		var() = default;
+
 		var(const var& other);
 		var(var&& other);
 
@@ -81,12 +94,11 @@ namespace hirzel
 		var(double d);
 
 		var(bool b);
-
-		var(char c);
 		var(char* c);
 		var(const char* c);
+		var(char c);
+	
 		var(const std::string& s);
-
 		var(const std::initializer_list<var>& list);
 
 		~var();
@@ -100,57 +112,78 @@ namespace hirzel
 		bool to_bool() const;
 
 		inline Data data() const { return _data; }
-		inline unsigned size() const { return _size; }
+		inline size_t size() const
+		{
+			switch (_type)
+			{
+			case INT_TYPE:
+				return sizeof(_data._integer);
+			case UINT_TYPE:
+				return sizeof(_data._unsigned);
+			case FLOAT_TYPE:
+				return sizeof(_data._float);			
+			case CHAR_TYPE:
+				return sizeof(_data._character);
+			case BOOL_TYPE:
+				return sizeof(_data._boolean);
+			case STR_TYPE:
+				return _data._string->size();
+			case ARRAY_TYPE:
+				return _data._array->size();
+			case MAP_TYPE:
+				return _data._map->size();
+			}
+			return 0;
+		}
+
 		inline int type() const { return (int)_type; }
 
 		var& operator=(const var& other);
+
 		var& operator[](size_t i);
-		const var& operator[](size_t i) const;
+		var& operator[](const std::string& key);
+		//const var& operator[](size_t i) const;
 	};
 }
 
-#endif
+#endif // VAR_H
 
 #ifdef HIRZEL_VAR_IMPLEMENTATION
 #undef HIRZEL_VAR_IMPLEMENTATION
 
-#include <string>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-
 namespace hirzel
 {
-	enum {
-		NULL_TYPE,
-		INT_TYPE,
-		UINT_TYPE,
-		FLOAT_TYPE,
-		CHAR_TYPE,
-		STR_TYPE,
-		BOOL_TYPE,
-		ARRAY_TYPE,
-		MAP_TYPE
-	};
-
 	var::var(const var& other)
 	{
-		std::cout << "Copy constructor\n";
-		*this = other;	
+		_type = other.type();
+		switch(_type)
+		{
+		case ARRAY_TYPE:
+			_data._array = new std::vector<var>(*other.data()._array);
+			break;
+
+		case MAP_TYPE:
+			_data._map = new std::unordered_map<std::string, var>(*other.data()._map);
+			break;
+
+		case STR_TYPE:
+			_data._string = new std::string(*other.data()._string);
+			break;
+
+		default:
+			_data = other.data();
+			break;
+		}
 	}
 
 	var::var(var&& other)
 	{
-		std::cout << "Move constructor\n";
-		_size = other._size;
 		_type = other._type;
 		_data = other._data;
-
 		other._type = NULL_TYPE;
 	}
 
-#define VAR_CONSTRUCTOR_IMPL(valtype, member, type) var::var(valtype val)\
-{ _data.member = val; _type = type; _size = sizeof(_data.member); }
+#define VAR_CONSTRUCTOR_IMPL(valtype, member, type) var::var(valtype val){ _data.member = val; _type = type; }
 
 	VAR_CONSTRUCTOR_IMPL(short, _integer, INT_TYPE);
 	VAR_CONSTRUCTOR_IMPL(int, _integer, INT_TYPE);
@@ -169,30 +202,28 @@ namespace hirzel
 
 	VAR_CONSTRUCTOR_IMPL(bool, _boolean, BOOL_TYPE);
 
-	var::var(const char *c)
+	var::var(const char* c)
 	{
 		_type = STR_TYPE;
-		_size = std::strlen(c);
-		_data._string = new char[_size + 1];
-		for (int i = 0; i < _size; i++)
-		{
-			_data._string[i] = c[i];
-		}
-		_data._string[_size] = 0;
+		_data._string = new std::string(c);
 	}
-	var::var(char *c) : var((const char*)c) {}
-	var::var(const std::string& s) : var(s.c_str()) {}
+
+	var::var(char* c)
+	{
+		_type = STR_TYPE;
+		_data._string = new std::string(c);
+	}
+
+	var::var(const std::string& s)
+	{
+		_type = STR_TYPE;
+		_data._string = new std::string(s);
+	}
 
 	var::var(const std::initializer_list<var>& list)
 	{
-		_size = list.size();
 		_type = ARRAY_TYPE;
-		_data._array = new var[_size];
-		int i = 0;
-		for (const var& v : list)
-		{
-			_data._array[i++] = v;
-		}
+		_data._array = new std::vector<var>(list);
 	}
 
 	var::~var()
@@ -200,11 +231,15 @@ namespace hirzel
 		switch (_type)
 		{
 		case STR_TYPE:
-			delete[] _data._string;
+			delete _data._string;
 			break;
 
 		case ARRAY_TYPE:
-			delete[] _data._array;
+			delete _data._array;
+			break;
+
+		case MAP_TYPE:
+			delete _data._map;
 			break;
 		}
 	}
@@ -296,9 +331,8 @@ namespace hirzel
 
 			case FLOAT_TYPE:
 				return (char)_data._float;
-
 			case STR_TYPE:
-				return _data._string[0];
+				return (*_data._string)[0];
 		}
 		return 0;
 	}
@@ -320,7 +354,7 @@ namespace hirzel
 			case FLOAT_TYPE:
 				return (bool)_data._float;
 			case STR_TYPE:
-				return _size > 1;
+				return !_data._string->empty();
 		}
 		return false;
 	}
@@ -342,7 +376,7 @@ namespace hirzel
 			case FLOAT_TYPE:
 				return std::to_string(_data._float);
 			case STR_TYPE:
-				return std::string(_data._string);
+				return *_data._string;
 		}
 		return "";
 	}
@@ -350,18 +384,9 @@ namespace hirzel
 	var& var::operator=(const var& other)
 	{
 		_type = other.type();
-		_size = other.size();
 		if (_type == STR_TYPE)
 		{
-			Data d = other.data();
-			// copy string
-			_data._string = new char[_size + 1];
-			const char* str = d._string;
-			for (int i = 0; i < _size; i++)
-			{
-				_data._string[i] = str[i];
-			}
-			_data._string[_size] = 0;
+			*_data._string = *other.data()._string;
 		}
 		else
 		{
@@ -371,12 +396,31 @@ namespace hirzel
 		return *this;
 	}
 
+	var& var::operator[](const std::string& key)
+	{
+		switch (_type)
+		{
+		case NULL_TYPE:
+			_type = MAP_TYPE;
+			_data._map = new std::unordered_map<std::string, var>();
+			return (*_data._map)[key];
+
+		case MAP_TYPE:
+			return (*_data._map)[key];
+		default:
+			break;
+		}
+		return *this;
+	}
+
 	var& var::operator[](size_t i)
 	{
 		switch (_type)
 		{
 		case ARRAY_TYPE:
-			return _data._array[i];
+			return (*_data._array)[i];
+		case MAP_TYPE:
+			return (*_data._map)[std::to_string(i)];
 		}
 		// this is placeholder code
 		return *this;
