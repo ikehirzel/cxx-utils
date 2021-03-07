@@ -104,6 +104,8 @@ void test_map()
 	m["val"] = 2;
 	assert(m["val"].to_int() == 2);
 	assert(m.size() == 1);
+	m[0] = "Hello";
+	assert(m[0].to_string() == "Hello");
 	//std::cout << m["val"] << std::endl;
 }
 
@@ -112,7 +114,6 @@ typedef void(*Func)();
 
 int main()
 {
-	
 	TEST(null);
 	TEST(int);
 	TEST(uint);

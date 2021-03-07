@@ -34,14 +34,6 @@
 
 namespace hirzel
 {
-	struct bad_var_cast : public std::exception 
-	{
-		const char *what() const throw()
-		{
-			return "Invalid cast of hirzel::var";
-		}
-	};
-
 	class var
 	{
 	private:
@@ -140,8 +132,10 @@ namespace hirzel
 		var& operator=(const var& other);
 
 		var& operator[](size_t i);
+		inline const var& operator[](size_t i) const { return (*this)[i]; }
+
 		var& operator[](const std::string& key);
-		//const var& operator[](size_t i) const;
+		inline const var& operator[](const std::string& key) const { return (*this)[key]; }
 	};
 }
 
@@ -386,15 +380,25 @@ namespace hirzel
 	{
 		switch (_type)
 		{
-		case NULL_TYPE:
+		case ARRAY_TYPE:
+			std::vector<var>* arr;
+			arr = _data._array;
 			_type = MAP_TYPE;
 			_data._map = new std::unordered_map<std::string, var>();
+
+			for (int i = 0; i < arr->size(); i++)
+			{
+				(*_data._map)[std::to_string(i)] = (*arr)[i];
+			}
 			return (*_data._map)[key];
 
 		case MAP_TYPE:
 			return (*_data._map)[key];
+
 		default:
-			break;
+			_type = MAP_TYPE;
+			_data._map = new std::unordered_map<std::string, var>();
+			return (*_data._map)[key];
 		}
 		return *this;
 	}
@@ -404,14 +408,17 @@ namespace hirzel
 		switch (_type)
 		{
 		case ARRAY_TYPE:
+			if (i > _data._array->size()) (*_data._array).resize(i + 1);
 			return (*_data._array)[i];
+
 		case MAP_TYPE:
 			return (*_data._map)[std::to_string(i)];
-		}
-		// this is placeholder code
-		return *this;
-	}
 
-	//const var& var::operator[](size_t i) const {}
+		default:
+			_type = var::ARRAY_TYPE;
+			_data._array = new std::vector<var>(i + 1);
+			return (*_data._array)[i];
+		}
+	}
 }
 #endif
