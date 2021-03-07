@@ -236,7 +236,14 @@ namespace hirzel
 			case FLOAT_TYPE:
 				return (intmax_t)_data._float;
 			case STR_TYPE:
-				return (intmax_t)_data._string->size();
+				try
+				{
+					return std::stoll(*_data._string);
+				}
+				catch(std::invalid_argument e)
+				{
+					return 0;
+				}
 		}
 		return 0;
 	}
@@ -258,7 +265,14 @@ namespace hirzel
 			case FLOAT_TYPE:
 				return (uintmax_t)_data._float;
 			case STR_TYPE:
-				return (uintmax_t)_data._string->size();
+				try
+				{
+					return std::stoull(*_data._string);
+				}
+				catch (std::invalid_argument e)
+				{
+					return 0;
+				}
 		}
 		return 0;
 	}
@@ -280,7 +294,14 @@ namespace hirzel
 			case FLOAT_TYPE:
 				return _data._float;
 			case STR_TYPE:
-				return _data._string->size();
+				try
+				{
+					return std::stod(*_data._string);
+				}
+				catch(std::invalid_argument e)
+				{
+					return 0.0;
+				}
 		}
 		return 0.0;
 	}
@@ -302,7 +323,7 @@ namespace hirzel
 			case FLOAT_TYPE:
 				return (char)_data._float;
 			case STR_TYPE:
-				return _data._string->size();
+				return (_data._string->empty() ? 0 : (*_data._string)[0]);
 		}
 		return 0;
 	}

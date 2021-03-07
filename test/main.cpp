@@ -70,9 +70,9 @@ void test_string()
 	var v;
 	assert(v.type() != var::STR_TYPE);
 	v = "";
-	compare(v, var::STR_TYPE, 0, 0, 0u, 0.0, (char)0, false, "");
+	compare(v, var::STR_TYPE, 0, 0, 0u, 0, (char)0, false, "");
 	v = "HELLO";
-	compare(v, var::STR_TYPE, 5, 5, 5u, 5.0, (char)5, true, "HELLO");
+	compare(v, var::STR_TYPE, 5, 0, 0, 0.0, 'H', true, "HELLO");
 }
 
 void test_array()
@@ -106,7 +106,6 @@ void test_map()
 	assert(m.size() == 1);
 	m[0] = "Hello";
 	assert(m[0].to_string() == "Hello");
-	//std::cout << m["val"] << std::endl;
 }
 
 typedef void(*Func)();
