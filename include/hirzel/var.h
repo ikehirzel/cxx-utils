@@ -105,11 +105,10 @@ namespace hirzel
 		
 		intmax_t to_int() const;
 		uintmax_t to_uint() const;
-		float to_float() const;
 		double to_double() const;
 		char to_char() const;
-		std::string to_string() const;
 		bool to_bool() const;
+		std::string to_string() const;
 
 		inline Data data() const { return _data; }
 		inline size_t size() const
@@ -155,25 +154,7 @@ namespace hirzel
 {
 	var::var(const var& other)
 	{
-		_type = other.type();
-		switch(_type)
-		{
-		case ARRAY_TYPE:
-			_data._array = new std::vector<var>(*other.data()._array);
-			break;
-
-		case MAP_TYPE:
-			_data._map = new std::unordered_map<std::string, var>(*other.data()._map);
-			break;
-
-		case STR_TYPE:
-			_data._string = new std::string(*other.data()._string);
-			break;
-
-		default:
-			_data = other.data();
-			break;
-		}
+		*this = other;
 	}
 
 	var::var(var&& other)
@@ -260,10 +241,8 @@ namespace hirzel
 				return (intmax_t)_data._character;
 			case FLOAT_TYPE:
 				return (intmax_t)_data._float;
-
-			default:
-				throw bad_var_cast();
-				break;
+			case STR_TYPE:
+				return (intmax_t)_data._string->size();
 		}
 		return 0;
 	}
@@ -284,9 +263,8 @@ namespace hirzel
 				return (uintmax_t)_data._character;
 			case FLOAT_TYPE:
 				return (uintmax_t)_data._float;
-
-			default:
-				throw bad_var_cast();
+			case STR_TYPE:
+				return (uintmax_t)_data._string->size();
 		}
 		return 0;
 	}
@@ -307,9 +285,8 @@ namespace hirzel
 				return (double)_data._character;
 			case FLOAT_TYPE:
 				return _data._float;
-
-			default:
-				throw bad_var_cast();
+			case STR_TYPE:
+				return _data._string->size();
 		}
 		return 0.0;
 	}
@@ -328,11 +305,10 @@ namespace hirzel
 				return (char)_data._boolean;
 			case CHAR_TYPE:
 				return (char)_data._character;
-
 			case FLOAT_TYPE:
 				return (char)_data._float;
 			case STR_TYPE:
-				return (*_data._string)[0];
+				return _data._string->size();
 		}
 		return 0;
 	}
@@ -364,7 +340,7 @@ namespace hirzel
 		switch(_type)
 		{
 			case NULL_TYPE:
-				return "";
+				return "null";
 			case INT_TYPE:
 				return std::to_string(_data._integer);
 			case UINT_TYPE:
@@ -384,13 +360,23 @@ namespace hirzel
 	var& var::operator=(const var& other)
 	{
 		_type = other.type();
-		if (_type == STR_TYPE)
+		switch(_type)
 		{
-			*_data._string = *other.data()._string;
-		}
-		else
-		{
+		case ARRAY_TYPE:
+			_data._array = new std::vector<var>(*other.data()._array);
+			break;
+
+		case MAP_TYPE:
+			_data._map = new std::unordered_map<std::string, var>(*other.data()._map);
+			break;
+
+		case STR_TYPE:
+			_data._string = new std::string(*other.data()._string);
+			break;
+
+		default:
 			_data = other.data();
+			break;
 		}
 
 		return *this;
