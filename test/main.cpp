@@ -36,6 +36,7 @@ void test_uint()
 	var v;
 	assert(v.type() != var::UINT_TYPE);
 	v = 45u;
+	std::cout << "var type: " << v.type() << std::endl;
 	compare(v, var::UINT_TYPE, sizeof(uintmax_t), 45, 45u, 45.0, (char)45, true, "45");
 }
 
@@ -108,7 +109,50 @@ void test_map()
 	assert(m[0].to_string() == "Hello");
 }
 
-typedef void(*Func)();
+void test_parse_json()
+{
+	var v = var::parse_json("true");
+	assert(v.type() == var::BOOL_TYPE);
+	assert(v.to_bool() == true);
+
+	v = var::parse_json("false");
+	assert(v.type() == var::BOOL_TYPE);
+	assert(v.to_bool() == false);
+
+	v = var::parse_json("null");
+	assert(v.type() == var::NULL_TYPE);
+
+	v = var::parse_json("3");
+	assert(v.type() == var::UINT_TYPE);
+	assert(v.to_int() == 3);
+
+	v = var::parse_json("-5");
+	assert(v.type() == var::INT_TYPE);
+	assert(v.to_int() == -5);
+
+	v = var::parse_json("-876.02");
+	assert(v.type() == var::FLOAT_TYPE);
+	assert(v.to_double() == -876.02);
+
+	v = var::parse_json("5.342");
+	assert(v.to_double() == 5.342);
+
+	//v = var::parse_json("5.4.");
+	//assert(v.type() == var::NULL_TYPE);
+
+	v = var::parse_json("\"hello\"");
+	assert(v.to_string() == "hello");
+
+	v = var::parse_json("[3,5,\"hello\"]");
+	assert(v[0].to_int() == 3);
+	assert(v[1].to_int() == 5);
+	assert(v[2].to_string() == "hello");
+
+	v = var::parse_json("{\"num\":3,\"str\":\"abcdef\"}");
+	assert(v["num"].to_int() == 3);
+	assert(v["str"].to_string() == "abcdef");
+}
+
 #define TEST(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
 
 int main()
@@ -122,5 +166,6 @@ int main()
 	TEST(string);
 	TEST(array);
 	TEST(map);
+	TEST(parse_json);
 	return 0;
 }
