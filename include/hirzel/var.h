@@ -55,7 +55,7 @@ namespace hirzel
 
 		static var parse_json_object(const std::string& src, size_t& i);
 		static var parse_json_array(const std::string& src, size_t& i);
-		static var parse_json_primitive(const std::string& src, size_t& i);
+		static var parse_json_value(const std::string& src, size_t& i);
 
 	public:
 
@@ -174,6 +174,44 @@ namespace hirzel
 		other._type = NULL_TYPE;
 	}
 
+	var::var(Type t)
+	{
+		_type = t;
+		switch (t)
+		{
+		case NULL_TYPE:
+			_data._integer = 0;
+			break;
+		case ERROR_TYPE:
+			_data._string = new std::string();
+			break;
+		case INT_TYPE:
+			_data._integer = 0;
+			break;
+		case UINT_TYPE:
+			_data._unsigned = 0;
+			break;
+		case FLOAT_TYPE:
+			_data._float = 0.0;
+			break;
+		case CHAR_TYPE:
+			_data._character = 0;
+			break;
+		case BOOL_TYPE:
+			_data._boolean = false;
+			break;
+		case STR_TYPE:
+			_data._string = new std::string();
+			break;
+		case ARRAY_TYPE:
+			_data._array = new std::vector<var>();
+			break;
+		case MAP_TYPE:
+			_data._map = new std::unordered_map<std::string,var>();
+			break;
+		}
+	}
+
 	var::var(long long i)
 	{
 		_data._integer = i;
@@ -182,7 +220,6 @@ namespace hirzel
 
 	var::var(long long unsigned u)
 	{
-		std::cout << "unsigned constructor\n";
 		_data._unsigned = u;
 		_type = var::UINT_TYPE;
 	}
@@ -369,26 +406,69 @@ namespace hirzel
 
 	std::string var::to_string() const
 	{
+		std::string out;
 		switch(_type)
 		{
 			case NULL_TYPE:
-				return "null";
+				out = "null";
+				break;
 			case INT_TYPE:
-				return std::to_string(_data._integer);
+				out = std::to_string(_data._integer);
+				break;
 			case UINT_TYPE:
-				return std::to_string(_data._unsigned);
+				out = std::to_string(_data._unsigned);
+				break;
 			case BOOL_TYPE:
-				return (_data._boolean ? "true" : "false");
+				out = (_data._boolean ? "true" : "false");
+				break;
 			case CHAR_TYPE:
-				return std::string(1, _data._character);
+				out =  std::string(1, _data._character);
+				break;
 			case FLOAT_TYPE:
-				return std::to_string(_data._float);
+				out = std::to_string(_data._float);
+				break;
 			case ERROR_TYPE:
 			case STR_TYPE:
-				return *_data._string;
-			default:
-				return "";		
+				out = *_data._string;
+				break;
+			case ARRAY_TYPE:
+				out = "[";
+				for (int i = 0; i < _data._array->size(); i++)
+				{
+					if (i > 0) out += ", ";
+					out += (*_data._array)[i].to_string();
+				}
+				out += "]";
+				break;
+
+			case MAP_TYPE:
+				out = "{\n";
+				int i;
+				int size;
+				size = _data._map->size();
+				int curr;
+				curr = 0;
+				for (const std::pair<std::string, var>& p : *_data._map)
+				{
+					out +="\t\"" + p.first + "\": ";
+					i = out.size();
+					out += p.second.to_string();
+					for (int j = i; j < out.size(); j++)
+					{
+						if (out[j] == '\n')
+						{
+							j++;
+							out.insert(out.begin() + j, '\t');
+						}
+					}
+					if (curr < size - 1) out += ',';
+					out += '\n';
+					curr++;
+				}
+				out += '}';
+				break;
 		}
+		return out;
 	}
 
 	var& var::operator=(const var& other)
@@ -404,6 +484,7 @@ namespace hirzel
 			_data._map = new std::unordered_map<std::string, var>(*other.data()._map);
 			break;
 
+		case ERROR_TYPE:
 		case STR_TYPE:
 			_data._string = new std::string(*other.data()._string);
 			break;
@@ -468,7 +549,7 @@ namespace hirzel
 
 	// Static functions
 
-	var var::parse_json_primitive(const std::string& src, size_t& i)
+	var var::parse_json_value(const std::string& src, size_t& i)
 	{
 		//std::cout << "PARSING PRIM starting with " << src[i] << "\n";
 		char first = src[i];
@@ -489,11 +570,7 @@ namespace hirzel
 				// not a number
 				if (c == '.')
 				{
-					if (dec)
-					{
-						std::cout << "Extra '.' found in number literal\n";
-						return var();
-					}
+					if (dec) return error("JSON: stray '.' found in number literal at position: " + std::to_string(i));
 					dec = true;
 				}
 				else if (c < '0' || c > '9') break;
@@ -519,19 +596,11 @@ namespace hirzel
 			char tmp[256];
 			char* pos = tmp;
 			i++;
-			while (true)
+			while (src[i] != '\"')
 			{
-				if (i == src.size())
-				{
-					return error("JSON: unterminated string literal at position: " + std::to_string(i));
-				}
-				if (src[i] == '\"')
-				{
-					i++;
-					break;
-				}
 				*pos++ = src[i++];
 			}
+			i++;
 			*pos = 0;
 			return var(tmp);
 		}
@@ -541,6 +610,10 @@ namespace hirzel
 			int size;
 			switch(first)
 			{
+			case '{':
+				return parse_json_object(src, i);
+			case '[':
+				return parse_json_array(src, i);
 			case 't':
 				match = "true";
 				size = 4;
@@ -592,38 +665,60 @@ namespace hirzel
 
 	var var::parse_json_array(const std::string& src, size_t& i)
 	{
-		var arr;
+		var arr(ARRAY_TYPE);
 		int index = 0;
 		i++;
-		while (src[i] != ']')
+		if (src[i] == ']') return arr;
+		bool new_elem = true;
+		while (new_elem)
 		{
-			arr[index++] = parse_json_primitive(src, i);
-			if (src[i] == ',') i++;
+			arr[index++] = parse_json_value(src, i);
+
+			if (src[i] == ',')
+				i++;
+			else
+				new_elem = false;
 		}
 		i++;
 		return arr;
 	}
-
 	
 	var var::parse_json_object(const std::string& src, size_t& i)
 	{
-		var obj;
+		var obj(var::MAP_TYPE);
 		int index = 0;
 		i++;
-		while (src[i] != '}')
+		if (src[i] == '}') return obj;
+		bool new_member = true;
+		while (new_member)
 		{
 			char label[128];
 			char* pos = label;
-			if (src[i] != '\"')
+		
+			if (src[i] != '\"') return error("JSON: invalid label given for member at position: " + std::to_string(i));
+			i++;
+			while (src[i] != '\"')
 			{
-				return error("invalid label given for object member at position: " + std::to_string(i));
+				*pos++ = src[i++];
 			}
-			while (true)
+			i++;
+			*pos = 0;
+
+			if (i == src.size() || src[i] != ':') return error("JSON: stray string at position: " + std::to_string(i));
+			i++;
+			
+			var& m = obj[label];
+			m = parse_json_value(src, i);
+			if (m.is_error()) return m;
+			
+			if (src[i] != ',')
 			{
-				if (i == src.size())
-				{
-					return error("unterminated string at position: " + std::to_string(i));
-				}
+				new_member = false;
+				if (src[i] != '}') return error("JSON: unexpected token '" + std::string(1, src[i]) + "' at position: " + std::to_string(i));
+			}
+			else
+			{
+				i++;
 			}
 		}
 
@@ -635,49 +730,60 @@ namespace hirzel
 		std::string src_mod(src.size(), 0);
 		// removing all non vital white space
 		size_t oi = 0;
+		// maximum depth of 128 for json file 
+		char pairs[128];
+		char* pair = pairs;
 		for (size_t i = 0; i < src.size(); i++)
 		{
 			if (src[i] < 33) continue;
-			if (src[i] == '\"')
+			switch(src[i])
 			{
+			case '\"':
 				src_mod[oi++] = src[i++];
-				while (i < src.size())
+				while (true)
 				{
+					if (i >= src.size()) return error("JSON: unterminated string at position: " + std::to_string(i - 1));
 					// end of string
+					if (src[i] == '\"' && src[i - 1] != '\\') break;
 					src_mod[oi++] = src[i++];
-					if (src[i - 1] == '\"' && src[i - 2] != '\\') break;
 				}
+				break;
 
-				if (src[i - 1] != '\"')
-				{
-					// throw error as we have a string runoff
-					std::cout << "ERROR: string runoff\n";
-					return var();
-				}
+			case '[':
+				*++pair = ']';
+				break;
+
+			case '{':
+				*++pair = '}';
+				break;
+
+			case ']':
+			case '}':
+				if (*pair == src[i])
+					pair--;
+				else
+					return error("JSON: stray '" + std::string(1, src[i]) + "' at position: " + std::to_string(i));
+				break;
 			}
+
 			src_mod[oi++] = src[i];
 		}
 
 		src_mod.resize(oi);
 
-		if (src_mod.empty())
+		if (src_mod.empty()) return error("JSON: source string was empty");
+		
+		if (pair > pairs)
 		{
-			std::cout << "Json string was empty\n";
+			std::string name = *pair == ']' ? "array" : "object";
+			return error("JSON: unterminated " + name + " definition");
 		}
-		size_t i = 0;
-		if (src_mod[0] == '{')
-		{
-			return parse_json_object(src, i);
-		}
-		else if (src[0] == '[')
-		{
-			return parse_json_array(src, i);
-		}
-		else 
-		{
-			return parse_json_primitive(src, i);
-		}
-	}
 
-}
-#endif
+
+		size_t i = 0;
+
+		return parse_json_value(src_mod, i);
+	}
+} // namespace hirzel
+
+#endif // HIRZEL_VAR_IMPLEMENTATION

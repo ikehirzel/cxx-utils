@@ -2,6 +2,7 @@
 #include <hirzel/var.h>
 #include <cassert>
 #include <iostream>
+#include <fstream>
 
 using hirzel::var;
 
@@ -36,7 +37,6 @@ void test_uint()
 	var v;
 	assert(v.type() != var::UINT_TYPE);
 	v = 45u;
-	std::cout << "var type: " << v.type() << std::endl;
 	compare(v, var::UINT_TYPE, sizeof(uintmax_t), 45, 45u, 45.0, (char)45, true, "45");
 }
 
@@ -111,46 +111,69 @@ void test_map()
 
 void test_parse_json()
 {
-	var v = var::parse_json("true");
-	assert(v.type() == var::BOOL_TYPE);
-	assert(v.to_bool() == true);
+	var v;
+	// v = var::parse_json("true");
+	// assert(v.type() == var::BOOL_TYPE);
+	// assert(v.to_bool() == true);
 
-	v = var::parse_json("false");
-	assert(v.type() == var::BOOL_TYPE);
-	assert(v.to_bool() == false);
+	// v = var::parse_json("false");
+	// assert(v.type() == var::BOOL_TYPE);
+	// assert(v.to_bool() == false);
 
-	v = var::parse_json("null");
-	assert(v.type() == var::NULL_TYPE);
+	// v = var::parse_json("null");
+	// assert(v.type() == var::NULL_TYPE);
 
-	v = var::parse_json("3");
-	assert(v.type() == var::UINT_TYPE);
-	assert(v.to_int() == 3);
+	// v = var::parse_json("3");
+	// assert(v.type() == var::UINT_TYPE);
+	// assert(v.to_int() == 3);
 
-	v = var::parse_json("-5");
-	assert(v.type() == var::INT_TYPE);
-	assert(v.to_int() == -5);
+	// v = var::parse_json("-5");
+	// assert(v.type() == var::INT_TYPE);
+	// assert(v.to_int() == -5);
 
-	v = var::parse_json("-876.02");
-	assert(v.type() == var::FLOAT_TYPE);
-	assert(v.to_double() == -876.02);
+	// v = var::parse_json("-876.02");
+	// assert(v.type() == var::FLOAT_TYPE);
+	// assert(v.to_double() == -876.02);
 
-	v = var::parse_json("5.342");
-	assert(v.to_double() == 5.342);
+	// v = var::parse_json("5.342");
+	// assert(v.to_double() == 5.342);
 
-	//v = var::parse_json("5.4.");
-	//assert(v.type() == var::NULL_TYPE);
+	// //v = var::parse_json("5.4.");
+	// //assert(v.type() == var::NULL_TYPE);
 
-	v = var::parse_json("\"hello\"");
-	assert(v.to_string() == "hello");
+	// v = var::parse_json("\"hello\"");
+	// assert(v.to_string() == "hello");
+
+	// v = var::parse_json("[3,5,\"hello\"]");
+	// assert(v[0].to_int() == 3);
+	// assert(v[1].to_int() == 5);
+	// assert(v[2].to_string() == "hello");
+
+	// v = var::parse_json("{\"num\":3,\"str\":\"abcdef\",\"\":4}");
+	// if (v.is_error()) std::cout << v << std::endl;
+	// assert(v["num"].to_int() == 3);
+	// assert(v["str"].to_string() == "abcdef");
 
 	v = var::parse_json("[3,5,\"hello\"]");
-	assert(v[0].to_int() == 3);
-	assert(v[1].to_int() == 5);
-	assert(v[2].to_string() == "hello");
+	assert(!v.is_error());
+	std::cout << v << std::endl;
 
-	v = var::parse_json("{\"num\":3,\"str\":\"abcdef\"}");
-	assert(v["num"].to_int() == 3);
-	assert(v["str"].to_string() == "abcdef");
+	v = var::parse_json("{\"num\":3,\"str\":\"asdf\",\"scooby\":{\"snacks\":{\"flavor\":\"spicy\",\"size\":3}}}");
+	assert(!v.is_error());
+	std::cout << v << std::endl;
+
+	// std::ifstream file;
+	// file.open("./colors.json");
+	// std::string json_str;
+	// json_str.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+	// file.close();
+	// v = var::parse_json(json_str);
+	// if (v.is_error()) std::cout << v << std::endl;
+	// assert(!v.is_error());
+	// var& colors = v["colors"];
+	// std::cout << colors.type() << std::endl;
+
+	//assert(colors.size() == 
 }
 
 #define TEST(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
