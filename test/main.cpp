@@ -6,6 +6,155 @@
 
 using hirzel::var;
 
+std::string colors_json =
+R"=====({
+  "colors": [
+    {
+      "color": "black",
+      "category": "hue",
+      "type": "primary",
+      "code": {
+        "rgba": [255,255,255,1],
+        "hex": "#000"
+      }
+    },
+    {
+      "color": "white",
+      "category": "value",
+      "code": {
+        "rgba": [0,0,0,1],
+        "hex": "#FFF"
+      }
+    },
+    {
+      "color": "red",
+      "category": "hue",
+      "type": "primary",
+      "code": {
+        "rgba": [255,0,0,1],
+        "hex": "#FF0"
+      }
+    },
+    {
+      "color": "blue",
+      "category": "hue",
+      "type": "primary",
+      "code": {
+        "rgba": [0,0,255,1],
+        "hex": "#00F"
+      }
+    },
+    {
+      "color": "yellow",
+      "category": "hue",
+      "type": "primary",
+      "code": {
+        "rgba": [255,255,0,1],
+        "hex": "#FF0"
+      }
+    },
+    {
+      "color": "green",
+      "category": "hue",
+      "type": "secondary",
+      "code": {
+        "rgba": [0,255,0,1],
+        "hex": "#0F0"
+      }
+    }
+  ]
+})=====";
+
+std::string pokemon_json= R"====(
+	{
+  "count": 1118,
+  "next": "https://pokeapi.co/api/v2/pokemon?offset=20&limit=20",
+  "previous": null,
+  "results": [
+    {
+      "name": "bulbasaur",
+      "url": "https://pokeapi.co/api/v2/pokemon/1/"
+    },
+    {
+      "name": "ivysaur",
+      "url": "https://pokeapi.co/api/v2/pokemon/2/"
+    },
+    {
+      "name": "venusaur",
+      "url": "https://pokeapi.co/api/v2/pokemon/3/"
+    },
+    {
+      "name": "charmander",
+      "url": "https://pokeapi.co/api/v2/pokemon/4/"
+    },
+    {
+      "name": "charmeleon",
+      "url": "https://pokeapi.co/api/v2/pokemon/5/"
+    },
+    {
+      "name": "charizard",
+      "url": "https://pokeapi.co/api/v2/pokemon/6/"
+    },
+    {
+      "name": "squirtle",
+      "url": "https://pokeapi.co/api/v2/pokemon/7/"
+    },
+    {
+      "name": "wartortle",
+      "url": "https://pokeapi.co/api/v2/pokemon/8/"
+    },
+    {
+      "name": "blastoise",
+      "url": "https://pokeapi.co/api/v2/pokemon/9/"
+    },
+    {
+      "name": "caterpie",
+      "url": "https://pokeapi.co/api/v2/pokemon/10/"
+    },
+    {
+      "name": "metapod",
+      "url": "https://pokeapi.co/api/v2/pokemon/11/"
+    },
+    {
+      "name": "butterfree",
+      "url": "https://pokeapi.co/api/v2/pokemon/12/"
+    },
+    {
+      "name": "weedle",
+      "url": "https://pokeapi.co/api/v2/pokemon/13/"
+    },
+    {
+      "name": "kakuna",
+      "url": "https://pokeapi.co/api/v2/pokemon/14/"
+    },
+    {
+      "name": "beedrill",
+      "url": "https://pokeapi.co/api/v2/pokemon/15/"
+    },
+    {
+      "name": "pidgey",
+      "url": "https://pokeapi.co/api/v2/pokemon/16/"
+    },
+    {
+      "name": "pidgeotto",
+      "url": "https://pokeapi.co/api/v2/pokemon/17/"
+    },
+    {
+      "name": "pidgeot",
+      "url": "https://pokeapi.co/api/v2/pokemon/18/"
+    },
+    {
+      "name": "rattata",
+      "url": "https://pokeapi.co/api/v2/pokemon/19/"
+    },
+    {
+      "name": "raticate",
+      "url": "https://pokeapi.co/api/v2/pokemon/20/"
+    }
+  ]
+}
+)====";
+
 #define compare(v, t, n, i, u, d, c, b, s)\
 	assert(v.type() == t);\
 	assert(v.size() == n);\
@@ -69,11 +218,11 @@ void test_bool()
 void test_string()
 {
 	var v;
-	assert(v.type() != var::STR_TYPE);
+	assert(v.type() != var::STRING_TYPE);
 	v = "";
-	compare(v, var::STR_TYPE, 0, 0, 0u, 0, (char)0, false, "");
+	compare(v, var::STRING_TYPE, 0, 0, 0u, 0, (char)0, false, "");
 	v = "HELLO";
-	compare(v, var::STR_TYPE, 5, 0, 0, 0.0, 'H', true, "HELLO");
+	compare(v, var::STRING_TYPE, 5, 0, 0, 0.0, 'H', true, "HELLO");
 }
 
 void test_array()
@@ -88,7 +237,7 @@ void test_array()
 	assert(v0.size() == sizeof(intmax_t));
 
 	var& v1 = j[1];
-	assert(v1.type() == var::STR_TYPE);
+	assert(v1.type() == var::STRING_TYPE);
 	assert(v1.to_string() == "HELLO");
 	assert(v1.size() == 5);
 
@@ -99,7 +248,7 @@ void test_array()
 	assert(v2.size() == sizeof(bool));
 }
 
-void test_map()
+void test_table()
 {
 	var m;
 	m["val"] = 2;
@@ -156,12 +305,24 @@ void test_parse_json()
 
 	v = var::parse_json("[3,5,\"hello\"]");
 	assert(!v.is_error());
-	std::cout << v << std::endl;
-
-	v = var::parse_json("{\"num\":3,\"str\":\"asdf\",\"scooby\":{\"snacks\":{\"flavor\":\"spicy\",\"size\":3}}}");
+	std::string ex_json = "{\"scooby\":{\"snacks\":{\"flavor\":\"spicy\",\"size\":3}},\"num\":3,\"str\":\"asdf\"}";
+	v = var::parse_json(ex_json);
 	assert(!v.is_error());
-	std::cout << v << std::endl;
+	assert(!v["scooby"].is_null());
+	assert(v["scooby"].is_table());
 
+
+	std::string serial = v.to_json();
+	assert(!v.is_error());
+	v = var::parse_json(pokemon_json);
+	assert(v["previous"].is_null());
+	assert(v["results"].is_array());
+	assert(v["results"][0].is_table());
+	assert(v["results"][0]["name"].is_string());
+	assert(v["results"][0]["url"].is_string());
+
+	v = var::parse_json(colors_json);
+	std::cout << v << std::endl;
 	// std::ifstream file;
 	// file.open("./colors.json");
 	// std::string json_str;
@@ -188,7 +349,7 @@ int main()
 	TEST(bool);
 	TEST(string);
 	TEST(array);
-	TEST(map);
+	TEST(table);
 	TEST(parse_json);
 	return 0;
 }

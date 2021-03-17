@@ -47,7 +47,7 @@ namespace hirzel
 			unsigned long long _unsigned;
 			long long _integer = 0;
 			std::vector<var>* _array;
-			std::unordered_map<std::string, var>* _map;
+			std::unordered_map<std::string, var>* _table;
 		};
 		Data _data;
 		// type of data
@@ -68,9 +68,9 @@ namespace hirzel
 			FLOAT_TYPE,
 			CHAR_TYPE,
 			BOOL_TYPE,
-			STR_TYPE,
+			STRING_TYPE,
 			ARRAY_TYPE,
-			MAP_TYPE
+			TABLE_TYPE
 		};
 
 		var() = default;
@@ -114,8 +114,19 @@ namespace hirzel
 		char to_char() const;
 		bool to_bool() const;
 		std::string to_string() const;
+		std::string to_json() const;
 
+		inline bool is_null() const { return _type == NULL_TYPE; }
 		inline bool is_error() const { return _type == ERROR_TYPE; }
+		inline bool is_int() const { return _type == INT_TYPE; }
+		inline bool is_uint() const { return _type == TABLE_TYPE; }
+		inline bool is_float() const { return _type == FLOAT_TYPE; }
+		inline bool is_bool() const { return _type == BOOL_TYPE; }
+		inline bool is_char() const { return _type == CHAR_TYPE; }
+		inline bool is_string() const { return _type == STRING_TYPE; }
+		inline bool is_table() const { return _type == TABLE_TYPE; }
+		inline bool is_array() const { return _type == ARRAY_TYPE; }
+
 		inline Data data() const { return _data; }
 		inline size_t size() const
 		{
@@ -131,12 +142,12 @@ namespace hirzel
 				return sizeof(_data._character);
 			case BOOL_TYPE:
 				return sizeof(_data._boolean);
-			case STR_TYPE:
+			case STRING_TYPE:
 				return _data._string->size();
 			case ARRAY_TYPE:
 				return _data._array->size();
-			case MAP_TYPE:
-				return _data._map->size();
+			case TABLE_TYPE:
+				return _data._table->size();
 			}
 			return 0;
 		}
@@ -200,14 +211,14 @@ namespace hirzel
 		case BOOL_TYPE:
 			_data._boolean = false;
 			break;
-		case STR_TYPE:
+		case STRING_TYPE:
 			_data._string = new std::string();
 			break;
 		case ARRAY_TYPE:
 			_data._array = new std::vector<var>();
 			break;
-		case MAP_TYPE:
-			_data._map = new std::unordered_map<std::string,var>();
+		case TABLE_TYPE:
+			_data._table = new std::unordered_map<std::string,var>();
 			break;
 		}
 	}
@@ -247,7 +258,7 @@ namespace hirzel
 		if (error)
 			_type = ERROR_TYPE;
 		else
-			_type = STR_TYPE;
+			_type = STRING_TYPE;
 		_data._string = new std::string(s);
 	}
 
@@ -262,7 +273,7 @@ namespace hirzel
 		switch (_type)
 		{
 		case ERROR_TYPE:
-		case STR_TYPE:
+		case STRING_TYPE:
 			delete _data._string;
 			break;
 
@@ -270,8 +281,8 @@ namespace hirzel
 			delete _data._array;
 			break;
 
-		case MAP_TYPE:
-			delete _data._map;
+		case TABLE_TYPE:
+			delete _data._table;
 			break;
 		}
 	}
@@ -290,7 +301,7 @@ namespace hirzel
 				return (intmax_t)_data._character;
 			case FLOAT_TYPE:
 				return (intmax_t)_data._float;
-			case STR_TYPE:
+			case STRING_TYPE:
 				try
 				{
 					return std::stoll(*_data._string);
@@ -318,7 +329,7 @@ namespace hirzel
 				return (uintmax_t)_data._character;
 			case FLOAT_TYPE:
 				return (uintmax_t)_data._float;
-			case STR_TYPE:
+			case STRING_TYPE:
 				try
 				{
 					return std::stoull(*_data._string);
@@ -348,7 +359,7 @@ namespace hirzel
 				return (double)_data._character;
 			case FLOAT_TYPE:
 				return _data._float;
-			case STR_TYPE:
+			case STRING_TYPE:
 				try
 				{
 					return std::stod(*_data._string);
@@ -376,7 +387,7 @@ namespace hirzel
 				return (char)_data._character;
 			case FLOAT_TYPE:
 				return (char)_data._float;
-			case STR_TYPE:
+			case STRING_TYPE:
 				return (_data._string->empty() ? 0 : (*_data._string)[0]);
 			default:
 				return 0;
@@ -397,77 +408,172 @@ namespace hirzel
 				return (bool)_data._character;
 			case FLOAT_TYPE:
 				return (bool)_data._float;
-			case STR_TYPE:
+			case STRING_TYPE:
 				return !_data._string->empty();
 			default:
 				return false;
 		}
 	}
 
-	std::string var::to_string() const
+	std::string var::to_json() const
 	{
 		std::string out;
 		switch(_type)
 		{
-			case NULL_TYPE:
-				out = "null";
-				break;
-			case INT_TYPE:
-				out = std::to_string(_data._integer);
-				break;
-			case UINT_TYPE:
-				out = std::to_string(_data._unsigned);
-				break;
-			case BOOL_TYPE:
-				out = (_data._boolean ? "true" : "false");
-				break;
-			case CHAR_TYPE:
-				out =  std::string(1, _data._character);
-				break;
-			case FLOAT_TYPE:
-				out = std::to_string(_data._float);
-				break;
-			case ERROR_TYPE:
-			case STR_TYPE:
-				out = *_data._string;
-				break;
-			case ARRAY_TYPE:
-				out = "[";
-				for (int i = 0; i < _data._array->size(); i++)
-				{
-					if (i > 0) out += ", ";
-					out += (*_data._array)[i].to_string();
-				}
-				out += "]";
-				break;
+		case ERROR_TYPE:
+		case NULL_TYPE:
+			out = "null";
+			break;
+		case INT_TYPE:
+			out = std::to_string(_data._integer);
+			break;
+		case UINT_TYPE:
+			out = std::to_string(_data._unsigned);
+			break;
+		case BOOL_TYPE:
+			out = (_data._boolean ? "true" : "false");
+			break;
+		case CHAR_TYPE:
+			out =  std::string(1, _data._character);
+			break;
+		case FLOAT_TYPE:
+			out = std::to_string(_data._float);
+			break;
+		case STRING_TYPE:
+			out = "\"" + *_data._string + "\"";
+			break;
+		case ARRAY_TYPE:
+			out = "[";
+			for (int i = 0; i < _data._array->size(); i++)
+			{
+				if (i > 0) out += ',';
+				out += (*_data._array)[i].to_string();
+			}
+			out += "]";
+			break;
 
-			case MAP_TYPE:
-				out = "{\n";
-				int i;
-				int size;
-				size = _data._map->size();
-				int curr;
-				curr = 0;
-				for (const std::pair<std::string, var>& p : *_data._map)
+		case TABLE_TYPE:
+			out = "{";
+			for (auto iter = _data._table->begin(); iter != _data._table->end(); iter++)
+			{
+				if (iter != _data._table->begin())
 				{
-					out +="\t\"" + p.first + "\": ";
-					i = out.size();
-					out += p.second.to_string();
-					for (int j = i; j < out.size(); j++)
-					{
-						if (out[j] == '\n')
-						{
-							j++;
-							out.insert(out.begin() + j, '\t');
-						}
-					}
-					if (curr < size - 1) out += ',';
-					out += '\n';
-					curr++;
+					 out += ',';
 				}
-				out += '}';
-				break;
+				out += "\"" + iter->first + "\":" + iter->second.to_json();
+			}
+			out += '}';
+			break;
 		}
+		return out;
+	}
+
+	namespace details
+	{
+		void indent(std::string& s)
+		{
+			for (int i = 1; i < s.size(); i++)
+			{
+				if (s[i] == '\n')
+				{
+					i++;
+					s.insert(i, 1, '\t');
+				}
+			}
+		}
+	}
+
+	std::string var::to_string() const
+	{
+		switch(_type)
+		{
+			case NULL_TYPE:
+				return "null";
+			case INT_TYPE:
+				return std::to_string(_data._integer);
+			case UINT_TYPE:
+				return std::to_string(_data._unsigned);
+			case BOOL_TYPE:
+				return (_data._boolean ? "true" : "false");
+			case CHAR_TYPE:
+				return std::string(1, _data._character);
+			case FLOAT_TYPE:
+				return std::to_string(_data._float);
+			case ERROR_TYPE:
+			case STRING_TYPE:
+				return *_data._string;
+			case ARRAY_TYPE:
+			case TABLE_TYPE:
+				break;
+			default:
+				return "";
+		}
+
+		std::string out;
+		std::vector<std::string> str_reps;
+		if (_type == TABLE_TYPE)
+		{
+			if (_data._table->empty()) return "{}";
+			str_reps.resize(_data._table->size());
+			int i = 0;
+			for (auto iter = _data._table->begin(); iter != _data._table->end(); iter++)
+			{
+				const var& v = iter->second;
+				str_reps[i] = "\n\t" + iter->first + ":\t";
+				std::string tmp = v.to_string();
+				if (v.is_string())
+				{
+					tmp.insert(0, 1, '\"');
+					tmp.push_back('\"');
+				}
+				details::indent(tmp);
+				str_reps[i++] += tmp;
+			}
+
+			out = "{";
+			for (i = str_reps.size() - 1; i >= 0; i--)
+			{
+				out += str_reps[i];
+			}
+			out += "\n}";
+
+		}
+		// ARRAY_TYPE
+		else
+		{
+			bool vert = false;
+			std::vector<std::string> str_reps(_data._array->size());
+			for (int i = 0; i < _data._array->size(); i++)
+			{
+				const var& v = (*_data._array)[i];
+				std::string tmp = v.to_string();
+				if (v.is_string())
+				{
+					tmp.insert(0, 1, '\"');
+					tmp.push_back('\"');
+				}
+				else if (v.is_table())
+				{
+					vert = true;
+				}
+				str_reps[i] = tmp;
+			}
+
+
+			out = "[";
+
+			for (int i = 0; i < str_reps.size(); i++)
+			{
+				if (vert) out += "\n\t";
+				
+				details::indent(str_reps[i]);
+				out += str_reps[i];
+				if (i < str_reps.size() - 1) out += ',';
+			}
+			if (vert) out += '\n';
+			out += ']';
+		}
+
 		return out;
 	}
 
@@ -480,12 +586,12 @@ namespace hirzel
 			_data._array = new std::vector<var>(*other.data()._array);
 			break;
 
-		case MAP_TYPE:
-			_data._map = new std::unordered_map<std::string, var>(*other.data()._map);
+		case TABLE_TYPE:
+			_data._table = new std::unordered_map<std::string, var>(*other.data()._table);
 			break;
 
 		case ERROR_TYPE:
-		case STR_TYPE:
+		case STRING_TYPE:
 			_data._string = new std::string(*other.data()._string);
 			break;
 
@@ -504,22 +610,22 @@ namespace hirzel
 		case ARRAY_TYPE:
 			std::vector<var>* arr;
 			arr = _data._array;
-			_type = MAP_TYPE;
-			_data._map = new std::unordered_map<std::string, var>();
+			_type = TABLE_TYPE;
+			_data._table = new std::unordered_map<std::string, var>();
 
 			for (int i = 0; i < arr->size(); i++)
 			{
-				(*_data._map)[std::to_string(i)] = (*arr)[i];
+				(*_data._table)[std::to_string(i)] = (*arr)[i];
 			}
-			return (*_data._map)[key];
+			return (*_data._table)[key];
 
-		case MAP_TYPE:
-			return (*_data._map)[key];
+		case TABLE_TYPE:
+			return (*_data._table)[key];
 
 		default:
-			_type = MAP_TYPE;
-			_data._map = new std::unordered_map<std::string, var>();
-			return (*_data._map)[key];
+			_type = TABLE_TYPE;
+			_data._table = new std::unordered_map<std::string, var>();
+			return (*_data._table)[key];
 		}
 	}
 
@@ -531,8 +637,8 @@ namespace hirzel
 			if (i >= _data._array->size()) (*_data._array).resize(i + 1);
 			return (*_data._array)[i];
 
-		case MAP_TYPE:
-			return (*_data._map)[std::to_string(i)];
+		case TABLE_TYPE:
+			return (*_data._table)[std::to_string(i)];
 
 		default:
 			_type = var::ARRAY_TYPE;
@@ -551,7 +657,6 @@ namespace hirzel
 
 	var var::parse_json_value(const std::string& src, size_t& i)
 	{
-		//std::cout << "PARSING PRIM starting with " << src[i] << "\n";
 		char first = src[i];
 		if (first >= '0' && first <= '9' || first == '-')
 		{
@@ -672,7 +777,9 @@ namespace hirzel
 		bool new_elem = true;
 		while (new_elem)
 		{
-			arr[index++] = parse_json_value(src, i);
+			var v = parse_json_value(src, i);
+			if (v.is_error()) return v;
+			arr[index++] = v;
 
 			if (src[i] == ',')
 				i++;
@@ -685,11 +792,12 @@ namespace hirzel
 	
 	var var::parse_json_object(const std::string& src, size_t& i)
 	{
-		var obj(var::MAP_TYPE);
+		var obj(var::TABLE_TYPE);
 		int index = 0;
 		i++;
-		if (src[i] == '}') return obj;
-		bool new_member = true;
+		bool new_member;
+		if (src[i] != '}') new_member = true;
+		
 		while (new_member)
 		{
 			char label[128];
@@ -704,22 +812,22 @@ namespace hirzel
 			i++;
 			*pos = 0;
 
-			if (i == src.size() || src[i] != ':') return error("JSON: stray string at position: " + std::to_string(i));
+			if (src[i] != ':') return error("JSON: improper object member definition at position: " + std::to_string(i));
 			i++;
 			
 			var& m = obj[label];
 			m = parse_json_value(src, i);
 			if (m.is_error()) return m;
 			
-			if (src[i] != ',')
+			if (src[i] == ',')
+			{
+			}
+			else
 			{
 				new_member = false;
 				if (src[i] != '}') return error("JSON: unexpected token '" + std::string(1, src[i]) + "' at position: " + std::to_string(i));
 			}
-			else
-			{
-				i++;
-			}
+			i++;
 		}
 
 		return obj;
