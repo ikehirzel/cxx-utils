@@ -6,6 +6,13 @@
 
 using hirzel::var;
 
+/*
+	TODO:
+		testing for:
+			to_json
+			indexing operators
+*/
+
 std::string colors_json =
 R"=====({
   "colors": [

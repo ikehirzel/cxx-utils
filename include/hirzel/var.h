@@ -116,7 +116,12 @@ namespace hirzel
 		std::string to_string() const;
 		std::string to_json() const;
 
-		bool contains(const std::string& key) const;
+		inline bool contains(const std::string& key) const
+		{
+			return _type == TABLE_TYPE ?
+				_data._table->find(key) != _data._table->end() :
+				false;
+		}
 		bool empty() const;
 		size_t size() const;
 
@@ -138,10 +143,20 @@ namespace hirzel
 		var& operator=(const var& other);
 
 		var& operator[](size_t i);
-		inline const var& operator[](size_t i) const { return (*this)[i]; }
+		inline const var& operator[](size_t i) const
+		{
+			return _type == ARRAY_TYPE ?
+				(*_data._array)[i] :
+				*this;
+		}
 
 		var& operator[](const std::string& key);
-		inline const var& operator[](const std::string& key) const { return (*this)[key]; }
+		inline const var& operator[](const std::string& key) const
+		{
+			return _type == TABLE_TYPE ?
+				(*_data._table)[key] :
+				*this;
+		}
 
 		friend std::ostream& operator<<(std::ostream& out, const var& v);
 	};
@@ -174,9 +189,6 @@ namespace hirzel
 		case NULL_TYPE:
 			_data._integer = 0;
 			break;
-		case ERROR_TYPE:
-			_data._string = new std::string();
-			break;
 		case INT_TYPE:
 			_data._integer = 0;
 			break;
@@ -192,6 +204,7 @@ namespace hirzel
 		case BOOL_TYPE:
 			_data._boolean = false;
 			break;
+		case ERROR_TYPE:
 		case STRING_TYPE:
 			_data._string = new std::string();
 			break;
@@ -567,15 +580,6 @@ namespace hirzel
 		return out;
 	}
 
-	bool var::contains(const std::string& key) const
-	{
-		if (_type == TABLE_TYPE)
-		{
-			return _data._table->find(key) != _data._table->end();
-		}
-		return false;
-	}
-
 	bool var::empty() const
 	{
 		switch (_type)
@@ -930,10 +934,9 @@ namespace hirzel
 			return error("JSON: unterminated " + name + " definition");
 		}
 
+		oi = 0;
 
-		size_t i = 0;
-
-		return parse_json_value(src_mod, i);
+		return parse_json_value(src_mod, oi);
 	}
 } // namespace hirzel
 
