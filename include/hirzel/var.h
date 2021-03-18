@@ -116,11 +116,16 @@ namespace hirzel
 		std::string to_string() const;
 		std::string to_json() const;
 
+		bool contains(const std::string& key) const;
+		bool empty() const;
+		size_t size() const;
+
 		inline bool is_null() const { return _type == NULL_TYPE; }
 		inline bool is_error() const { return _type == ERROR_TYPE; }
 		inline bool is_int() const { return _type == INT_TYPE; }
-		inline bool is_uint() const { return _type == TABLE_TYPE; }
+		inline bool is_uint() const { return _type == UINT_TYPE; }
 		inline bool is_float() const { return _type == FLOAT_TYPE; }
+		inline bool is_num() const { return _type == INT_TYPE || _type == UINT_TYPE || _type == FLOAT_TYPE; }
 		inline bool is_bool() const { return _type == BOOL_TYPE; }
 		inline bool is_char() const { return _type == CHAR_TYPE; }
 		inline bool is_string() const { return _type == STRING_TYPE; }
@@ -128,30 +133,6 @@ namespace hirzel
 		inline bool is_array() const { return _type == ARRAY_TYPE; }
 
 		inline Data data() const { return _data; }
-		inline size_t size() const
-		{
-			switch (_type)
-			{
-			case INT_TYPE:
-				return sizeof(_data._integer);
-			case UINT_TYPE:
-				return sizeof(_data._unsigned);
-			case FLOAT_TYPE:
-				return sizeof(_data._float);			
-			case CHAR_TYPE:
-				return sizeof(_data._character);
-			case BOOL_TYPE:
-				return sizeof(_data._boolean);
-			case STRING_TYPE:
-				return _data._string->size();
-			case ARRAY_TYPE:
-				return _data._array->size();
-			case TABLE_TYPE:
-				return _data._table->size();
-			}
-			return 0;
-		}
-		
 		inline int type() const { return (int)_type; }
 
 		var& operator=(const var& other);
@@ -417,54 +398,62 @@ namespace hirzel
 
 	std::string var::to_json() const
 	{
-		std::string out;
 		switch(_type)
 		{
 		case ERROR_TYPE:
 		case NULL_TYPE:
-			out = "null";
+			return "null";
 			break;
 		case INT_TYPE:
-			out = std::to_string(_data._integer);
-			break;
+			return std::to_string(_data._integer);
 		case UINT_TYPE:
-			out = std::to_string(_data._unsigned);
-			break;
+			return std::to_string(_data._unsigned);
 		case BOOL_TYPE:
-			out = (_data._boolean ? "true" : "false");
-			break;
+			return (_data._boolean ? "true" : "false");
 		case CHAR_TYPE:
-			out =  std::string(1, _data._character);
-			break;
+			return std::string(1, _data._character);
 		case FLOAT_TYPE:
-			out = std::to_string(_data._float);
-			break;
+			return std::to_string(_data._float);
 		case STRING_TYPE:
-			out = "\"" + *_data._string + "\"";
-			break;
+			return "\"" + *_data._string + "\"";
 		case ARRAY_TYPE:
-			out = "[";
-			for (int i = 0; i < _data._array->size(); i++)
-			{
-				if (i > 0) out += ',';
-				out += (*_data._array)[i].to_string();
-			}
-			out += "]";
-			break;
-
 		case TABLE_TYPE:
-			out = "{";
+			break;
+		default:
+			return "";
+		}
+
+		std::string out;
+
+		if (_type == TABLE_TYPE)
+		{
+			std::vector<std::string> str_reps(_data._table->size());
+			int i = 0;
 			for (auto iter = _data._table->begin(); iter != _data._table->end(); iter++)
 			{
-				if (iter != _data._table->begin())
-				{
-					 out += ',';
-				}
-				out += "\"" + iter->first + "\":" + iter->second.to_json();
+				str_reps[i++] = "\"" + iter->first + "\":" + iter->second.to_json();
+			}
+
+			out = "{";
+			for (i = i - 1; i >= 0; i--)
+			{
+				out += str_reps[i];
+				if (i > 0) out += ',';
 			}
 			out += '}';
-			break;
 		}
+		// ARRAY_TYPE
+		else
+		{
+			out = "[";
+			for (auto iter = _data._array->begin(); iter != _data._array->end(); iter++)
+			{
+				if (iter != _data._array->begin()) out += ',';
+				out += iter->to_json();
+			}
+			out += ']';
+		}
+
 		return out;
 	}
 
@@ -511,6 +500,7 @@ namespace hirzel
 
 		std::string out;
 		std::vector<std::string> str_reps;
+
 		if (_type == TABLE_TYPE)
 		{
 			if (_data._table->empty()) return "{}";
@@ -575,6 +565,59 @@ namespace hirzel
 		}
 
 		return out;
+	}
+
+	bool var::contains(const std::string& key) const
+	{
+		if (_type == TABLE_TYPE)
+		{
+			return _data._table->find(key) != _data._table->end();
+		}
+		return false;
+	}
+
+	bool var::empty() const
+	{
+		switch (_type)
+		{
+		case ERROR_TYPE:
+		case STRING_TYPE:
+			return _data._string->empty();
+		case ARRAY_TYPE:
+			return _data._array->empty();
+		case TABLE_TYPE:
+			return _data._table->empty();
+		case NULL_TYPE:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	size_t var::size() const
+	{
+		switch (_type)
+		{
+		case INT_TYPE:
+			return sizeof(_data._integer);
+		case UINT_TYPE:
+			return sizeof(_data._unsigned);
+		case FLOAT_TYPE:
+			return sizeof(_data._float);			
+		case CHAR_TYPE:
+			return sizeof(_data._character);
+		case BOOL_TYPE:
+			return sizeof(_data._boolean);
+		case ERROR_TYPE:
+		case STRING_TYPE:
+			return _data._string->size();
+		case ARRAY_TYPE:
+			return _data._array->size();
+		case TABLE_TYPE:
+			return _data._table->size();
+		default:
+			return 0;
+		}
 	}
 
 	var& var::operator=(const var& other)
