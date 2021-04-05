@@ -1,3 +1,4 @@
-Varlib
+Objlib
 ==============
-Universal primitive container for C++. It works similar to var in JavaScript
+Universal primitive container for C++. It works similar to JavaScript objects.
+
