@@ -1,7 +1,7 @@
 
 /**
- * @file var.h
- * @brief A universal type much like a JavaScript object
+ * @file obj.h
+ * @brief A universal data type
  * @author Ike Hirzel
  * 
  * Copyright 2021 Ike Hirzel
@@ -24,8 +24,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef VAR_H
-#define VAR_H
+#ifndef OBJ_H
+#define OBJ_H
 
 #include <iostream>
 #include <string>
@@ -34,11 +34,11 @@
 
 namespace hirzel
 {
-	class var
+	class Obj
 	{
 	private:
 
-		union Data
+		union Storage
 		{
 			bool _boolean;
 			char _character;
@@ -46,16 +46,16 @@ namespace hirzel
 			std::string* _string;
 			unsigned long long _unsigned;
 			long long _integer = 0;
-			std::vector<var>* _array;
-			std::unordered_map<std::string, var>* _table;
+			std::vector<Obj>* _array;
+			std::unordered_map<std::string, Obj>* _table;
 		};
-		Data _data;
+		Storage _storage;
 		// type of data
 		char _type = 0;
 
-		static var parse_json_object(const std::string& src, size_t& i);
-		static var parse_json_array(const std::string& src, size_t& i);
-		static var parse_json_value(const std::string& src, size_t& i);
+		static Obj parse_json_object(const std::string& src, size_t& i);
+		static Obj parse_json_array(const std::string& src, size_t& i);
+		static Obj parse_json_value(const std::string& src, size_t& i);
 
 	public:
 
@@ -73,40 +73,40 @@ namespace hirzel
 			TABLE_TYPE
 		};
 
-		var() = default;
+		Obj() = default;
 
-		var(const var& other);
-		var(var&& other);
+		Obj(const Obj& other);
+		Obj(Obj&& other);
 
-		var(Type t);
+		Obj(Type t);
 
-		var(long long i);
-		inline var(short i) : var((long long)i) {}
-		inline var(int i) : var((long long)i) {}
-		inline var(long i) : var((long long)i) {}
+		Obj(long long i);
+		inline Obj(short i) : Obj((long long)i) {}
+		inline Obj(int i) : Obj((long long)i) {}
+		inline Obj(long i) : Obj((long long)i) {}
 
-		var(unsigned long long u);
-		inline var(unsigned short u): var((unsigned long long)u) {}
-		inline var(unsigned int u) : var((unsigned long long )u) {}
-		inline var(unsigned long u) : var((unsigned long long)u) {}
+		Obj(unsigned long long u);
+		inline Obj(unsigned short u): Obj((unsigned long long)u) {}
+		inline Obj(unsigned int u) : Obj((unsigned long long )u) {}
+		inline Obj(unsigned long u) : Obj((unsigned long long)u) {}
 		
-		var(double d);
-		inline var(float f) : var((double)f) {}
+		Obj(double d);
+		inline Obj(float f) : Obj((double)f) {}
 
-		var(bool b);
+		Obj(bool b);
 
-		var(char c);
+		Obj(char c);
 
-		var(const std::string& s, bool error = false);
-		inline var(char* c) : var(std::string(c)) {}
-		inline var(const char* c) : var(std::string(c)) {}
+		Obj(const std::string& s, bool error = false);
+		inline Obj(char* c) : Obj(std::string(c)) {}
+		inline Obj(const char* c) : Obj(std::string(c)) {}
 
-		var(const std::initializer_list<var>& list);
+		Obj(const std::initializer_list<Obj>& list);
 
-		~var();
+		~Obj();
 
-		static var parse_json(const std::string& src);
-		inline static var error(const std::string& msg) { return var(msg, true); }
+		static Obj parse_json(const std::string& src);
+		inline static Obj error(const std::string& msg) { return Obj(msg, true); }
 		
 		intmax_t to_int() const;
 		uintmax_t to_uint() const;
@@ -119,7 +119,7 @@ namespace hirzel
 		inline bool contains(const std::string& key) const
 		{
 			return _type == TABLE_TYPE ?
-				_data._table->find(key) != _data._table->end() :
+				_storage._table->find(key) != _storage._table->end() :
 				false;
 		}
 		bool empty() const;
@@ -137,168 +137,168 @@ namespace hirzel
 		inline bool is_table() const { return _type == TABLE_TYPE; }
 		inline bool is_array() const { return _type == ARRAY_TYPE; }
 
-		inline Data data() const { return _data; }
+		inline Storage data() const { return _storage; }
 		inline int type() const { return (int)_type; }
 
-		var& operator=(const var& other);
+		Obj& operator=(const Obj& other);
 
-		var& operator[](size_t i);
-		inline const var& operator[](size_t i) const
+		Obj& operator[](size_t i);
+		inline const Obj& operator[](size_t i) const
 		{
 			return _type == ARRAY_TYPE ?
-				(*_data._array)[i] :
+				(*_storage._array)[i] :
 				*this;
 		}
 
-		var& operator[](const std::string& key);
-		inline const var& operator[](const std::string& key) const
+		Obj& operator[](const std::string& key);
+		inline const Obj& operator[](const std::string& key) const
 		{
 			return _type == TABLE_TYPE ?
-				(*_data._table)[key] :
+				(*_storage._table)[key] :
 				*this;
 		}
 
-		friend std::ostream& operator<<(std::ostream& out, const var& v);
+		friend std::ostream& operator<<(std::ostream& out, const Obj& v);
 	};
 }
 
-#endif // VAR_H
+#endif // OBJ_H
 
-#ifdef HIRZEL_VAR_IMPLEMENTATION
-#undef HIRZEL_VAR_IMPLEMENTATION
+#ifdef HIRZEL_OBJ_IMPLEMENTATION
+#undef HIRZEL_OBJ_IMPLEMENTATION
 
 namespace hirzel
 {
-	var::var(const var& other)
+	Obj::Obj(const Obj& other)
 	{
 		*this = other;
 	}
 
-	var::var(var&& other)
+	Obj::Obj(Obj&& other)
 	{
 		_type = other._type;
-		_data = other._data;
+		_storage = other._storage;
 		other._type = NULL_TYPE;
 	}
 
-	var::var(Type t)
+	Obj::Obj(Type t)
 	{
 		_type = t;
 		switch (t)
 		{
 		case NULL_TYPE:
-			_data._integer = 0;
+			_storage._integer = 0;
 			break;
 		case INT_TYPE:
-			_data._integer = 0;
+			_storage._integer = 0;
 			break;
 		case UINT_TYPE:
-			_data._unsigned = 0;
+			_storage._unsigned = 0;
 			break;
 		case FLOAT_TYPE:
-			_data._float = 0.0;
+			_storage._float = 0.0;
 			break;
 		case CHAR_TYPE:
-			_data._character = 0;
+			_storage._character = 0;
 			break;
 		case BOOL_TYPE:
-			_data._boolean = false;
+			_storage._boolean = false;
 			break;
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			_data._string = new std::string();
+			_storage._string = new std::string();
 			break;
 		case ARRAY_TYPE:
-			_data._array = new std::vector<var>();
+			_storage._array = new std::vector<Obj>();
 			break;
 		case TABLE_TYPE:
-			_data._table = new std::unordered_map<std::string,var>();
+			_storage._table = new std::unordered_map<std::string,Obj>();
 			break;
 		}
 	}
 
-	var::var(long long i)
+	Obj::Obj(long long i)
 	{
-		_data._integer = i;
-		_type = var::INT_TYPE;
+		_storage._integer = i;
+		_type = Obj::INT_TYPE;
 	}
 
-	var::var(long long unsigned u)
+	Obj::Obj(long long unsigned u)
 	{
-		_data._unsigned = u;
-		_type = var::UINT_TYPE;
+		_storage._unsigned = u;
+		_type = Obj::UINT_TYPE;
 	}
 
-	var::var(char c)
+	Obj::Obj(char c)
 	{
-		_data._character = c;
-		_type = var::CHAR_TYPE;
+		_storage._character = c;
+		_type = Obj::CHAR_TYPE;
 	}
 
-	var::var(double d)
+	Obj::Obj(double d)
 	{
-		_data._float = d;
-		_type = var::FLOAT_TYPE;
+		_storage._float = d;
+		_type = Obj::FLOAT_TYPE;
 	}
 
-	var::var(bool b)
+	Obj::Obj(bool b)
 	{
-		_data._boolean = b;
-		_type = var::BOOL_TYPE;
+		_storage._boolean = b;
+		_type = Obj::BOOL_TYPE;
 	}
 
-	var::var(const std::string& s, bool error)
+	Obj::Obj(const std::string& s, bool error)
 	{
 		if (error)
 			_type = ERROR_TYPE;
 		else
 			_type = STRING_TYPE;
-		_data._string = new std::string(s);
+		_storage._string = new std::string(s);
 	}
 
-	var::var(const std::initializer_list<var>& list)
+	Obj::Obj(const std::initializer_list<Obj>& list)
 	{
 		_type = ARRAY_TYPE;
-		_data._array = new std::vector<var>(list);
+		_storage._array = new std::vector<Obj>(list);
 	}
 
-	var::~var()
+	Obj::~Obj()
 	{
 		switch (_type)
 		{
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			delete _data._string;
+			delete _storage._string;
 			break;
 
 		case ARRAY_TYPE:
-			delete _data._array;
+			delete _storage._array;
 			break;
 
 		case TABLE_TYPE:
-			delete _data._table;
+			delete _storage._table;
 			break;
 		}
 	}
 
-	intmax_t var::to_int() const
+	intmax_t Obj::to_int() const
 	{
 		switch(_type)
 		{
 			case INT_TYPE:
-				return _data._integer;
+				return _storage._integer;
 			case UINT_TYPE:
-				return (intmax_t)_data._unsigned;
+				return (intmax_t)_storage._unsigned;
 			case BOOL_TYPE:
-				return (intmax_t)_data._boolean;
+				return (intmax_t)_storage._boolean;
 			case CHAR_TYPE:
-				return (intmax_t)_data._character;
+				return (intmax_t)_storage._character;
 			case FLOAT_TYPE:
-				return (intmax_t)_data._float;
+				return (intmax_t)_storage._float;
 			case STRING_TYPE:
 				try
 				{
-					return std::stoll(*_data._string);
+					return std::stoll(*_storage._string);
 				}
 				catch(std::invalid_argument e)
 				{
@@ -309,24 +309,24 @@ namespace hirzel
 		}
 	}
 
-	uintmax_t var::to_uint() const
+	uintmax_t Obj::to_uint() const
 	{
 		switch(_type)
 		{
 			case INT_TYPE:
-				return (uintmax_t)_data._integer;
+				return (uintmax_t)_storage._integer;
 			case UINT_TYPE:
-				return (uintmax_t)_data._unsigned;
+				return (uintmax_t)_storage._unsigned;
 			case BOOL_TYPE:
-				return (uintmax_t)_data._boolean;
+				return (uintmax_t)_storage._boolean;
 			case CHAR_TYPE:
-				return (uintmax_t)_data._character;
+				return (uintmax_t)_storage._character;
 			case FLOAT_TYPE:
-				return (uintmax_t)_data._float;
+				return (uintmax_t)_storage._float;
 			case STRING_TYPE:
 				try
 				{
-					return std::stoull(*_data._string);
+					return std::stoull(*_storage._string);
 				}
 				catch (std::invalid_argument e)
 				{
@@ -337,26 +337,26 @@ namespace hirzel
 		}
 	}
 
-	double var::to_double() const
+	double Obj::to_double() const
 	{
 		switch(_type)
 		{
 			case NULL_TYPE:
 				return 0.0;
 			case INT_TYPE:
-				return (double)_data._integer;
+				return (double)_storage._integer;
 			case UINT_TYPE:
-				return (double)_data._unsigned;
+				return (double)_storage._unsigned;
 			case BOOL_TYPE:
-				return (double)_data._boolean;
+				return (double)_storage._boolean;
 			case CHAR_TYPE:
-				return (double)_data._character;
+				return (double)_storage._character;
 			case FLOAT_TYPE:
-				return _data._float;
+				return _storage._float;
 			case STRING_TYPE:
 				try
 				{
-					return std::stod(*_data._string);
+					return std::stod(*_storage._string);
 				}
 				catch(std::invalid_argument e)
 				{
@@ -367,49 +367,49 @@ namespace hirzel
 		}
 	}
 
-	char var::to_char() const
+	char Obj::to_char() const
 	{
 		switch(_type)
 		{
 			case INT_TYPE:
-				return (char)_data._integer;
+				return (char)_storage._integer;
 			case UINT_TYPE:
-				return (char)_data._unsigned;
+				return (char)_storage._unsigned;
 			case BOOL_TYPE:
-				return (char)_data._boolean;
+				return (char)_storage._boolean;
 			case CHAR_TYPE:
-				return (char)_data._character;
+				return (char)_storage._character;
 			case FLOAT_TYPE:
-				return (char)_data._float;
+				return (char)_storage._float;
 			case STRING_TYPE:
-				return (_data._string->empty() ? 0 : (*_data._string)[0]);
+				return (_storage._string->empty() ? 0 : (*_storage._string)[0]);
 			default:
 				return 0;
 		}
 	}
 
-	bool var::to_bool() const
+	bool Obj::to_bool() const
 	{
 		switch(_type)
 		{
 			case INT_TYPE:
-				return (bool)_data._integer;
+				return (bool)_storage._integer;
 			case UINT_TYPE:
-				return (bool)_data._unsigned;
+				return (bool)_storage._unsigned;
 			case BOOL_TYPE:
-				return _data._boolean;
+				return _storage._boolean;
 			case CHAR_TYPE:
-				return (bool)_data._character;
+				return (bool)_storage._character;
 			case FLOAT_TYPE:
-				return (bool)_data._float;
+				return (bool)_storage._float;
 			case STRING_TYPE:
-				return !_data._string->empty();
+				return !_storage._string->empty();
 			default:
 				return false;
 		}
 	}
 
-	std::string var::to_json() const
+	std::string Obj::to_json() const
 	{
 		switch(_type)
 		{
@@ -418,17 +418,17 @@ namespace hirzel
 			return "null";
 			break;
 		case INT_TYPE:
-			return std::to_string(_data._integer);
+			return std::to_string(_storage._integer);
 		case UINT_TYPE:
-			return std::to_string(_data._unsigned);
+			return std::to_string(_storage._unsigned);
 		case BOOL_TYPE:
-			return (_data._boolean ? "true" : "false");
+			return (_storage._boolean ? "true" : "false");
 		case CHAR_TYPE:
-			return std::string(1, _data._character);
+			return std::string(1, _storage._character);
 		case FLOAT_TYPE:
-			return std::to_string(_data._float);
+			return std::to_string(_storage._float);
 		case STRING_TYPE:
-			return "\"" + *_data._string + "\"";
+			return "\"" + *_storage._string + "\"";
 		case ARRAY_TYPE:
 		case TABLE_TYPE:
 			break;
@@ -440,9 +440,9 @@ namespace hirzel
 
 		if (_type == TABLE_TYPE)
 		{
-			std::vector<std::string> str_reps(_data._table->size());
+			std::vector<std::string> str_reps(_storage._table->size());
 			int i = 0;
-			for (auto iter = _data._table->begin(); iter != _data._table->end(); iter++)
+			for (auto iter = _storage._table->begin(); iter != _storage._table->end(); iter++)
 			{
 				str_reps[i++] = "\"" + iter->first + "\":" + iter->second.to_json();
 			}
@@ -459,9 +459,9 @@ namespace hirzel
 		else
 		{
 			out = "[";
-			for (auto iter = _data._array->begin(); iter != _data._array->end(); iter++)
+			for (auto iter = _storage._array->begin(); iter != _storage._array->end(); iter++)
 			{
-				if (iter != _data._array->begin()) out += ',';
+				if (iter != _storage._array->begin()) out += ',';
 				out += iter->to_json();
 			}
 			out += ']';
@@ -485,25 +485,25 @@ namespace hirzel
 		}
 	}
 
-	std::string var::to_string() const
+	std::string Obj::to_string() const
 	{
 		switch(_type)
 		{
 			case NULL_TYPE:
 				return "null";
 			case INT_TYPE:
-				return std::to_string(_data._integer);
+				return std::to_string(_storage._integer);
 			case UINT_TYPE:
-				return std::to_string(_data._unsigned);
+				return std::to_string(_storage._unsigned);
 			case BOOL_TYPE:
-				return (_data._boolean ? "true" : "false");
+				return (_storage._boolean ? "true" : "false");
 			case CHAR_TYPE:
-				return std::string(1, _data._character);
+				return std::string(1, _storage._character);
 			case FLOAT_TYPE:
-				return std::to_string(_data._float);
+				return std::to_string(_storage._float);
 			case ERROR_TYPE:
 			case STRING_TYPE:
-				return *_data._string;
+				return *_storage._string;
 			case ARRAY_TYPE:
 			case TABLE_TYPE:
 				break;
@@ -516,12 +516,12 @@ namespace hirzel
 
 		if (_type == TABLE_TYPE)
 		{
-			if (_data._table->empty()) return "{}";
-			str_reps.resize(_data._table->size());
+			if (_storage._table->empty()) return "{}";
+			str_reps.resize(_storage._table->size());
 			int i = 0;
-			for (auto iter = _data._table->begin(); iter != _data._table->end(); iter++)
+			for (auto iter = _storage._table->begin(); iter != _storage._table->end(); iter++)
 			{
-				const var& v = iter->second;
+				const Obj& v = iter->second;
 				str_reps[i] = "\n\t" + iter->first + ":\t";
 				std::string tmp = v.to_string();
 				if (v.is_string())
@@ -545,10 +545,10 @@ namespace hirzel
 		else
 		{
 			bool vert = false;
-			std::vector<std::string> str_reps(_data._array->size());
-			for (int i = 0; i < _data._array->size(); i++)
+			std::vector<std::string> str_reps(_storage._array->size());
+			for (int i = 0; i < _storage._array->size(); i++)
 			{
-				const var& v = (*_data._array)[i];
+				const Obj& v = (*_storage._array)[i];
 				std::string tmp = v.to_string();
 				if (v.is_string())
 				{
@@ -580,17 +580,17 @@ namespace hirzel
 		return out;
 	}
 
-	bool var::empty() const
+	bool Obj::empty() const
 	{
 		switch (_type)
 		{
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			return _data._string->empty();
+			return _storage._string->empty();
 		case ARRAY_TYPE:
-			return _data._array->empty();
+			return _storage._array->empty();
 		case TABLE_TYPE:
-			return _data._table->empty();
+			return _storage._table->empty();
 		case NULL_TYPE:
 			return true;
 		default:
@@ -598,103 +598,103 @@ namespace hirzel
 		}
 	}
 
-	size_t var::size() const
+	size_t Obj::size() const
 	{
 		switch (_type)
 		{
 		case INT_TYPE:
-			return sizeof(_data._integer);
+			return sizeof(_storage._integer);
 		case UINT_TYPE:
-			return sizeof(_data._unsigned);
+			return sizeof(_storage._unsigned);
 		case FLOAT_TYPE:
-			return sizeof(_data._float);			
+			return sizeof(_storage._float);			
 		case CHAR_TYPE:
-			return sizeof(_data._character);
+			return sizeof(_storage._character);
 		case BOOL_TYPE:
-			return sizeof(_data._boolean);
+			return sizeof(_storage._boolean);
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			return _data._string->size();
+			return _storage._string->size();
 		case ARRAY_TYPE:
-			return _data._array->size();
+			return _storage._array->size();
 		case TABLE_TYPE:
-			return _data._table->size();
+			return _storage._table->size();
 		default:
 			return 0;
 		}
 	}
 
-	var& var::operator=(const var& other)
+	Obj& Obj::operator=(const Obj& other)
 	{
 		_type = other.type();
 		switch(_type)
 		{
 		case ARRAY_TYPE:
-			_data._array = new std::vector<var>(*other.data()._array);
+			_storage._array = new std::vector<Obj>(*other.data()._array);
 			break;
 
 		case TABLE_TYPE:
-			_data._table = new std::unordered_map<std::string, var>(*other.data()._table);
+			_storage._table = new std::unordered_map<std::string, Obj>(*other.data()._table);
 			break;
 
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			_data._string = new std::string(*other.data()._string);
+			_storage._string = new std::string(*other.data()._string);
 			break;
 
 		default:
-			_data = other.data();
+			_storage = other.data();
 			break;
 		}
 
 		return *this;
 	}
 
-	var& var::operator[](const std::string& key)
+	Obj& Obj::operator[](const std::string& key)
 	{
 		switch (_type)
 		{
 		case ARRAY_TYPE:
-			std::vector<var>* arr;
-			arr = _data._array;
+			std::vector<Obj>* arr;
+			arr = _storage._array;
 			_type = TABLE_TYPE;
-			_data._table = new std::unordered_map<std::string, var>();
+			_storage._table = new std::unordered_map<std::string, Obj>();
 
 			for (int i = 0; i < arr->size(); i++)
 			{
-				(*_data._table)[std::to_string(i)] = (*arr)[i];
+				(*_storage._table)[std::to_string(i)] = (*arr)[i];
 			}
-			return (*_data._table)[key];
+			return (*_storage._table)[key];
 
 		case TABLE_TYPE:
-			return (*_data._table)[key];
+			return (*_storage._table)[key];
 
 		default:
 			_type = TABLE_TYPE;
-			_data._table = new std::unordered_map<std::string, var>();
-			return (*_data._table)[key];
+			_storage._table = new std::unordered_map<std::string, Obj>();
+			return (*_storage._table)[key];
 		}
 	}
 
-	var& var::operator[](size_t i)
+	Obj& Obj::operator[](size_t i)
 	{
 		switch (_type)
 		{
 		case ARRAY_TYPE:
-			if (i >= _data._array->size()) (*_data._array).resize(i + 1);
-			return (*_data._array)[i];
+			if (i >= _storage._array->size()) (*_storage._array).resize(i + 1);
+			return (*_storage._array)[i];
 
 		case TABLE_TYPE:
-			return (*_data._table)[std::to_string(i)];
+			return (*_storage._table)[std::to_string(i)];
 
 		default:
-			_type = var::ARRAY_TYPE;
-			_data._array = new std::vector<var>(i + 1);
-			return (*_data._array)[i];
+			_type = Obj::ARRAY_TYPE;
+			_storage._array = new std::vector<Obj>(i + 1);
+			return (*_storage._array)[i];
 		}
 	}
 
-	std::ostream& operator<<(std::ostream& out, const var& v)
+	std::ostream& operator<<(std::ostream& out, const Obj& v)
 	{
 		out << v.to_string();
 		return out;
@@ -702,7 +702,7 @@ namespace hirzel
 
 	// Static functions
 
-	var var::parse_json_value(const std::string& src, size_t& i)
+	Obj Obj::parse_json_value(const std::string& src, size_t& i)
 	{
 		char first = src[i];
 		if (first >= '0' && first <= '9' || first == '-')
@@ -733,14 +733,14 @@ namespace hirzel
 
 			if (dec)
 			{
-				return var(std::stod(tmp));
+				return Obj(std::stod(tmp));
 			}
 			else
 			{
 				if (neg)
-					return var(std::stoll(tmp));
+					return Obj(std::stoll(tmp));
 				else
-					return var(std::stoull(tmp));
+					return Obj(std::stoull(tmp));
 			}
 		}
 		else if (first == '\"')
@@ -754,7 +754,7 @@ namespace hirzel
 			}
 			i++;
 			*pos = 0;
-			return var(tmp);
+			return Obj(tmp);
 		}
 		else
 		{
@@ -804,27 +804,27 @@ namespace hirzel
 			switch (first)
 			{
 			case 't':
-				return var(true);
+				return Obj(true);
 			case 'f':
-				return var(false);
+				return Obj(false);
 			case 'n':
-				return var();
+				return Obj();
 			}
 		}
 		
-		return var();
+		return Obj();
 	}
 
-	var var::parse_json_array(const std::string& src, size_t& i)
+	Obj Obj::parse_json_array(const std::string& src, size_t& i)
 	{
-		var arr(ARRAY_TYPE);
+		Obj arr(ARRAY_TYPE);
 		int index = 0;
 		i++;
 		if (src[i] == ']') return arr;
 		bool new_elem = true;
 		while (new_elem)
 		{
-			var v = parse_json_value(src, i);
+			Obj v = parse_json_value(src, i);
 			if (v.is_error()) return v;
 			arr[index++] = v;
 
@@ -837,9 +837,9 @@ namespace hirzel
 		return arr;
 	}
 	
-	var var::parse_json_object(const std::string& src, size_t& i)
+	Obj Obj::parse_json_object(const std::string& src, size_t& i)
 	{
-		var obj(var::TABLE_TYPE);
+		Obj obj(Obj::TABLE_TYPE);
 		int index = 0;
 		i++;
 		bool new_member;
@@ -862,7 +862,7 @@ namespace hirzel
 			if (src[i] != ':') return error("JSON: improper object member definition at position: " + std::to_string(i));
 			i++;
 			
-			var& m = obj[label];
+			Obj& m = obj[label];
 			m = parse_json_value(src, i);
 			if (m.is_error()) return m;
 			
@@ -880,7 +880,7 @@ namespace hirzel
 		return obj;
 	}
 
-	var var::parse_json(const std::string& src)
+	Obj Obj::parse_json(const std::string& src)
 	{
 		std::string src_mod(src.size(), 0);
 		// removing all non vital white space
@@ -940,4 +940,4 @@ namespace hirzel
 	}
 } // namespace hirzel
 
-#endif // HIRZEL_VAR_IMPLEMENTATION
+#endif // HIRZEL_OBJ_IMPLEMENTATION

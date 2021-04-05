@@ -1,10 +1,10 @@
-#define HIRZEL_VAR_IMPLEMENTATION
-#include <hirzel/var.h>
+#define HIRZEL_OBJ_IMPLEMENTATION
+#include <hirzel/obj.h>
 #include <cassert>
 #include <iostream>
 #include <fstream>
 
-using hirzel::var;
+using hirzel::Obj;
 
 /*
 	TODO:
@@ -178,90 +178,90 @@ std::string pokemon_json= R"====(
 	assert(v.is_##func ());\
 	assert(v.to_##func() == val);
 
-#define check_null(v)			assert(v.type() == var::NULL_TYPE); assert(v.is_null());
-#define check_error(v)			assert(v.type() == var::ERROR_TYPE); assert(v.is_error());
-#define check_char(v, val)		check_prim(v, val, var::CHAR_TYPE, char)
-#define check_bool(v, val)		check_prim(v, val, var::BOOL_TYPE, bool)
-#define check_int(v, val)		check_prim(v, val, var::INT_TYPE, int)
-#define check_uint(v, val)		check_prim(v, val, var::UINT_TYPE, uint)
-#define check_float(v, val)		assert(v.type() == var::FLOAT_TYPE); assert(v.is_float()); assert(v.to_double() == val);
-#define check_string(v, val)	check_prim(v, val, var::STRING_TYPE, string);
-#define check_table(v, val)		assert(v.type() == var::TABLE_TYPE); assert(v.is_table()); assert(v.empty() == val);
-#define check_array(v, val)		assert(v.type() == var::ARRAY_TYPE); assert(v.is_array()); assert(v.empty() == val);
+#define check_null(v)			assert(v.type() == Obj::NULL_TYPE); assert(v.is_null());
+#define check_error(v)			assert(v.type() == Obj::ERROR_TYPE); assert(v.is_error());
+#define check_char(v, val)		check_prim(v, val, Obj::CHAR_TYPE, char)
+#define check_bool(v, val)		check_prim(v, val, Obj::BOOL_TYPE, bool)
+#define check_int(v, val)		check_prim(v, val, Obj::INT_TYPE, int)
+#define check_uint(v, val)		check_prim(v, val, Obj::UINT_TYPE, uint)
+#define check_float(v, val)		assert(v.type() == Obj::FLOAT_TYPE); assert(v.is_float()); assert(v.to_double() == val);
+#define check_string(v, val)	check_prim(v, val, Obj::STRING_TYPE, string);
+#define check_table(v, val)		assert(v.type() == Obj::TABLE_TYPE); assert(v.is_table()); assert(v.empty() == val);
+#define check_array(v, val)		assert(v.type() == Obj::ARRAY_TYPE); assert(v.is_array()); assert(v.empty() == val);
 
 void test_null()
 {
-	var v;
+	Obj v;
 	assert(v.is_null());
-	compare(v, var::NULL_TYPE, 0, 0, 0u, 0.0, (char)0, false, "null", true);
+	compare(v, Obj::NULL_TYPE, 0, 0, 0u, 0.0, (char)0, false, "null", true);
 }
 
 void test_int()
 {
-	var v;
+	Obj v;
 	assert(!v.is_int());
 	v = 62;
 	assert(v.is_int() && v.is_num());
-	compare(v, var::INT_TYPE, sizeof(intmax_t), 62, 62u, 62.0, (char)62, true, "62", false);
+	compare(v, Obj::INT_TYPE, sizeof(intmax_t), 62, 62u, 62.0, (char)62, true, "62", false);
 	v = -1023;
-	compare(v, var::INT_TYPE, sizeof(intmax_t), -1023, (uintmax_t)(-1023), -1023.0, (char)-1023, true, "-1023", false);
+	compare(v, Obj::INT_TYPE, sizeof(intmax_t), -1023, (uintmax_t)(-1023), -1023.0, (char)-1023, true, "-1023", false);
 }
 
 void test_uint()
 {
-	var v;
+	Obj v;
 	assert(!v.is_uint());
 	v = 45u;
 	assert(v.is_uint() && v.is_num());
-	compare(v, var::UINT_TYPE, sizeof(uintmax_t), 45, 45u, 45.0, (char)45, true, "45", false);
+	compare(v, Obj::UINT_TYPE, sizeof(uintmax_t), 45, 45u, 45.0, (char)45, true, "45", false);
 }
 
 void test_float()
 {
-	var v;
+	Obj v;
 	assert(!v.is_float());
 	v = 12.4;
 	assert(v.is_float() && v.is_num());
-	compare(v, var::FLOAT_TYPE, sizeof(double), 12, 12u, 12.4, (char)12, true, std::to_string(12.4), false);
+	compare(v, Obj::FLOAT_TYPE, sizeof(double), 12, 12u, 12.4, (char)12, true, std::to_string(12.4), false);
 }
 
 void test_char()
 {
-	var v;
+	Obj v;
 	assert(!v.is_char());
 	v = ' ';
 	assert(v.is_char());
-	compare(v, var::CHAR_TYPE, sizeof(char), 32, 32u, 32.0, ' ', true, " ", false);
+	compare(v, Obj::CHAR_TYPE, sizeof(char), 32, 32u, 32.0, ' ', true, " ", false);
 }
 
 void test_bool()
 {
-	var v;
+	Obj v;
 	assert(!v.is_bool());
 	v = true;
 	assert(v.is_bool());
-	compare(v, var::BOOL_TYPE, sizeof(bool), 1, 1u, 1.0, 1, true, "true", false);
+	compare(v, Obj::BOOL_TYPE, sizeof(bool), 1, 1u, 1.0, 1, true, "true", false);
 	v = false;
-	compare(v, var::BOOL_TYPE, sizeof(bool), 0, 0u, 0.0, 0, false, "false", false);
+	compare(v, Obj::BOOL_TYPE, sizeof(bool), 0, 0u, 0.0, 0, false, "false", false);
 }
 
 void test_string()
 {
-	var v;
+	Obj v;
 	assert(!v.is_string());
 	v = "";
 	assert(v.is_string());
-	compare(v, var::STRING_TYPE, 0, 0, 0u, 0, (char)0, false, "", true);
+	compare(v, Obj::STRING_TYPE, 0, 0, 0u, 0, (char)0, false, "", true);
 	v = "HELLO";
-	compare(v, var::STRING_TYPE, 5, 0, 0, 0.0, 'H', true, "HELLO", false);
+	compare(v, Obj::STRING_TYPE, 5, 0, 0, 0.0, 'H', true, "HELLO", false);
 }
 
 void test_array()
 {
-	var v;
+	Obj v;
 	assert(!v.is_array());
 	v = { 1, "HELLO", true };
-	assert(v.type() == var::ARRAY_TYPE);
+	assert(v.type() == Obj::ARRAY_TYPE);
 	assert(v.is_array());
 	assert(v.size() == 3);
 	assert(!v.empty());
@@ -272,7 +272,7 @@ void test_array()
 
 void test_table()
 {
-	var v;
+	Obj v;
 	assert(!v.is_table());
 	v["val"] = 2;
 	assert(v.is_table());
@@ -287,33 +287,33 @@ void test_table()
 
 void test_parse_json()
 {
-	var v;
-	v = var::parse_json("true");
+	Obj v;
+	v = Obj::parse_json("true");
 	check_bool(v, true);
-	v = var::parse_json("false");
+	v = Obj::parse_json("false");
 	check_bool(v, false);
-	v = var::parse_json("null");
+	v = Obj::parse_json("null");
 	check_null(v);
-	v = var::parse_json("3");
+	v = Obj::parse_json("3");
 	check_uint(v, 3);
-	v = var::parse_json("-5");
+	v = Obj::parse_json("-5");
 	check_int(v, -5);
-	v = var::parse_json("-876.02");
+	v = Obj::parse_json("-876.02");
 	check_float(v, -876.02);
-	v = var::parse_json("5.342");
+	v = Obj::parse_json("5.342");
 	check_float(v, 5.342);
-	v = var::parse_json("5.4.");
+	v = Obj::parse_json("5.4.");
 	check_error(v);
-	v = var::parse_json("\"hello\"");
+	v = Obj::parse_json("\"hello\"");
 	check_string(v, "hello");
 
-	v = var::parse_json("[3,-5,\"hello\"]");
+	v = Obj::parse_json("[3,-5,\"hello\"]");
 	check_uint(v[0], 3);
 	check_int(v[1], -5);
 	check_string(v[2], "hello");
 
 	std::string ex_json = "{\"num\":3,\"str\":\"abcdef\",\"\":-4}";
-	v = var::parse_json(ex_json);
+	v = Obj::parse_json(ex_json);
 	assert(v.to_json() == ex_json);
 	check_table(v, false);
 	check_uint(v["num"], 3);
@@ -321,20 +321,20 @@ void test_parse_json()
 	check_int(v[""], -4);
 
 	ex_json = "{\"scooby\":{\"snacks\":{\"flavor\":\"spicy\",\"size\":3}},\"num\":3,\"arr\":[3,-5,2]}";
-	v = var::parse_json(ex_json);
+	v = Obj::parse_json(ex_json);
 	assert(v.to_json() == ex_json);
 	assert(!v.is_error());
 	assert(!v["scooby"].is_null());
 	assert(v["scooby"].is_table());
 
-	v = var::parse_json("[]");
+	v = Obj::parse_json("[]");
 	check_array(v, true);
-	v = var::parse_json("{}");
+	v = Obj::parse_json("{}");
 	check_table(v, true);
 
 	std::string serial = v.to_json();
 	assert(!v.is_error());
-	v = var::parse_json(pokemon_json);
+	v = Obj::parse_json(pokemon_json);
 	assert(v.contains("previous"));
 	check_null(v["previous"]);
 	assert(v.contains("results"));
@@ -345,7 +345,7 @@ void test_parse_json()
 	assert(v["results"][0].contains("url"));
 	check_string(v["results"][0]["url"], "https://pokeapi.co/api/v2/pokemon/1/");
 
-	v = var::parse_json(colors_json);
+	v = Obj::parse_json(colors_json);
 	assert(v.contains("colors"));
 	check_array(v["colors"], false);
 	assert(v["colors"].size() == 6);
