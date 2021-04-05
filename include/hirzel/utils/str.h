@@ -1,29 +1,67 @@
-#include "strutil.h"
-#include <iostream>
+#ifndef UTILS_STR_H
+#define UTILS_STR_H
+
+#include <vector>
+#include <string>
+
 namespace hirzel
 {
 	namespace str
 	{
-		bool is_invisible(unsigned char c)
+		/**
+		 * Checks if given char is invisible
+		 * @return	truth value
+		 */
+		inline bool is_invisible(unsigned char c)
 		{
 			return (c < 33) || (c == 127);
 		}
 
-		bool is_alpha(unsigned char c)
+		inline bool is_alpha(unsigned char c)
 		{
 			return (c > 64  && c < 91) || (c > 96 && c < 123);
 		}
 
-		bool is_digit(unsigned char c)
+		inline bool is_digit(unsigned char c)
 		{
 			return (c > 47 && c < 58);
 		}
 
-		bool is_special(unsigned char c)
+		inline bool is_special(unsigned char c)
 		{
 			return (c > 32 && c < 48) || (c > 57 && c < 65) || (c > 90 && c < 97) || (c > 122 && c < 127);
 		}
 
+		// tokenize a string with single char delimiters
+		std::vector<std::string> tokenize(const std::string& str, const std::string& delims,
+			bool ignore_invisible = false, bool save_delims = false);
+
+		// tokenize a string with multi-char delimiters
+		std::vector<std::string> tokenize(const std::string& str, const std::vector<std::string>& delims,
+			bool ignore_invisible = false, bool save_delims = false);
+
+		std::string purge_delims(const std::string& str, const std::string& delims, bool delim_invisible = false);
+		std::string replace_delims(const std::string& str, const std::string& delims, char replacement);
+
+		void find_and_purge(std::string& str, const std::string& token);
+		void find_and_replace(std::string& str, const std::string& token, const std::string& replacement);
+
+		std::string get_folder(const std::string& filepath);
+		std::string get_filename(const std::string& filepath);
+		std::string get_extension(const std::string& filepath);
+		std::string get_basename(const std::string& filepath);
+	}
+}
+
+#endif // UTILS_STR_H
+
+#ifdef UTILS_STR_IMPLEMENTATION
+#undef UTILS_STR_IMPLEMENTATION
+
+namespace hirzel
+{
+	namespace str
+	{
 		std::vector<std::string> tokenize(const std::string &str, const std::string &delims,
 			bool ignore_invisible, bool save_delims)
 		{
@@ -291,3 +329,5 @@ namespace hirzel
 		}
 	} // namespace strutil
 } // namespace hirzel
+
+#endif // UTILS_STR_IMPLEMENTATION
