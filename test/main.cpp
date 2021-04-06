@@ -8,7 +8,7 @@ int main()
 {
 	fountain::init();
 	std::string m = "message!";
-	PRINT("Logging in main.cpp");
+	PRINT("Logging in main.cpp\n");
 	INFO("This is an info %s", m);
 	SUCCESS("This is a success %s", m);
 	WARNING("This is a warning %s", m);
