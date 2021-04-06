@@ -3,18 +3,17 @@
 
 #include <vector>
 #include <string>
-#include <cstdio>
 
 namespace hirzel
 {
 	namespace file
 	{
-		std::vector<std::string> read_file_as_vector(const std::string& filename);
-		std::string read_file_as_string(const std::string& filename, bool ignore_empty_lines = false,
+		std::vector<std::string> read_lines(const std::string& filename,
+			 size_t first_line = 0, size_t n = -1);
+		std::string read(const std::string& filename, bool ignore_empty_lines = false,
 			const std::string& line_ending_fmt = "\n");
-		std::vector<std::vector<std::string>> read_csv(const std::string& filename);
-		void write_file(const std::string& filename, const std::string& buf);
-		bool file_exists(const std::string& filepath);
+		void write(const std::string& filename, const std::string& buf);
+		bool exists(const std::string& filepath);
 	}
 }
 
@@ -29,34 +28,32 @@ namespace hirzel
 {
 	namespace file
 	{
-		std::vector<std::string> read_file_as_vector(const std::string &filename)
+		std::vector<std::string> read_lines(const std::string &filename, size_t first_line, size_t n)
 		{
-			std::string line;
-			std::vector<std::string> lines;
 			std::ifstream fin(filename);
+			if (!fin.is_open()) return {};
 
-			if (fin.is_open())
+			std::vector<std::string> lines(n);
+			std::string line;
+			size_t curr_line = 0;
+			size_t lines_i = 0;
+
+			while (std::getline(fin, line) && curr_line < first_line + n)
 			{
-				while (std::getline(fin, line))
+				if (curr_line >= first_line)
 				{
-					if (line.empty())
-					{
-						continue;
-					}
-					if (line.back() == '\r')
-					{
-						line.resize(line.size() - 1);
-					}
-					lines.push_back(line);
+					if (line.back() == '\r') line.resize(line.size() - 1);
+					lines[lines_i++] = line;
 				}
-				fin.close();
+				curr_line++;
 			}
+
+			fin.close();
 
 			return lines;
 		}
 
-		std::string read_file_as_string(const std::string &filename, bool ignore_empty_lines,
-			const std::string &line_ending_fmt)
+		std::string read(const std::string &filename, bool ignore_empty_lines, const std::string &line_ending_fmt)
 		{
 			std::string text, line;
 			std::ifstream fin(filename);
@@ -84,19 +81,7 @@ namespace hirzel
 			return text;
 		}
 
-		std::vector<std::vector<std::string>> read_csv(const std::string &filename)
-		{
-			std::vector<std::string> lines = read_file_as_vector(filename);
-			std::vector<std::vector<std::string>> tokens;
-
-			for (std::string str : lines)
-			{
-				tokens.push_back(str::tokenize(str, ",", false, false));
-			}
-			return tokens;
-		}
-
-		void write_file(const std::string &filename, const std::string &buf)
+		void write(const std::string &filename, const std::string &buf)
 		{
 			std::ofstream file;
 			file.open(filename);
@@ -104,7 +89,7 @@ namespace hirzel
 			file.close();
 		}
 
-		bool file_exists(const std::string &filepath)
+		bool exists(const std::string &filepath)
 		{
 			std::ifstream file(filepath);
 			return file.good();

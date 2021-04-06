@@ -1,5 +1,5 @@
-#ifndef UTIL_STR_H
-#define UTIL_STR_H
+#ifndef HIRZEL_UTIL_STR_H
+#define HIRZEL_UTIL_STR_H
 
 #include <vector>
 #include <string>
@@ -53,7 +53,7 @@ namespace hirzel
 	}
 }
 
-#endif // UTIL_STR_H
+#endif // HIRZEL_UTIL_STR_H
 
 #ifdef HIRZEL_UTIL_STR_I
 #undef HIRZEL_UTIL_STR_I

@@ -1,5 +1,5 @@
-#ifndef UTIL_SYS_H
-#define UTIL_SYS_H
+#ifndef HIRZEL_UTIL_SYS_H
+#define HIRZEL_UTIL_SYS_H
 
 #include <iostream>
 #include <chrono>
@@ -60,4 +60,4 @@ namespace hirzel
 	}
 }
 
-#endif // UTIL_SYS_H
+#endif // HIRZEL_UTIL_SYS_H
