@@ -1,6 +1,6 @@
 
 /**
- * @file obj.h
+ * @file data.h
  * @brief A universal data type
  * @author Ike Hirzel
  * 
@@ -24,8 +24,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef OBJ_H
-#define OBJ_H
+#ifndef DATA_H
+#define DATA_H
 
 #include <iostream>
 #include <string>
@@ -34,11 +34,11 @@
 
 namespace hirzel
 {
-	class Obj
+	class Data
 	{
 	public:
-		typedef std::unordered_map<std::string, Obj> Table;
-		typedef std::vector<Obj> Array;
+		typedef std::unordered_map<std::string, Data> Table;
+		typedef std::vector<Data> Array;
 
 		enum Type
 		{
@@ -71,48 +71,48 @@ namespace hirzel
 		// type of data
 		char _type = 0;
 
-		static Obj parse_json_object(const std::string& src, size_t& i);
-		static Obj parse_json_array(const std::string& src, size_t& i);
-		static Obj parse_json_value(const std::string& src, size_t& i);
+		static Data parse_json_object(const std::string& src, size_t& i);
+		static Data parse_json_array(const std::string& src, size_t& i);
+		static Data parse_json_value(const std::string& src, size_t& i);
 
 	public:
 
-		Obj() = default;
+		Data() = default;
 
-		Obj(const Obj& other) { *this = other; }
-		Obj(Obj&& other);
+		Data(const Data& other) { *this = other; }
+		Data(Data&& other);
 
-		Obj(Type t);
+		Data(Type t);
 
-		Obj(long long i);
-		inline Obj(short i) : Obj((long long)i) {}
-		inline Obj(int i) : Obj((long long)i) {}
-		inline Obj(long i) : Obj((long long)i) {}
+		Data(long long i);
+		inline Data(short i) : Data((long long)i) {}
+		inline Data(int i) : Data((long long)i) {}
+		inline Data(long i) : Data((long long)i) {}
 
-		Obj(unsigned long long u);
-		inline Obj(unsigned short u): Obj((unsigned long long)u) {}
-		inline Obj(unsigned int u) : Obj((unsigned long long )u) {}
-		inline Obj(unsigned long u) : Obj((unsigned long long)u) {}
+		Data(unsigned long long u);
+		inline Data(unsigned short u): Data((unsigned long long)u) {}
+		inline Data(unsigned int u) : Data((unsigned long long )u) {}
+		inline Data(unsigned long u) : Data((unsigned long long)u) {}
 		
-		Obj(double d);
-		inline Obj(float f) : Obj((double)f) {}
+		Data(double d);
+		inline Data(float f) : Data((double)f) {}
 
-		Obj(bool b);
+		Data(bool b);
 
-		Obj(char c);
+		Data(char c);
 
-		Obj(const std::string& s, bool error = false);
-		inline Obj(char* c) : Obj(std::string(c)) {}
-		inline Obj(const char* c) : Obj(std::string(c)) {}
+		Data(const std::string& s, bool error = false);
+		inline Data(char* c) : Data(std::string(c)) {}
+		inline Data(const char* c) : Data(std::string(c)) {}
 
-		Obj(const Array& arr);
-		Obj(const Table& table);
-		inline Obj(const std::initializer_list<Obj>& list) : Obj(Array(list)) {}
+		Data(const Array& arr);
+		Data(const Table& table);
+		inline Data(const std::initializer_list<Data>& list) : Data(Array(list)) {}
 
-		~Obj();
+		~Data();
 
-		static Obj parse_json(const std::string& src);
-		inline static Obj error(const std::string& msg) { return Obj(msg, true); }
+		static Data parse_json(const std::string& src);
+		inline static Data error(const std::string& msg) { return Data(msg, true); }
 		
 		intmax_t to_int() const;
 		uintmax_t to_uint() const;
@@ -148,35 +148,35 @@ namespace hirzel
 		inline Storage data() const { return _storage; }
 		inline int type() const { return (int)_type; }
 
-		Obj& operator=(const Obj& other);
+		Data& operator=(const Data& other);
 
-		Obj& operator[](size_t i);
-		const Obj& at(size_t i) const;
-		inline const Obj& operator[](size_t i) const { return this->at(i); }
+		Data& operator[](size_t i);
+		const Data& at(size_t i) const;
+		inline const Data& operator[](size_t i) const { return this->at(i); }
 
-		Obj& operator[](const std::string& key);
-		const Obj& at(const std::string& key) const;
-		inline const Obj& operator[](const std::string& key) const { return this->at(key); }
+		Data& operator[](const std::string& key);
+		const Data& at(const std::string& key) const;
+		inline const Data& operator[](const std::string& key) const { return this->at(key); }
 
-		friend std::ostream& operator<<(std::ostream& out, const Obj& v);
+		friend std::ostream& operator<<(std::ostream& out, const Data& v);
 	};
 }
 
-#endif // OBJ_H
+#endif // DATA_H
 
-#ifdef HIRZEL_OBJ_IMPLEMENTATION
-#undef HIRZEL_OBJ_IMPLEMENTATION
+#ifdef HIRZEL_DATA_I
+#undef HIRZEL_DATA_I
 
 namespace hirzel
 {
-	Obj::Obj(Obj&& other)
+	Data::Data(Data&& other)
 	{
 		_type = other._type;
 		_storage = other._storage;
 		other._type = NULL_TYPE;
 	}
 
-	Obj::Obj(Type t)
+	Data::Data(Type t)
 	{
 		_type = t;
 		switch (t)
@@ -212,37 +212,37 @@ namespace hirzel
 		}
 	}
 
-	Obj::Obj(long long i)
+	Data::Data(long long i)
 	{
 		_storage.itg = i;
-		_type = Obj::INT_TYPE;
+		_type = Data::INT_TYPE;
 	}
 
-	Obj::Obj(long long unsigned u)
+	Data::Data(long long unsigned u)
 	{
 		_storage.uns = u;
-		_type = Obj::UINT_TYPE;
+		_type = Data::UINT_TYPE;
 	}
 
-	Obj::Obj(char c)
+	Data::Data(char c)
 	{
 		_storage.chr = c;
-		_type = Obj::CHAR_TYPE;
+		_type = Data::CHAR_TYPE;
 	}
 
-	Obj::Obj(double d)
+	Data::Data(double d)
 	{
 		_storage.flt = d;
-		_type = Obj::FLOAT_TYPE;
+		_type = Data::FLOAT_TYPE;
 	}
 
-	Obj::Obj(bool b)
+	Data::Data(bool b)
 	{
 		_storage.bol = b;
-		_type = Obj::BOOL_TYPE;
+		_type = Data::BOOL_TYPE;
 	}
 
-	Obj::Obj(const std::string& s, bool error)
+	Data::Data(const std::string& s, bool error)
 	{
 		if (error)
 			_type = ERROR_TYPE;
@@ -251,19 +251,19 @@ namespace hirzel
 		_storage.str = new std::string(s);
 	}
 
-	Obj::Obj(const Array& arr)
+	Data::Data(const Array& arr)
 	{
 		_type = ARRAY_TYPE;
 		_storage.arr = new Array(arr);
 	}
 
-	Obj::Obj(const Table& table)
+	Data::Data(const Table& table)
 	{
 		_type = TABLE_TYPE;
 		_storage.tbl = new Table(table);
 	}
 
-	Obj::~Obj()
+	Data::~Data()
 	{
 		switch (_type)
 		{
@@ -282,7 +282,7 @@ namespace hirzel
 		}
 	}
 
-	intmax_t Obj::to_int() const
+	intmax_t Data::to_int() const
 	{
 		switch(_type)
 		{
@@ -310,7 +310,7 @@ namespace hirzel
 		}
 	}
 
-	uintmax_t Obj::to_uint() const
+	uintmax_t Data::to_uint() const
 	{
 		switch(_type)
 		{
@@ -338,7 +338,7 @@ namespace hirzel
 		}
 	}
 
-	double Obj::to_double() const
+	double Data::to_double() const
 	{
 		switch(_type)
 		{
@@ -368,7 +368,7 @@ namespace hirzel
 		}
 	}
 
-	char Obj::to_char() const
+	char Data::to_char() const
 	{
 		switch(_type)
 		{
@@ -389,7 +389,7 @@ namespace hirzel
 		}
 	}
 
-	bool Obj::to_bool() const
+	bool Data::to_bool() const
 	{
 		switch(_type)
 		{
@@ -410,7 +410,7 @@ namespace hirzel
 		}
 	}
 
-	std::string Obj::to_json() const
+	std::string Data::to_json() const
 	{
 		switch(_type)
 		{
@@ -486,7 +486,7 @@ namespace hirzel
 		}
 	}
 
-	std::string Obj::to_string() const
+	std::string Data::to_string() const
 	{
 		switch(_type)
 		{
@@ -522,7 +522,7 @@ namespace hirzel
 			int i = 0;
 			for (auto iter = _storage.tbl->begin(); iter != _storage.tbl->end(); iter++)
 			{
-				const Obj& v = iter->second;
+				const Data& v = iter->second;
 				str_reps[i] = "\n\t" + iter->first + ":\t";
 				std::string tmp = v.to_string();
 				if (v.is_string())
@@ -549,7 +549,7 @@ namespace hirzel
 			std::vector<std::string> str_reps(_storage.arr->size());
 			for (int i = 0; i < _storage.arr->size(); i++)
 			{
-				const Obj& v = (*_storage.arr)[i];
+				const Data& v = (*_storage.arr)[i];
 				std::string tmp = v.to_string();
 				if (v.is_string())
 				{
@@ -588,7 +588,7 @@ namespace hirzel
 		return out;
 	}
 
-	Obj::Table Obj::to_table() const
+	Data::Table Data::to_table() const
 	{
 		Table t;
 		switch (_type)
@@ -608,7 +608,7 @@ namespace hirzel
 		}
 	}
 
-	Obj::Array Obj::to_array() const
+	Data::Array Data::to_array() const
 	{
 		Array arr;
 		switch (_type)
@@ -631,7 +631,7 @@ namespace hirzel
 		}
 	}
 
-	bool Obj::empty() const
+	bool Data::empty() const
 	{
 		switch (_type)
 		{
@@ -649,7 +649,7 @@ namespace hirzel
 		}
 	}
 
-	size_t Obj::size() const
+	size_t Data::size() const
 	{
 		switch (_type)
 		{
@@ -665,7 +665,7 @@ namespace hirzel
 		}
 	}
 
-	Obj& Obj::operator=(const Obj& other)
+	Data& Data::operator=(const Data& other)
 	{
 		_type = other.type();
 		switch(_type)
@@ -691,7 +691,7 @@ namespace hirzel
 		return *this;
 	}
 
-	const Obj& Obj::at(size_t i) const
+	const Data& Data::at(size_t i) const
 	{
 		switch (_type)
 		{
@@ -704,13 +704,13 @@ namespace hirzel
 		}
 	}
 
-	const Obj& Obj::at(const std::string& key) const
+	const Data& Data::at(const std::string& key) const
 	{
 		if (_type == TABLE_TYPE) return (*_storage.tbl)[key];
 		return *this;
 	}
 
-	Obj& Obj::operator[](const std::string& key)
+	Data& Data::operator[](const std::string& key)
 	{
 		switch (_type)
 		{
@@ -737,7 +737,7 @@ namespace hirzel
 		}
 	}
 
-	Obj& Obj::operator[](size_t i)
+	Data& Data::operator[](size_t i)
 	{
 		switch (_type)
 		{
@@ -749,13 +749,13 @@ namespace hirzel
 			return (*_storage.tbl)[std::to_string(i)];
 
 		default:
-			_type = Obj::ARRAY_TYPE;
+			_type = Data::ARRAY_TYPE;
 			_storage.arr = new Array(i + 1);
 			return (*_storage.arr)[i];
 		}
 	}
 
-	std::ostream& operator<<(std::ostream& out, const Obj& v)
+	std::ostream& operator<<(std::ostream& out, const Data& v)
 	{
 		out << v.to_string();
 		return out;
@@ -765,7 +765,7 @@ namespace hirzel
 	#	Parsing code
 	###################################################*/
 
-	Obj Obj::parse_json_value(const std::string& src, size_t& i)
+	Data Data::parse_json_value(const std::string& src, size_t& i)
 	{
 		char first = src[i];
 		if (first >= '0' && first <= '9' || first == '-')
@@ -796,14 +796,14 @@ namespace hirzel
 
 			if (dec)
 			{
-				return Obj(std::stod(tmp));
+				return Data(std::stod(tmp));
 			}
 			else
 			{
 				if (neg)
-					return Obj(std::stoll(tmp));
+					return Data(std::stoll(tmp));
 				else
-					return Obj(std::stoull(tmp));
+					return Data(std::stoull(tmp));
 			}
 		}
 		else if (first == '\"')
@@ -817,7 +817,7 @@ namespace hirzel
 			}
 			i++;
 			*pos = 0;
-			return Obj(tmp);
+			return Data(tmp);
 		}
 		else
 		{
@@ -867,27 +867,27 @@ namespace hirzel
 			switch (first)
 			{
 			case 't':
-				return Obj(true);
+				return Data(true);
 			case 'f':
-				return Obj(false);
+				return Data(false);
 			case 'n':
-				return Obj();
+				return Data();
 			}
 		}
 		
-		return Obj();
+		return Data();
 	}
 
-	Obj Obj::parse_json_array(const std::string& src, size_t& i)
+	Data Data::parse_json_array(const std::string& src, size_t& i)
 	{
-		Obj arr(ARRAY_TYPE);
+		Data arr(ARRAY_TYPE);
 		int index = 0;
 		i++;
 		if (src[i] == ']') return arr;
 		bool new_elem = true;
 		while (new_elem)
 		{
-			Obj v = parse_json_value(src, i);
+			Data v = parse_json_value(src, i);
 			if (v.is_error()) return v;
 			arr[index++] = v;
 
@@ -900,9 +900,9 @@ namespace hirzel
 		return arr;
 	}
 	
-	Obj Obj::parse_json_object(const std::string& src, size_t& i)
+	Data Data::parse_json_object(const std::string& src, size_t& i)
 	{
-		Obj obj(Obj::TABLE_TYPE);
+		Data obj(Data::TABLE_TYPE);
 		int index = 0;
 		i++;
 		bool new_member;
@@ -925,7 +925,7 @@ namespace hirzel
 			if (src[i] != ':') return error("JSON: improper object member definition at position: " + std::to_string(i));
 			i++;
 			
-			Obj& m = obj[label];
+			Data& m = obj[label];
 			m = parse_json_value(src, i);
 			if (m.is_error()) return m;
 			
@@ -943,7 +943,7 @@ namespace hirzel
 		return obj;
 	}
 
-	Obj Obj::parse_json(const std::string& src)
+	Data Data::parse_json(const std::string& src)
 	{
 		std::string src_mod(src.size(), 0);
 		// removing all non vital white space
@@ -1003,4 +1003,4 @@ namespace hirzel
 	}
 } // namespace hirzel
 
-#endif // HIRZEL_OBJ_IMPLEMENTATION
+#endif // HIRZEL_DATA_I
