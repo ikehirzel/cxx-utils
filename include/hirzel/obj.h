@@ -36,28 +36,9 @@ namespace hirzel
 {
 	class Obj
 	{
-	private:
-
-		union Storage
-		{
-			bool _boolean;
-			char _character;
-			double _float;
-			std::string* _string;
-			unsigned long long _unsigned;
-			long long _integer = 0;
-			std::vector<Obj>* _array;
-			std::unordered_map<std::string, Obj>* _table;
-		};
-		Storage _storage;
-		// type of data
-		char _type = 0;
-
-		static Obj parse_json_object(const std::string& src, size_t& i);
-		static Obj parse_json_array(const std::string& src, size_t& i);
-		static Obj parse_json_value(const std::string& src, size_t& i);
-
 	public:
+		typedef std::unordered_map<std::string, Obj> Table;
+		typedef std::vector<Obj> Array;
 
 		enum Type
 		{
@@ -73,9 +54,32 @@ namespace hirzel
 			TABLE_TYPE
 		};
 
+		union Storage
+		{
+			bool _boolean;
+			char _character;
+			double _float;
+			std::string* _string;
+			unsigned long long _unsigned;
+			long long _integer = 0;
+			Array* _array;
+			Table* _table;
+		};
+
+	private:
+		Storage _storage;
+		// type of data
+		char _type = 0;
+
+		static Obj parse_json_object(const std::string& src, size_t& i);
+		static Obj parse_json_array(const std::string& src, size_t& i);
+		static Obj parse_json_value(const std::string& src, size_t& i);
+
+	public:
+
 		Obj() = default;
 
-		Obj(const Obj& other);
+		Obj(const Obj& other) { *this = other; }
 		Obj(Obj&& other);
 
 		Obj(Type t);
@@ -94,14 +98,16 @@ namespace hirzel
 		inline Obj(float f) : Obj((double)f) {}
 
 		Obj(bool b);
-
+		
 		Obj(char c);
 
 		Obj(const std::string& s, bool error = false);
 		inline Obj(char* c) : Obj(std::string(c)) {}
 		inline Obj(const char* c) : Obj(std::string(c)) {}
 
-		Obj(const std::initializer_list<Obj>& list);
+		Obj(const Array& arr);
+		Obj(const Table& table);
+		inline Obj(const std::initializer_list<Obj>& list) : Obj(Array(list)) {}
 
 		~Obj();
 
@@ -143,19 +149,27 @@ namespace hirzel
 		Obj& operator=(const Obj& other);
 
 		Obj& operator[](size_t i);
+		inline const Obj& get(size_t i) const
+		{
+		return _type == ARRAY_TYPE ?
+			(*_storage._array)[i] :
+			*this;
+		}
 		inline const Obj& operator[](size_t i) const
 		{
-			return _type == ARRAY_TYPE ?
-				(*_storage._array)[i] :
-				*this;
+			return this->get(i);
 		}
 
 		Obj& operator[](const std::string& key);
-		inline const Obj& operator[](const std::string& key) const
+		inline const Obj& get(const std::string& key) const
 		{
 			return _type == TABLE_TYPE ?
 				(*_storage._table)[key] :
 				*this;
+		}
+		inline const Obj& operator[](const std::string& key) const
+		{
+			return this->get(key);
 		}
 
 		friend std::ostream& operator<<(std::ostream& out, const Obj& v);
@@ -169,11 +183,6 @@ namespace hirzel
 
 namespace hirzel
 {
-	Obj::Obj(const Obj& other)
-	{
-		*this = other;
-	}
-
 	Obj::Obj(Obj&& other)
 	{
 		_type = other._type;
@@ -256,11 +265,23 @@ namespace hirzel
 		_storage._string = new std::string(s);
 	}
 
-	Obj::Obj(const std::initializer_list<Obj>& list)
+	Obj::Obj(const Array& arr)
 	{
 		_type = ARRAY_TYPE;
-		_storage._array = new std::vector<Obj>(list);
+		_storage._array = new Array(arr);
 	}
+
+	Obj::Obj(const Table& table)
+	{
+		_type = TABLE_TYPE;
+		_storage._table = new Table(table);
+	}
+
+	// Obj::Obj(const std::initializer_list<Obj>& obj)
+	// {
+	// 	_type = ARRAY_TYPE;
+	// 	_storage._array = new std::vector<Obj>(obj);
+	// }
 
 	Obj::~Obj()
 	{

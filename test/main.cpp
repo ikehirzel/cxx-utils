@@ -283,6 +283,13 @@ void test_table()
 	assert(v.contains("0"));
 	assert(v.size() == 2);
 	check_string(v[0], "Hello");
+	v = Obj::Table
+	({
+		{ "label", 3 }
+	});
+	assert(v.is_table());
+	assert(v["label"].is_num());
+	assert(v.size() == 1);
 }
 
 void test_parse_json()
