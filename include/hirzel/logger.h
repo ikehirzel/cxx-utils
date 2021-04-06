@@ -1,27 +1,28 @@
-#ifndef FOUNTAIN_H
-#define FOUNTAIN_H
+#ifndef HIRZEL_LOGGER_H
+#define HIRZEL_LOGGER_H
 
-#include <hirzel/obj.h>
+#include <hirzel/data.h>
 #include <vector>
-#define FOUNTAIN_DEBUG		0
-#define FOUNTAIN_INFO		1
-#define FOUNTAIN_SUCCESS	2
-#define FOUNTAIN_WARNING	3
-#define FOUNTAIN_ERROR		4
-#define FOUNTAIN_FATAL		5
+#define LOGGER_DEBUG	0
+#define LOGGER_INFO		1
+#define LOGGER_SUCCESS	2
+#define LOGGER_WARNING	3
+#define LOGGER_ERROR	4
+#define LOGGER_FATAL	5
 
 namespace hirzel
 {
-	namespace fountain
+	namespace logger
 	{
 		// specifies the output file and on windows enables VT100 control codes
-		void init(const std::string& log_filename, bool debug_mode, bool print_logs, bool push_logs, int max_log_size);
+		void init(bool debug_mode = true, bool print_logs = true,
+			const std::string& log_filename = "", size_t max_log_count = 0);
 		// returns a formatted string
-		std::string format(const std::string& str, const std::vector<Obj>& Objs = {});
-		// prints string in specified fromat but does not push it to log list, essentially a type safe printf Objiant
-		void print(const std::string& str, const std::vector<Obj>& Objs = {});
+		std::string format(const std::string& str, const std::vector<Data>& Datas = {});
+		// prints string in specified fromat but does not push it to log list, essentially a type safe printf Dataiant
+		void print(const std::string& str, const std::vector<Data>& Datas = {});
 		// prints / pushes log based on settings
-		void log(unsigned level, const char* name, int line, const std::string& str, const std::vector<Obj>& Objs);
+		void log(unsigned level, const char* name, int line, const std::string& str, const std::vector<Data>& vars);
 		// flushes the list into specified output file and empties the list
 		bool dump();
 		// const ref to the log list for parsing
@@ -31,26 +32,26 @@ namespace hirzel
 }
 
 // checks if the user wants to use the macros as they may or may not cause name collisions
-#ifndef EXCLUDE_FOUNTAIN_MACROS
+#ifndef HIRZEL_LOGGER_NO_MACROS
 
-// macro for printFmt for convenience as it allows for Objiadic 
-#define PRINT(msg, ...)		hirzel::fountain::print(msg, { __VA_ARGS__ });
-#define DEBUG(msg, ...)		hirzel::fountain::log(FOUNTAIN_DEBUG, __FILE__, __LINE__, msg, { __VA_ARGS__} )
-#define INFO(msg, ...)		hirzel::fountain::log(FOUNTAIN_INFO, __FILE__, __LINE__, msg, { __VA_ARGS__} )
-#define SUCCESS(msg, ...)	hirzel::fountain::log(FOUNTAIN_SUCCESS, __FILE__, __LINE__, msg, { __VA_ARGS__ })
-#define WARNING(msg, ...)	hirzel::fountain::log(FOUNTAIN_WARNING, __FILE__, __LINE__, msg, { __VA_ARGS__ })
-#define ERROR(msg, ...)		hirzel::fountain::log(FOUNTAIN_ERROR, __FILE__, __LINE__, msg, { __VA_ARGS__ })
-#define FATAL(msg, ...)		hirzel::fountain::log(FOUNTAIN_FATAL, __FILE__, __LINE__, msg, { __VA_ARGS__ })
+// macro for printFmt for convenience as it allows for variadic use
+#define PRINT(msg, ...)		hirzel::logger::print(msg, { __VA_ARGS__ });
+#define DEBUG(msg, ...)		hirzel::logger::log(LOGGER_DEBUG, __FILE__, __LINE__, msg, { __VA_ARGS__} )
+#define INFO(msg, ...)		hirzel::logger::log(LOGGER_INFO, __FILE__, __LINE__, msg, { __VA_ARGS__} )
+#define SUCCESS(msg, ...)	hirzel::logger::log(LOGGER_SUCCESS, __FILE__, __LINE__, msg, { __VA_ARGS__ })
+#define WARNING(msg, ...)	hirzel::logger::log(LOGGER_WARNING, __FILE__, __LINE__, msg, { __VA_ARGS__ })
+#define ERROR(msg, ...)		hirzel::logger::log(LOGGER_ERROR, __FILE__, __LINE__, msg, { __VA_ARGS__ })
+#define FATAL(msg, ...)		hirzel::logger::log(LOGGER_FATAL, __FILE__, __LINE__, msg, { __VA_ARGS__ })
 
-#endif // EXCLUDE_FOUNTAIN_MACROS
+#endif // HIRZEL_LOGGER_NO_MACROS
 
-#endif // FOUNTAIN_H
+#endif // HIRZEL_LOGGER_H
 
-#ifdef HIRZEL_FOUNTAIN_IMPLEMENTATION
-#undef HIRZEL_FOUNTAIN_IMPLEMENTATION
+#ifdef HIRZEL_LOGGER_I
+#undef HIRZEL_LOGGER_I
 
-#define HIRZEL_OBJ_IMPLEMENTATION
-#include <hirzel/obj.h>
+#define HIRZEL_DATA_I
+#include <hirzel/data.h>
 
 #include <ctime>
 #include <fstream>
@@ -60,58 +61,58 @@ namespace hirzel
 #include <windows.h>
 #endif
 
-#define FOUNTAIN_DEBUG_STR		"[DEBUG]  "
-#define FOUNTAIN_INFO_STR		"[INFO]   "
-#define FOUNTAIN_SUCCESS_STR	"[SUCCESS]"
-#define FOUNTAIN_WARNING_STR	"[WARNING]"
-#define FOUNTAIN_ERROR_STR		"[ERROR]  "
-#define FOUNTAIN_FATAL_STR		"[FATAL]  "
+#define LOGGER_DEBUG_STR	"[DEBUG]  "
+#define LOGGER_INFO_STR		"[INFO]   "
+#define LOGGER_SUCCESS_STR	"[SUCCESS]"
+#define LOGGER_WARNING_STR	"[WARNING]"
+#define LOGGER_ERROR_STR	"[ERROR]  "
+#define LOGGER_FATAL_STR	"[FATAL]  "
 
-#define FOUNTAIN_LEVELS                                                  \
-	{                                                                    \
-		FOUNTAIN_DEBUG_STR, FOUNTAIN_INFO_STR, FOUNTAIN_SUCCESS_STR,      \
-			FOUNTAIN_WARNING_STR, FOUNTAIN_ERROR_STR, FOUNTAIN_FATAL_STR \
+#define LOGGER_LEVELS\
+	{\
+		LOGGER_DEBUG_STR, LOGGER_INFO_STR, LOGGER_SUCCESS_STR,\
+			LOGGER_WARNING_STR, LOGGER_ERROR_STR, LOGGER_FATAL_STR\
 	}
 
 #define color(x) "\033["#x"m"
 
-#define FOUNTAIN_RESET		color(0)
-#define FOUNTAIN_WHITE		color(37)
-#define FOUNTAIN_GREEN		color(32)
-#define FOUNTAIN_YELLOW		color(33)
-#define FOUNTAIN_RED		color(1;31)
-#define FOUNTAIN_BRIGHT_RED	color(31)
-#define FOUNTAIN_BLUE		color(34)
+#define LOGGER_RESET		color(0)
+#define LOGGER_WHITE		color(37)
+#define LOGGER_GREEN		color(32)
+#define LOGGER_YELLOW		color(33)
+#define LOGGER_RED		color(1;31)
+#define LOGGER_BRIGHT_RED	color(31)
+#define LOGGER_BLUE		color(34)
 
-#define FOUNTAIN_COLORS											\
-	{															\
-		 FOUNTAIN_BLUE, FOUNTAIN_RESET, FOUNTAIN_GREEN,			\
-			FOUNTAIN_YELLOW, FOUNTAIN_RED, FOUNTAIN_BRIGHT_RED	\
+#define LOGGER_COLORS\
+	{\
+		 LOGGER_BLUE, LOGGER_RESET, LOGGER_GREEN,\
+			LOGGER_YELLOW, LOGGER_RED, LOGGER_BRIGHT_RED\
 	}
 
-#define FOUNTAIN_NAME_BUF_LEN 24
+#define LOGGER_NAME_BUF_LEN 24
 
-#ifndef FOUNTAIN_TAB_SIZE
-#define FOUNTAIN_TAB_SIZE 4
+#ifndef LOGGER_TAB_SIZE
+#define LOGGER_TAB_SIZE 4
 #endif
 
-#define FOUNTAIN_INT		'd'
-#define FOUNTAIN_UINT		'u'
-#define FOUNTAIN_OCTAL		'o'
-#define FOUNTAIN_BINARY		'b'
-#define FOUNTAIN_HEXUPPER	'X'
-#define FOUNTAIN_HEXLOWER	'x'
-#define FOUNTAIN_FLOAT 		'f'
-#define FOUNTAIN_BOOL		't'
-#define FOUNTAIN_STRING		's'
-#define FOUNTAIN_CHAR		'c'
-#define FOUNTAIN_PERCENT	'%'
-#define FOUNTAIN_PTRLOWER	'p'
-#define FOUNTAIN_PTRUPPER	'P'
+#define LOGGER_INT		'd'
+#define LOGGER_UINT		'u'
+#define LOGGER_OCTAL		'o'
+#define LOGGER_BINARY		'b'
+#define LOGGER_HEXUPPER	'X'
+#define LOGGER_HEXLOWER	'x'
+#define LOGGER_FLOAT 		'f'
+#define LOGGER_BOOL		't'
+#define LOGGER_STRING		's'
+#define LOGGER_CHAR		'c'
+#define LOGGER_PERCENT	'%'
+#define LOGGER_PTRLOWER	'p'
+#define LOGGER_PTRUPPER	'P'
 
 namespace hirzel
 {
-	namespace fountain
+	namespace logger
 	{
 		namespace details
 		{
@@ -160,10 +161,10 @@ namespace hirzel
 		size_t _max_log_count = 0;
 		bool _print_logs = false;
 		bool _debug_mode = false;
-		const char *_colors[] = FOUNTAIN_COLORS;
-		const char *_levels[] = FOUNTAIN_LEVELS;
+		const char *_colors[] = LOGGER_COLORS;
+		const char *_levels[] = LOGGER_LEVELS;
 
-		std::string format(const std::string &str, const std::vector<Obj>& objs)
+		std::string format(const std::string &str, const std::vector<Data>& objs)
 		{
 			char out[512];
 			char* outp = out;
@@ -185,7 +186,7 @@ namespace hirzel
 				// no symbol was given
 				if (i >= str.size())
 				{
-					throw std::invalid_argument("fountain::format(): No Obj type was supplied for '%'");
+					throw std::invalid_argument("logger::format(): No Data type was supplied for '%'");
 					*outp = 0;
 					return out;
 				}
@@ -196,59 +197,59 @@ namespace hirzel
 					continue;
 				}
 
-				// there are no more Objs in queue for this
+				// there are no more Datas in queue for this
 				if (obj_index >= objs.size())
 				{
-					throw std::invalid_argument("fountain::format(): Not enough Objs supplied!");
+					throw std::invalid_argument("logger::format(): Not enough Datas supplied!");
 					*outp = 0;
 					return out;
 				}
 
 				switch (str[i])
 				{
-				case FOUNTAIN_INT:
+				case LOGGER_INT:
 					tmp = std::to_string(objs[obj_index].to_int());
 					break;
 
-				case FOUNTAIN_UINT:
+				case LOGGER_UINT:
 					tmp = details::utos(objs[obj_index].to_uint(), 10, true);
 					break;
 
-				case FOUNTAIN_OCTAL:
+				case LOGGER_OCTAL:
 					tmp = "0o" + details::utos(objs[obj_index].to_uint(), 8, true);
 					break;
 
-				case FOUNTAIN_BINARY:
+				case LOGGER_BINARY:
 					tmp = "Ob" + details::utos(objs[obj_index].to_uint(), 2, true);
 					break;
 
-				case FOUNTAIN_HEXUPPER:
+				case LOGGER_HEXUPPER:
 					tmp = "0x" + details::utos(objs[obj_index].to_uint(), 16, true);
 					break;
 
-				case FOUNTAIN_HEXLOWER:
+				case LOGGER_HEXLOWER:
 					tmp = "0x" + details::utos(objs[obj_index].to_uint(), 16, false);
 					break;
 
-				case FOUNTAIN_FLOAT:
+				case LOGGER_FLOAT:
 					tmp = std::to_string(objs[obj_index].to_double());
 					break;
 
-				case FOUNTAIN_BOOL:
+				case LOGGER_BOOL:
 					tmp = objs[obj_index].to_bool() ? "true" : "false";
 					break;
 
-				case FOUNTAIN_STRING:
+				case LOGGER_STRING:
 					tmp = objs[obj_index].to_string();
 					break;
 
-				case FOUNTAIN_CHAR:
-					// incrementing Obj_index here because this skips where it would naturally be done
+				case LOGGER_CHAR:
+					// incrementing Data_index here because this skips where it would naturally be done
 					*outp++ = objs[obj_index++].to_char();
 					continue;
 
 				default:
-					throw std::invalid_argument("fountain::format(): invalid arguemnt type given");
+					throw std::invalid_argument("logger::format(): invalid arguemnt type given");
 					*outp = 0;
 					return out;
 				}
@@ -266,17 +267,16 @@ namespace hirzel
 			return std::string(out);
 		}
 
-		void print(const std::string &str, const std::vector<Obj> &Objs)
+		void print(const std::string &str, const std::vector<Data> &Datas)
 		{
-			std::string out = format(str, Objs);
+			std::string out = format(str, Datas);
 			for (size_t i = 0; i < out.size(); i++)
 			{
 				putchar(out[i]);
 			}
 		}
 
-		void init(bool debug_mode = true, bool print_logs = true,
-			const std::string& log_filename = "", size_t max_log_count = 0)
+		void init(bool debug_mode, bool print_logs, const std::string& log_filename, size_t max_log_count)
 		{
 			_log_filename = log_filename;
 			_print_logs = print_logs;
@@ -299,9 +299,9 @@ namespace hirzel
 #endif
 		}
 
-		void log(unsigned level, const char *name, int line, const std::string &str, const std::vector<Obj> &list)
+		void log(unsigned level, const char *name, int line, const std::string &str, const std::vector<Data> &list)
 		{
-			if(level == FOUNTAIN_DEBUG && !_debug_mode)
+			if(level == LOGGER_DEBUG && !_debug_mode)
 			{
 				return;
 			}
@@ -311,14 +311,14 @@ namespace hirzel
 			char timebuf[17];
 			std::strftime(timebuf, 16, "%T", localtime(&currtime));
 			std::string name_str, log, msg, line_buf;
-			std::string name_buf(FOUNTAIN_NAME_BUF_LEN, ' ');
+			std::string name_buf(LOGGER_NAME_BUF_LEN, ' ');
 
 			line_buf = std::to_string(line);
 			name_str = std::string(name) + ':' + line_buf;
 			name_str = name_buf + name_str;
-			int spaces = FOUNTAIN_NAME_BUF_LEN - name_str.size();
+			int spaces = LOGGER_NAME_BUF_LEN - name_str.size();
 
-			for (int i = 0; i < FOUNTAIN_NAME_BUF_LEN; i++)
+			for (int i = 0; i < LOGGER_NAME_BUF_LEN; i++)
 			{
 				name_buf[i] = name_str[i - spaces];
 			}
@@ -332,7 +332,7 @@ namespace hirzel
 			}
 			
 			msg = format(str, list);
-			log = format("%s| %s | [%s] %s : %s" FOUNTAIN_RESET "\n", { _colors[level], name_buf, std::string(timebuf), _levels[level], msg });
+			log = format("%s| %s | [%s] %s : %s" LOGGER_RESET "\n", { _colors[level], name_buf, std::string(timebuf), _levels[level], msg });
 
 			if (!_log_filename.empty())
 			{
@@ -407,4 +407,4 @@ namespace hirzel
 	}
 }
 
-#endif // HIRZEL_FOUNTAIN_IMPLEMENTATION
+#endif // HIRZEL_LOGGER_IMPLEMENTATION

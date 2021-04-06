@@ -1,12 +1,12 @@
 #include <iostream>
-#define HIRZEL_FOUNTAIN_IMPLEMENTATION
-#include <hirzel/fountain.h>
+#define HIRZEL_LOGGER_I
+#include <hirzel/logger.h>
 #include "other.h"
 using namespace hirzel;
 
 int main()
 {
-	fountain::init();
+	logger::init();
 	std::string m = "message!";
 	PRINT("Logging in main.cpp\n");
 	INFO("This is an info %s", m);

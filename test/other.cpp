@@ -1,6 +1,6 @@
 #include "other.h"
 
-#include <hirzel/fountain.h>
+#include <hirzel/logger.h>
 #include <string>
 
 void logop()
