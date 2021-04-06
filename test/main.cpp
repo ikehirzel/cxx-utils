@@ -6,13 +6,6 @@
 
 using hirzel::Obj;
 
-/*
-	TODO:
-		testing for:
-			to_json
-			indexing operators
-*/
-
 std::string colors_json =
 R"=====({
   "colors": [
@@ -171,7 +164,7 @@ std::string pokemon_json= R"====(
 	assert(v.to_char() == c);\
 	assert(v.to_bool() == b);\
 	assert(v.to_string() == s);\
-	assert(v.empty() == e);
+	assert(v.empty() == e);\
 
 #define check_prim(v, val, t, func)\
 	assert(v.type() == t);\
@@ -193,7 +186,9 @@ void test_null()
 {
 	Obj v;
 	assert(v.is_null());
-	compare(v, Obj::NULL_TYPE, 0, 0, 0u, 0.0, (char)0, false, "null", true);
+	compare(v, Obj::NULL_TYPE, 1, 0, 0u, 0.0, (char)0, false, "null", true);
+	assert(v.to_array().empty());
+	assert(v.to_table().empty());
 }
 
 void test_int()
@@ -202,9 +197,11 @@ void test_int()
 	assert(!v.is_int());
 	v = 62;
 	assert(v.is_int() && v.is_num());
-	compare(v, Obj::INT_TYPE, sizeof(intmax_t), 62, 62u, 62.0, (char)62, true, "62", false);
+	compare(v, Obj::INT_TYPE, 1, 62, 62u, 62.0, (char)62, true, "62", false);
 	v = -1023;
-	compare(v, Obj::INT_TYPE, sizeof(intmax_t), -1023, (uintmax_t)(-1023), -1023.0, (char)-1023, true, "-1023", false);
+	compare(v, Obj::INT_TYPE, 1, -1023, (uintmax_t)(-1023), -1023.0, (char)-1023, true, "-1023", false);
+	assert(v.to_array().empty());
+	assert(v.to_table().empty());
 }
 
 void test_uint()
@@ -213,7 +210,9 @@ void test_uint()
 	assert(!v.is_uint());
 	v = 45u;
 	assert(v.is_uint() && v.is_num());
-	compare(v, Obj::UINT_TYPE, sizeof(uintmax_t), 45, 45u, 45.0, (char)45, true, "45", false);
+	compare(v, Obj::UINT_TYPE, 1, 45, 45u, 45.0, (char)45, true, "45", false);
+	assert(v.to_array().empty());
+	assert(v.to_table().empty());
 }
 
 void test_float()
@@ -222,7 +221,9 @@ void test_float()
 	assert(!v.is_float());
 	v = 12.4;
 	assert(v.is_float() && v.is_num());
-	compare(v, Obj::FLOAT_TYPE, sizeof(double), 12, 12u, 12.4, (char)12, true, std::to_string(12.4), false);
+	compare(v, Obj::FLOAT_TYPE, 1, 12, 12u, 12.4, (char)12, true, std::to_string(12.4), false);
+	assert(v.to_array().empty());
+	assert(v.to_table().empty());
 }
 
 void test_char()
@@ -231,7 +232,9 @@ void test_char()
 	assert(!v.is_char());
 	v = ' ';
 	assert(v.is_char());
-	compare(v, Obj::CHAR_TYPE, sizeof(char), 32, 32u, 32.0, ' ', true, " ", false);
+	compare(v, Obj::CHAR_TYPE, 1, 32, 32u, 32.0, ' ', true, " ", false);
+	assert(v.to_array().empty());
+	assert(v.to_table().empty());
 }
 
 void test_bool()
@@ -240,9 +243,11 @@ void test_bool()
 	assert(!v.is_bool());
 	v = true;
 	assert(v.is_bool());
-	compare(v, Obj::BOOL_TYPE, sizeof(bool), 1, 1u, 1.0, 1, true, "true", false);
+	compare(v, Obj::BOOL_TYPE, 1, 1, 1u, 1.0, 1, true, "true", false);
 	v = false;
-	compare(v, Obj::BOOL_TYPE, sizeof(bool), 0, 0u, 0.0, 0, false, "false", false);
+	compare(v, Obj::BOOL_TYPE, 1, 0, 0u, 0.0, 0, false, "false", false);
+	assert(v.to_array().empty());
+	assert(v.to_table().empty());
 }
 
 void test_string()
@@ -254,6 +259,8 @@ void test_string()
 	compare(v, Obj::STRING_TYPE, 0, 0, 0u, 0, (char)0, false, "", true);
 	v = "HELLO";
 	compare(v, Obj::STRING_TYPE, 5, 0, 0, 0.0, 'H', true, "HELLO", false);
+	assert(v.to_array().empty());
+	assert(v.to_table().empty());
 }
 
 void test_array()
@@ -264,10 +271,14 @@ void test_array()
 	assert(v.type() == Obj::ARRAY_TYPE);
 	assert(v.is_array());
 	assert(v.size() == 3);
+	assert(v.to_array().size() == 3);
+	assert(v.to_table().size() == 3);
+	assert(v.to_array()[2].to_string() == v[2].to_string());
 	assert(!v.empty());
 	check_int(v[0], 1);
 	check_string(v[1], "HELLO");
 	check_bool(v[2], true);
+
 }
 
 void test_table()
@@ -289,7 +300,11 @@ void test_table()
 	});
 	assert(v.is_table());
 	assert(v["label"].is_num());
+	assert(v.to_table().size() == 1);
+	assert(v.to_table()["label"].is_num());
 	assert(v.size() == 1);
+	assert(v.to_array().size() == 1);
+	assert(v.to_array()[0][0].to_string() == "label");
 }
 
 void test_parse_json()

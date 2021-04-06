@@ -56,14 +56,14 @@ namespace hirzel
 
 		union Storage
 		{
-			bool _boolean;
-			char _character;
-			double _float;
-			std::string* _string;
-			unsigned long long _unsigned;
-			long long _integer = 0;
-			Array* _array;
-			Table* _table;
+			bool bol;
+			char chr;
+			double flt;
+			std::string* str;
+			unsigned long long uns;
+			long long itg = 0;
+			Array* arr;
+			Table* tbl;
 		};
 
 	private:
@@ -98,7 +98,7 @@ namespace hirzel
 		inline Obj(float f) : Obj((double)f) {}
 
 		Obj(bool b);
-		
+
 		Obj(char c);
 
 		Obj(const std::string& s, bool error = false);
@@ -121,11 +121,13 @@ namespace hirzel
 		bool to_bool() const;
 		std::string to_string() const;
 		std::string to_json() const;
+		Table to_table() const;
+		Array to_array() const;
 
 		inline bool contains(const std::string& key) const
 		{
 			return _type == TABLE_TYPE ?
-				_storage._table->find(key) != _storage._table->end() :
+				_storage.tbl->find(key) != _storage.tbl->end() :
 				false;
 		}
 		bool empty() const;
@@ -149,28 +151,12 @@ namespace hirzel
 		Obj& operator=(const Obj& other);
 
 		Obj& operator[](size_t i);
-		inline const Obj& get(size_t i) const
-		{
-		return _type == ARRAY_TYPE ?
-			(*_storage._array)[i] :
-			*this;
-		}
-		inline const Obj& operator[](size_t i) const
-		{
-			return this->get(i);
-		}
+		const Obj& at(size_t i) const;
+		inline const Obj& operator[](size_t i) const { return this->at(i); }
 
 		Obj& operator[](const std::string& key);
-		inline const Obj& get(const std::string& key) const
-		{
-			return _type == TABLE_TYPE ?
-				(*_storage._table)[key] :
-				*this;
-		}
-		inline const Obj& operator[](const std::string& key) const
-		{
-			return this->get(key);
-		}
+		const Obj& at(const std::string& key) const;
+		inline const Obj& operator[](const std::string& key) const { return this->at(key); }
 
 		friend std::ostream& operator<<(std::ostream& out, const Obj& v);
 	};
@@ -196,63 +182,63 @@ namespace hirzel
 		switch (t)
 		{
 		case NULL_TYPE:
-			_storage._integer = 0;
+			_storage.itg = 0;
 			break;
 		case INT_TYPE:
-			_storage._integer = 0;
+			_storage.itg = 0;
 			break;
 		case UINT_TYPE:
-			_storage._unsigned = 0;
+			_storage.uns = 0;
 			break;
 		case FLOAT_TYPE:
-			_storage._float = 0.0;
+			_storage.flt = 0.0;
 			break;
 		case CHAR_TYPE:
-			_storage._character = 0;
+			_storage.chr = 0;
 			break;
 		case BOOL_TYPE:
-			_storage._boolean = false;
+			_storage.bol = false;
 			break;
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			_storage._string = new std::string();
+			_storage.str = new std::string();
 			break;
 		case ARRAY_TYPE:
-			_storage._array = new std::vector<Obj>();
+			_storage.arr = new Array();
 			break;
 		case TABLE_TYPE:
-			_storage._table = new std::unordered_map<std::string,Obj>();
+			_storage.tbl = new Table();
 			break;
 		}
 	}
 
 	Obj::Obj(long long i)
 	{
-		_storage._integer = i;
+		_storage.itg = i;
 		_type = Obj::INT_TYPE;
 	}
 
 	Obj::Obj(long long unsigned u)
 	{
-		_storage._unsigned = u;
+		_storage.uns = u;
 		_type = Obj::UINT_TYPE;
 	}
 
 	Obj::Obj(char c)
 	{
-		_storage._character = c;
+		_storage.chr = c;
 		_type = Obj::CHAR_TYPE;
 	}
 
 	Obj::Obj(double d)
 	{
-		_storage._float = d;
+		_storage.flt = d;
 		_type = Obj::FLOAT_TYPE;
 	}
 
 	Obj::Obj(bool b)
 	{
-		_storage._boolean = b;
+		_storage.bol = b;
 		_type = Obj::BOOL_TYPE;
 	}
 
@@ -262,26 +248,20 @@ namespace hirzel
 			_type = ERROR_TYPE;
 		else
 			_type = STRING_TYPE;
-		_storage._string = new std::string(s);
+		_storage.str = new std::string(s);
 	}
 
 	Obj::Obj(const Array& arr)
 	{
 		_type = ARRAY_TYPE;
-		_storage._array = new Array(arr);
+		_storage.arr = new Array(arr);
 	}
 
 	Obj::Obj(const Table& table)
 	{
 		_type = TABLE_TYPE;
-		_storage._table = new Table(table);
+		_storage.tbl = new Table(table);
 	}
-
-	// Obj::Obj(const std::initializer_list<Obj>& obj)
-	// {
-	// 	_type = ARRAY_TYPE;
-	// 	_storage._array = new std::vector<Obj>(obj);
-	// }
 
 	Obj::~Obj()
 	{
@@ -289,15 +269,15 @@ namespace hirzel
 		{
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			delete _storage._string;
+			delete _storage.str;
 			break;
 
 		case ARRAY_TYPE:
-			delete _storage._array;
+			delete _storage.arr;
 			break;
 
 		case TABLE_TYPE:
-			delete _storage._table;
+			delete _storage.tbl;
 			break;
 		}
 	}
@@ -307,19 +287,19 @@ namespace hirzel
 		switch(_type)
 		{
 			case INT_TYPE:
-				return _storage._integer;
+				return _storage.itg;
 			case UINT_TYPE:
-				return (intmax_t)_storage._unsigned;
+				return (intmax_t)_storage.uns;
 			case BOOL_TYPE:
-				return (intmax_t)_storage._boolean;
+				return (intmax_t)_storage.bol;
 			case CHAR_TYPE:
-				return (intmax_t)_storage._character;
+				return (intmax_t)_storage.chr;
 			case FLOAT_TYPE:
-				return (intmax_t)_storage._float;
+				return (intmax_t)_storage.flt;
 			case STRING_TYPE:
 				try
 				{
-					return std::stoll(*_storage._string);
+					return std::stoll(*_storage.str);
 				}
 				catch(std::invalid_argument e)
 				{
@@ -335,19 +315,19 @@ namespace hirzel
 		switch(_type)
 		{
 			case INT_TYPE:
-				return (uintmax_t)_storage._integer;
+				return (uintmax_t)_storage.itg;
 			case UINT_TYPE:
-				return (uintmax_t)_storage._unsigned;
+				return (uintmax_t)_storage.uns;
 			case BOOL_TYPE:
-				return (uintmax_t)_storage._boolean;
+				return (uintmax_t)_storage.bol;
 			case CHAR_TYPE:
-				return (uintmax_t)_storage._character;
+				return (uintmax_t)_storage.chr;
 			case FLOAT_TYPE:
-				return (uintmax_t)_storage._float;
+				return (uintmax_t)_storage.flt;
 			case STRING_TYPE:
 				try
 				{
-					return std::stoull(*_storage._string);
+					return std::stoull(*_storage.str);
 				}
 				catch (std::invalid_argument e)
 				{
@@ -365,19 +345,19 @@ namespace hirzel
 			case NULL_TYPE:
 				return 0.0;
 			case INT_TYPE:
-				return (double)_storage._integer;
+				return (double)_storage.itg;
 			case UINT_TYPE:
-				return (double)_storage._unsigned;
+				return (double)_storage.uns;
 			case BOOL_TYPE:
-				return (double)_storage._boolean;
+				return (double)_storage.bol;
 			case CHAR_TYPE:
-				return (double)_storage._character;
+				return (double)_storage.chr;
 			case FLOAT_TYPE:
-				return _storage._float;
+				return _storage.flt;
 			case STRING_TYPE:
 				try
 				{
-					return std::stod(*_storage._string);
+					return std::stod(*_storage.str);
 				}
 				catch(std::invalid_argument e)
 				{
@@ -393,17 +373,17 @@ namespace hirzel
 		switch(_type)
 		{
 			case INT_TYPE:
-				return (char)_storage._integer;
+				return (char)_storage.itg;
 			case UINT_TYPE:
-				return (char)_storage._unsigned;
+				return (char)_storage.uns;
 			case BOOL_TYPE:
-				return (char)_storage._boolean;
+				return (char)_storage.bol;
 			case CHAR_TYPE:
-				return (char)_storage._character;
+				return (char)_storage.chr;
 			case FLOAT_TYPE:
-				return (char)_storage._float;
+				return (char)_storage.flt;
 			case STRING_TYPE:
-				return (_storage._string->empty() ? 0 : (*_storage._string)[0]);
+				return (_storage.str->empty() ? 0 : (*_storage.str)[0]);
 			default:
 				return 0;
 		}
@@ -414,17 +394,17 @@ namespace hirzel
 		switch(_type)
 		{
 			case INT_TYPE:
-				return (bool)_storage._integer;
+				return (bool)_storage.itg;
 			case UINT_TYPE:
-				return (bool)_storage._unsigned;
+				return (bool)_storage.uns;
 			case BOOL_TYPE:
-				return _storage._boolean;
+				return _storage.bol;
 			case CHAR_TYPE:
-				return (bool)_storage._character;
+				return (bool)_storage.chr;
 			case FLOAT_TYPE:
-				return (bool)_storage._float;
+				return (bool)_storage.flt;
 			case STRING_TYPE:
-				return !_storage._string->empty();
+				return !_storage.str->empty();
 			default:
 				return false;
 		}
@@ -439,17 +419,17 @@ namespace hirzel
 			return "null";
 			break;
 		case INT_TYPE:
-			return std::to_string(_storage._integer);
+			return std::to_string(_storage.itg);
 		case UINT_TYPE:
-			return std::to_string(_storage._unsigned);
+			return std::to_string(_storage.uns);
 		case BOOL_TYPE:
-			return (_storage._boolean ? "true" : "false");
+			return (_storage.bol ? "true" : "false");
 		case CHAR_TYPE:
-			return std::string(1, _storage._character);
+			return std::string(1, _storage.chr);
 		case FLOAT_TYPE:
-			return std::to_string(_storage._float);
+			return std::to_string(_storage.flt);
 		case STRING_TYPE:
-			return "\"" + *_storage._string + "\"";
+			return "\"" + *_storage.str + "\"";
 		case ARRAY_TYPE:
 		case TABLE_TYPE:
 			break;
@@ -461,9 +441,9 @@ namespace hirzel
 
 		if (_type == TABLE_TYPE)
 		{
-			std::vector<std::string> str_reps(_storage._table->size());
+			std::vector<std::string> str_reps(_storage.tbl->size());
 			int i = 0;
-			for (auto iter = _storage._table->begin(); iter != _storage._table->end(); iter++)
+			for (auto iter = _storage.tbl->begin(); iter != _storage.tbl->end(); iter++)
 			{
 				str_reps[i++] = "\"" + iter->first + "\":" + iter->second.to_json();
 			}
@@ -480,9 +460,9 @@ namespace hirzel
 		else
 		{
 			out = "[";
-			for (auto iter = _storage._array->begin(); iter != _storage._array->end(); iter++)
+			for (auto iter = _storage.arr->begin(); iter != _storage.arr->end(); iter++)
 			{
-				if (iter != _storage._array->begin()) out += ',';
+				if (iter != _storage.arr->begin()) out += ',';
 				out += iter->to_json();
 			}
 			out += ']';
@@ -513,18 +493,18 @@ namespace hirzel
 			case NULL_TYPE:
 				return "null";
 			case INT_TYPE:
-				return std::to_string(_storage._integer);
+				return std::to_string(_storage.itg);
 			case UINT_TYPE:
-				return std::to_string(_storage._unsigned);
+				return std::to_string(_storage.uns);
 			case BOOL_TYPE:
-				return (_storage._boolean ? "true" : "false");
+				return (_storage.bol ? "true" : "false");
 			case CHAR_TYPE:
-				return std::string(1, _storage._character);
+				return std::string(1, _storage.chr);
 			case FLOAT_TYPE:
-				return std::to_string(_storage._float);
+				return std::to_string(_storage.flt);
 			case ERROR_TYPE:
 			case STRING_TYPE:
-				return *_storage._string;
+				return *_storage.str;
 			case ARRAY_TYPE:
 			case TABLE_TYPE:
 				break;
@@ -537,10 +517,10 @@ namespace hirzel
 
 		if (_type == TABLE_TYPE)
 		{
-			if (_storage._table->empty()) return "{}";
-			str_reps.resize(_storage._table->size());
+			if (_storage.tbl->empty()) return "{}";
+			str_reps.resize(_storage.tbl->size());
 			int i = 0;
-			for (auto iter = _storage._table->begin(); iter != _storage._table->end(); iter++)
+			for (auto iter = _storage.tbl->begin(); iter != _storage.tbl->end(); iter++)
 			{
 				const Obj& v = iter->second;
 				str_reps[i] = "\n\t" + iter->first + ":\t";
@@ -566,10 +546,10 @@ namespace hirzel
 		else
 		{
 			bool vert = false;
-			std::vector<std::string> str_reps(_storage._array->size());
-			for (int i = 0; i < _storage._array->size(); i++)
+			std::vector<std::string> str_reps(_storage.arr->size());
+			for (int i = 0; i < _storage.arr->size(); i++)
 			{
-				const Obj& v = (*_storage._array)[i];
+				const Obj& v = (*_storage.arr)[i];
 				std::string tmp = v.to_string();
 				if (v.is_string())
 				{
@@ -586,9 +566,16 @@ namespace hirzel
 
 			out = "[";
 
-			for (int i = 0; i < str_reps.size(); i++)
+			for (int i = 0; i < str_reps.size(); ++i)
 			{
-				if (vert) out += "\n\t";
+				if (vert)
+				{
+					out += "\n\t";
+				}
+				else
+				{
+					if (i > 0) out += ' ';
+				}
 				
 				details::indent(str_reps[i]);
 				out += str_reps[i];
@@ -601,17 +588,60 @@ namespace hirzel
 		return out;
 	}
 
+	Obj::Table Obj::to_table() const
+	{
+		Table t;
+		switch (_type)
+		{
+		case ARRAY_TYPE:
+			for (unsigned i = 0; i < _storage.arr->size(); ++i)
+			{
+				t[std::to_string(i)] = (*_storage.arr)[i];
+			}
+			return t;
+
+		case TABLE_TYPE:
+			return *_storage.tbl;
+
+		default:
+			return t;
+		}
+	}
+
+	Obj::Array Obj::to_array() const
+	{
+		Array arr;
+		switch (_type)
+		{
+		case ARRAY_TYPE:
+			return *_storage.arr;
+
+		case TABLE_TYPE:
+			unsigned i;
+			i = 0;
+			arr.resize(_storage.tbl->size());
+			for (auto p : *_storage.tbl)
+			{
+				arr[i++] = { p.first, p.second };
+			}
+			return arr;
+
+		default:
+			return arr;
+		}
+	}
+
 	bool Obj::empty() const
 	{
 		switch (_type)
 		{
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			return _storage._string->empty();
+			return _storage.str->empty();
 		case ARRAY_TYPE:
-			return _storage._array->empty();
+			return _storage.arr->empty();
 		case TABLE_TYPE:
-			return _storage._table->empty();
+			return _storage.tbl->empty();
 		case NULL_TYPE:
 			return true;
 		default:
@@ -623,25 +653,15 @@ namespace hirzel
 	{
 		switch (_type)
 		{
-		case INT_TYPE:
-			return sizeof(_storage._integer);
-		case UINT_TYPE:
-			return sizeof(_storage._unsigned);
-		case FLOAT_TYPE:
-			return sizeof(_storage._float);			
-		case CHAR_TYPE:
-			return sizeof(_storage._character);
-		case BOOL_TYPE:
-			return sizeof(_storage._boolean);
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			return _storage._string->size();
+			return _storage.str->size();
 		case ARRAY_TYPE:
-			return _storage._array->size();
+			return _storage.arr->size();
 		case TABLE_TYPE:
-			return _storage._table->size();
+			return _storage.tbl->size();
 		default:
-			return 0;
+			return 1;
 		}
 	}
 
@@ -651,16 +671,16 @@ namespace hirzel
 		switch(_type)
 		{
 		case ARRAY_TYPE:
-			_storage._array = new std::vector<Obj>(*other.data()._array);
+			_storage.arr = new Array(*other.data().arr);
 			break;
 
 		case TABLE_TYPE:
-			_storage._table = new std::unordered_map<std::string, Obj>(*other.data()._table);
+			_storage.tbl = new Table(*other.data().tbl);
 			break;
 
 		case ERROR_TYPE:
 		case STRING_TYPE:
-			_storage._string = new std::string(*other.data()._string);
+			_storage.str = new std::string(*other.data().str);
 			break;
 
 		default:
@@ -671,29 +691,49 @@ namespace hirzel
 		return *this;
 	}
 
+	const Obj& Obj::at(size_t i) const
+	{
+		switch (_type)
+		{
+		case ARRAY_TYPE:
+			return (*_storage.arr)[i];
+		case TABLE_TYPE:
+			return (*_storage.tbl)[std::to_string(i)];
+		default:
+			return *this;
+		}
+	}
+
+	const Obj& Obj::at(const std::string& key) const
+	{
+		if (_type == TABLE_TYPE) return (*_storage.tbl)[key];
+		return *this;
+	}
+
 	Obj& Obj::operator[](const std::string& key)
 	{
 		switch (_type)
 		{
 		case ARRAY_TYPE:
-			std::vector<Obj>* arr;
-			arr = _storage._array;
+			Array* arr;
+			arr = _storage.arr;
 			_type = TABLE_TYPE;
-			_storage._table = new std::unordered_map<std::string, Obj>();
+			_storage.tbl = new Table();
 
 			for (int i = 0; i < arr->size(); i++)
 			{
-				(*_storage._table)[std::to_string(i)] = (*arr)[i];
+				(*_storage.tbl)[std::to_string(i)] = (*arr)[i];
 			}
-			return (*_storage._table)[key];
+			delete arr;
+			return (*_storage.tbl)[key];
 
 		case TABLE_TYPE:
-			return (*_storage._table)[key];
+			return (*_storage.tbl)[key];
 
 		default:
 			_type = TABLE_TYPE;
-			_storage._table = new std::unordered_map<std::string, Obj>();
-			return (*_storage._table)[key];
+			_storage.tbl = new Table();
+			return (*_storage.tbl)[key];
 		}
 	}
 
@@ -702,16 +742,16 @@ namespace hirzel
 		switch (_type)
 		{
 		case ARRAY_TYPE:
-			if (i >= _storage._array->size()) (*_storage._array).resize(i + 1);
-			return (*_storage._array)[i];
+			if (i >= _storage.arr->size()) (*_storage.arr).resize(i + 1);
+			return (*_storage.arr)[i];
 
 		case TABLE_TYPE:
-			return (*_storage._table)[std::to_string(i)];
+			return (*_storage.tbl)[std::to_string(i)];
 
 		default:
 			_type = Obj::ARRAY_TYPE;
-			_storage._array = new std::vector<Obj>(i + 1);
-			return (*_storage._array)[i];
+			_storage.arr = new Array(i + 1);
+			return (*_storage.arr)[i];
 		}
 	}
 
@@ -721,7 +761,9 @@ namespace hirzel
 		return out;
 	}
 
-	// Static functions
+	/*#################################################
+	#	Parsing code
+	###################################################*/
 
 	Obj Obj::parse_json_value(const std::string& src, size_t& i)
 	{
