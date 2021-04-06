@@ -1,6 +1,6 @@
 /**
  * @file	plugin.h
- * @brief	Provides declarations for Plugin and Function
+ * @brief	Data structure that makes binding to dynamic objects easier
  * @author	Ike Hirzel
  * 
  * Copyright 2020 Ike Hirzel
@@ -23,8 +23,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PLUGIN_H
-#define PLUGIN_H
+#ifndef HIRZEL_PLUGIN_H
+#define HIRZEL_PLUGIN_H
 
 #include <string>
 #include <unordered_map>
@@ -150,10 +150,10 @@ namespace hirzel
 	};
 }
 
-#endif // PLUGIN_H
+#endif // HIRZEL_PLUGIN_H
 
-#ifdef HIRZEL_PLUGIN_IMPLEMENTATION
-#undef HIRZEL_PLUGIN_IMPLEMENTATION
+#ifdef HIRZEL_PLUGIN_I
+#undef HIRZEL_PLUGIN_I
 
 #if defined(_WIN32) || defined(_WIN64)
 
@@ -266,4 +266,4 @@ namespace hirzel
 	}
 } // namespace hirzel
 
-#endif // HIRZEL_PLUGIN_IMPLEMENTATION
+#endif // HIRZEL_PLUGIN_I
