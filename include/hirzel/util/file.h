@@ -1,5 +1,5 @@
-#ifndef UTILS_FILE_H
-#define UTILS_FILE_H
+#ifndef UTIL_FILE_H
+#define UTIL_FILE_H
 
 #include <vector>
 #include <string>
@@ -18,10 +18,10 @@ namespace hirzel
 	}
 }
 
-#endif // UTILS_FILE_H
+#endif // UTIL_FILE_H
 
-#ifdef HIRZEL_FILE_IMPLEMENTATION
-#undef HIRZEL_FILE_IMPLEMENTATION
+#ifdef HIRZEL_UTIL_FILE_I
+#undef HIRZEL_UTIL_FILE_I
 
 #include <fstream>
 
@@ -109,7 +109,7 @@ namespace hirzel
 			std::ifstream file(filepath);
 			return file.good();
 		}
-	} // namespace fileutil
+	} // namespace file
 } // namespace hirzel
 
-#endif // HIRZEL_FILE_IMPLEMENTATION
+#endif // HIRZEL_UTIL_FILE_I

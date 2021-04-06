@@ -1,5 +1,5 @@
-#ifndef UTILS_STR_H
-#define UTILS_STR_H
+#ifndef UTIL_STR_H
+#define UTIL_STR_H
 
 #include <vector>
 #include <string>
@@ -53,10 +53,10 @@ namespace hirzel
 	}
 }
 
-#endif // UTILS_STR_H
+#endif // UTIL_STR_H
 
-#ifdef UTILS_STR_IMPLEMENTATION
-#undef UTILS_STR_IMPLEMENTATION
+#ifdef HIRZEL_UTIL_STR_I
+#undef HIRZEL_UTIL_STR_I
 
 namespace hirzel
 {
@@ -327,7 +327,7 @@ namespace hirzel
 
 			return filepath.substr(slashIndex + 1, dotIndex - slashIndex - 1);
 		}
-	} // namespace strutil
+	} // namespace str
 } // namespace hirzel
 
-#endif // UTILS_STR_IMPLEMENTATION
+#endif // UTIL_STR_I
