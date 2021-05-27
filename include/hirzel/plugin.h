@@ -36,7 +36,7 @@ namespace hirzel
 	/**
 	 * @brief	Typedef for basic void function pointer
 	 */
-	typedef void(*Function)();
+
 
 	/**
 	 * @brief	A Wrapper for binding to shared object plugins
@@ -44,30 +44,24 @@ namespace hirzel
 	 */
 	class Plugin
 	{
+	public:
+		typedef void* Symbol;
+
 	private:
-	// stores handle of library
-	void* _lib = nullptr;
-	// true if both lib and all functions are bound
-	bool _bound = false;
-	// error string
-	const char* _error = nullptr;
-	// filepath of the shared object
-	std::string _filepath;
-	// Stores pointers to the functions
-	std::unordered_map<std::string, Function> _functions;
+		// stores handle of library
+		void* _handle = nullptr;
+		// filepath of the shared object
+		std::string _filepath;
+		// Stores pointers to the functions
+		std::unordered_map<std::string, Symbol> _symbols;
+
+
 
 	public:
 		/**
 		 * @brief	Default constructor
 		 */
 		Plugin() = default;
-
-		/**
-		 * @brief	Binds library and functions with given names
-		 * @param	filepath	path to dynamic library
-		 * @param	funcnames	list of symbol names to bind (may be empty)
-		 */
-		Plugin(const std::string& filepath, const std::vector<std::string>& funcnames = {});
 
 		/**
 		 * @brief	Frees all bound symbols
@@ -78,82 +72,67 @@ namespace hirzel
 		 * @brief	Binds dynamic library
 		 * @param	filepath	path to dynamic library
 		 */
-		void bind_library(const std::string& filepath);
+		const char *bind(const std::string& filepath);
+		const char *bind_symbol(const std::string& symbol_name);
 		
 		/**
 		 * @brief	Binds functions and adds pointer to it into map
 		 * @param	funcname	symbolic name of function
 		 * @return	pointer to function
 		 */
-		Function bind_function(const std::string& funcname);
-
-		/**
-		 * @brief	Calls function in the function map after casting it to type of templates.
-		 * @tparam	\c T		cast for the return type of function
-		 * @tparam	\c Args		casts for the parameters of function
-		 * @param	funcname	symbol name of function
-		 * @param	args		arguments to pass into function
-		 */
-		template <typename T, typename ...Args>
-		T execute(const std::string& funcname, Args... args)
-		{
-			T(*func)(Args...) = (T(*)(Args...))_functions[funcname];
-			// guard against function
-			if(!func)
-			{
-				_error = "attempted to execute function that is not bound!";
-				return T();
-			}
-			else
-			{
-				return func(args...);
-			}
-		}
-
-		/**
-		 * @return	true if library is bound, false if not
-		 */
-		inline bool is_lib_bound() const { return _lib; }
 
 		/**
 		 * @param	funcname	symbolic name of function
 		 * @return	true if symbol is bound, false if it is not
 		 */
-		inline bool is_func_bound(const std::string& funcname) const
+		inline bool contains(const std::string& symbol_name) const
 		{
-			return _functions.find(funcname) != _functions.end();
+			return _symbols.find(symbol_name) != _symbols.end();
 		}
 
 		/**
 		 * @return true if library and all symbols bound correctly, false if not
 		 */
-		inline bool bound() const { return _bound; }
+		inline bool is_bound() const { return _handle != nullptr; }
 
 		/**
 		 * @param	funcname	symbolic name of function
 		 * @return	typeless pointer to function or nullptr if not bound
 		 */
-		inline Function get_func(const std::string& funcname)
+		inline Symbol get_symbol(const std::string& symbol_name) const
 		{
-			return _functions[funcname];
+			auto iter = _symbols.find(symbol_name);
+			return (iter != _symbols.end()) ? iter->second : nullptr;
 		}
+
+		template <typename T>
+		inline T get(const std::string& symbol_name) const 
+		{
+			T t = {0};
+			Symbol s = get_symbol(symbol_name);
+			return (s) ? *(T*)s: t;
+		}
+
+		template <typename T, typename ...Args>
+		inline T execute(const std::string& symbol_name, Args... args) const 
+		{
+			T t = {0};
+			T(*func)(Args...) = (T(*)(Args...))get_symbol(symbol_name);
+			return (func) ? func(args...) : t;
+		}
+
 
 		/**
 		 * @return	filepath of plugin
 		 */
 		inline const std::string& filepath() const { return _filepath; }
-
-		/**
-		 * @return	current error for plugin
-		 */
-		inline const char* error() const { return _error; }
 	};
 }
 
 #endif // HIRZEL_PLUGIN_H
 
-#ifdef HIRZEL_PLUGIN_I
-#undef HIRZEL_PLUGIN_I
+#ifdef HIRZEL_IMPLEMENT
+#undef HIRZEL_IMPLEMENT
 
 #if defined(_WIN32) || defined(_WIN64)
 
@@ -169,101 +148,69 @@ namespace hirzel
 
 namespace hirzel
 {
-	Plugin::Plugin(const std::string& filepath, const std::vector<std::string>& funcnames)
-	{
-		bind_library(filepath);
-
-		if(_lib)
-		{
-			for(const std::string& s : funcnames)
-			{
-				bind_function(s);
-			}
-		}
-	}
-
 	Plugin::~Plugin()
 	{
-		if(_lib)
+		if(_handle)
 		{
 			#if OS_IS_WINDOWS
-			FreeLibrary((HINSTANCE)_lib);
+			FreeLibrary((HINSTANCE)_handle);
 			#else
-			dlclose(_lib);
+			dlclose(_handle);
 			#endif
 		}
 	}
 
-	void Plugin::bind_library(const std::string& filepath)
+	const char *Plugin::bind(const std::string& filepath)
 	{
-		if(_lib)
-		{
-			_error = "a library is already bound! overwriting is not allowed.";
-			return;
-		}
+		if(_handle) return "handle is already bound: overwriting is not allowed.";
 
 		_filepath = filepath;
 
+		if (_filepath.empty()) return "handle cannot be bound: filepath was empty";
+
 		#if OS_IS_WINDOWS
-		_lib = (void*)LoadLibrary(_filepath.c_str());
+		_handle = (void*)LoadLibrary(_filepath.c_str());
 		#else
-		_lib = dlopen(_filepath.c_str(), RTLD_NOW);
+		_handle = dlopen(_filepath.c_str(), RTLD_NOW);
 		#endif
 
-		if(!_lib)
+		if(!_handle)
 		{
+			_filepath.clear();
 			#if OS_IS_WINDOWS
-			_error = GetLastError();
+			return GetLastError();
 			#else
-			_error = dlerror();
+			return dlerror();
 			#endif
+		}
 
-			_bound = false;
-		}
-		else
-		{
-			_bound = true;
-		}
+		return nullptr;
 	}
 
-	Function Plugin::bind_function(const std::string& funcname)
+	const char *Plugin::bind_symbol(const std::string& symbol_name)
 	{
-		// function pointer that will be stored
-		Function func;
-
 		//guard against unloaded library
-		if(!_lib)
-		{
-			_error = "lib has not been bound! cannot continue with binding function!";
-			return nullptr;
-		}
+		if(!_handle) return "functions cannot be bound before a handle is bound";
 
 		//loading function from library
 		#if OS_IS_WINDOWS
-		func = (func_ptr)GetProcAddress((HINSTANCE)_lib, funcname.c_str());
+		Symbol symbol = (void*)GetProcAddress((HINSTANCE)_handle, funcname.c_str());
 		#else
-		func = (Function)dlsym(_lib, funcname.c_str());
+		Symbol symbol = (void*)dlsym(_handle, symbol_name.c_str());
 		#endif
 
 		// guard against unbound function
-		if(!func)
+		if(!symbol)
 		{
 			#if OS_IS_WINDOWS
-			_error = GetLastError();
+			return GetLastError();
 			#else
-			_error = dlerror();
+			return dlerror();
 			#endif
-			
-			_bound = false;
-			return nullptr;
 		}
-		else
-		{
-			// putting function into map
-			_functions[funcname] = func;
-			return func;
-		}
+		_symbols[symbol_name] = symbol;
+		return nullptr;
 	}
 } // namespace hirzel
 
-#endif // HIRZEL_PLUGIN_I
+#endif // HIRZEL_IMPLEMENT
