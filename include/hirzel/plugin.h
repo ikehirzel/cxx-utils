@@ -28,8 +28,6 @@
 
 #include <string>
 #include <unordered_map>
-#include <vector>
-#include <iostream>
 
 namespace hirzel
 {
@@ -84,11 +82,15 @@ namespace hirzel
 		 */
 		const char *bind(const std::string& filepath);
 		
+
 		inline const char *bind_function(const std::string& label)
 		{
 			return bind_symbol(label, true);
 		}
 
+		const char *bind_functions(const std::initializer_list<std::string>& labels);
+		const char *bind_variables(const std::initializer_list<std::string>& labels);
+		
 		inline const char *bind_variable(const std::string& label)
 		{
 			return bind_symbol(label, false);
@@ -155,6 +157,16 @@ namespace hirzel
 		{
 			T(*func)(Args...) = (T(*)(Args...))get_function(label);
 			return (func) ? func(args...) : T();
+		}
+
+
+		inline size_t count() const { return _symbols.size(); }
+		size_t function_count() const;
+		size_t variable_count() const;
+
+		inline void clear_symbols()
+		{
+			_symbols.clear();
 		}
 
 
@@ -227,6 +239,7 @@ namespace hirzel
 	{
 		//guard against unloaded library
 		if(!_handle) return "functions cannot be bound before a handle is bound";
+		if (_symbols.find(label) != _symbols.end()) return "symbol is already bound";
 
 		Symbol s;
 		//loading function from library
@@ -256,6 +269,49 @@ namespace hirzel
 		_symbols[label] = s;
 		return nullptr;
 	}
+
+	const char *Plugin::bind_functions(const std::initializer_list<std::string>& labels)
+	{
+		for (const std::string& label : labels)
+		{
+			const char *error = bind_symbol(label, true);
+			if (error) return error;
+		}
+		return nullptr;
+	}
+
+	const char *Plugin::bind_variables(const std::initializer_list<std::string>& labels)
+	{
+		for (const std::string& label : labels)
+		{
+			const char *error = bind_symbol(label, false);
+			if (error) return error; 
+		}
+		return nullptr;
+	}
+
+
+	size_t Plugin::function_count() const
+	{
+		size_t count = 0;
+		for (auto p : _symbols)
+		{
+			if (p.second.is_func) count += 1;
+		}
+		return count;
+	}
+
+
+	size_t Plugin::variable_count() const
+	{
+		size_t count = 0;
+		for (auto p : _symbols)
+		{
+			if (!p.second.is_func) count += 1;
+		}
+		return count;
+	}
+
 } // namespace hirzel
 
 #endif // HIRZEL_IMPLEMENT
