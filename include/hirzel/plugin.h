@@ -45,9 +45,19 @@ namespace hirzel
 	class Plugin
 	{
 	public:
-		typedef void* Symbol;
-
+		typedef void(*Function)();
+		typedef void *Variable;
 	private:
+		struct Symbol
+		{
+			bool is_func = false;
+			union
+			{
+				Variable var = nullptr;
+				Function func;
+			};
+		};
+
 		// stores handle of library
 		void* _handle = nullptr;
 		// filepath of the shared object
@@ -55,7 +65,7 @@ namespace hirzel
 		// Stores pointers to the functions
 		std::unordered_map<std::string, Symbol> _symbols;
 
-
+		const char *bind_symbol(const std::string& label, bool function);
 
 	public:
 		/**
@@ -73,8 +83,17 @@ namespace hirzel
 		 * @param	filepath	path to dynamic library
 		 */
 		const char *bind(const std::string& filepath);
-		const char *bind_symbol(const std::string& symbol_name);
 		
+		inline const char *bind_function(const std::string& label)
+		{
+			return bind_symbol(label, true);
+		}
+
+		inline const char *bind_variable(const std::string& label)
+		{
+			return bind_symbol(label, false);
+		}
+
 		/**
 		 * @brief	Binds functions and adds pointer to it into map
 		 * @param	funcname	symbolic name of function
@@ -85,9 +104,21 @@ namespace hirzel
 		 * @param	funcname	symbolic name of function
 		 * @return	true if symbol is bound, false if it is not
 		 */
-		inline bool contains(const std::string& symbol_name) const
+		inline bool contains(const std::string& label) const
 		{
-			return _symbols.find(symbol_name) != _symbols.end();
+			return _symbols.find(label) != _symbols.end();
+		}
+
+		inline bool contains_function(const std::string& label) const
+		{
+			auto iter = _symbols.find(label);
+			return iter != _symbols.end() && iter->second.is_func;
+		}
+
+		inline bool contains_variable(const std::string& label) const
+		{
+			auto iter = _symbols.find(label);
+			return iter != _symbols.end() && !iter->second.is_func;
 		}
 
 		/**
@@ -95,30 +126,35 @@ namespace hirzel
 		 */
 		inline bool is_bound() const { return _handle != nullptr; }
 
-		/**
-		 * @param	funcname	symbolic name of function
-		 * @return	typeless pointer to function or nullptr if not bound
-		 */
-		inline Symbol get_symbol(const std::string& symbol_name) const
+
+		inline Function get_function(const std::string& label) const
 		{
-			auto iter = _symbols.find(symbol_name);
-			return (iter != _symbols.end()) ? iter->second : nullptr;
+			auto iter = _symbols.find(label);
+			return (iter != _symbols.end() && iter->second.is_func) ? iter->second.func : nullptr;
 		}
+
+
+		inline Variable get_variable_ptr(const std::string& label) const
+		{
+			auto iter = _symbols.find(label);
+			return (iter != _symbols.end() && !iter->second.is_func) ? iter->second.var : nullptr;
+		}
+
 
 		template <typename T>
-		inline T get(const std::string& symbol_name) const 
+		inline T get_variable_val(const std::string& label) const 
 		{
-			T t = {0};
-			Symbol s = get_symbol(symbol_name);
-			return (s) ? *(T*)s: t;
+			auto iter = _symbols.find(label);
+			return (iter != _symbols.end() && !iter->second.is_func) ?
+				*(T*)iter->second.var : T();
 		}
 
+
 		template <typename T, typename ...Args>
-		inline T execute(const std::string& symbol_name, Args... args) const 
+		inline T execute(const std::string& label, Args... args) const 
 		{
-			T t = {0};
-			T(*func)(Args...) = (T(*)(Args...))get_symbol(symbol_name);
-			return (func) ? func(args...) : t;
+			T(*func)(Args...) = (T(*)(Args...))get_function(label);
+			return (func) ? func(args...) : T();
 		}
 
 
@@ -187,28 +223,37 @@ namespace hirzel
 		return nullptr;
 	}
 
-	const char *Plugin::bind_symbol(const std::string& symbol_name)
+	const char *Plugin::bind_symbol(const std::string& label, bool function)
 	{
 		//guard against unloaded library
 		if(!_handle) return "functions cannot be bound before a handle is bound";
 
+		Symbol s;
 		//loading function from library
-		#if OS_IS_WINDOWS
-		Symbol symbol = (void*)GetProcAddress((HINSTANCE)_handle, funcname.c_str());
-		#else
-		Symbol symbol = (void*)dlsym(_handle, symbol_name.c_str());
-		#endif
-
-		// guard against unbound function
-		if(!symbol)
+		if (function)
 		{
 			#if OS_IS_WINDOWS
-			return GetLastError();
+			s.func = (Function)GetProcAddress((HINSTANCE)_handle, funcname.c_str());
+			if (!s.func) return GetLastError();
 			#else
-			return dlerror();
+			s.func = (Function)dlsym(_handle, label.c_str());
+			if (!s.func) return dlerror();
 			#endif
+			s.is_func = true;
 		}
-		_symbols[symbol_name] = symbol;
+		else
+		{
+			#if OS_IS_WINDOWS
+			s.var = (Variable)GetProcAddress((HINSTANCE)_handle, funcname.c_str());
+			if (!s.var) return GetLastError();
+			#else
+			s.var = (Variable)dlsym(_handle, label.c_str());
+			if (!s.var) return dlerror();
+			#endif
+			s.is_func = false;
+		}
+
+		_symbols[label] = s;
 		return nullptr;
 	}
 } // namespace hirzel

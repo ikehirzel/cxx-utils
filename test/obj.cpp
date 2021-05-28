@@ -2,10 +2,16 @@
 
 extern "C"
 {
+	int i = 88;
 	const char *msg = "this is a message";
-	
-	int function()
+
+	int get()
 	{
-		return 88;
+		return i;
+	}
+
+	void add()
+	{
+		i += 1;
 	}
 }
