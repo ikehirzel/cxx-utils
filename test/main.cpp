@@ -1,5 +1,4 @@
 #include <iostream>
-#define HIRZEL_LOGGER_I
 #include <hirzel/logger.h>
 #include "other.h"
 using namespace hirzel;
