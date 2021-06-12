@@ -26,25 +26,25 @@
 #ifndef HIRZEL_PLUGIN_H
 #define HIRZEL_PLUGIN_H
 
+// standard library
 #include <string>
 #include <unordered_map>
 
+
+#if defined(_WIN32) || defined(_WIN64)
+#define OS_IS_WINDOWS true
+#else
+#define OS_IS_WINDOWS false
+#endif
+
 namespace hirzel
 {
-	/**
-	 * @brief	Typedef for basic void function pointer
-	 */
-
-
-	/**
-	 * @brief	A Wrapper for binding to shared object plugins
-	 * @details Binds to a shared object using OS's dylib and stores a map of functions
-	 */
 	class Plugin
 	{
 	public:
 		typedef void(*Function)();
 		typedef void *Variable;
+
 	private:
 		struct Symbol
 		{
@@ -58,12 +58,15 @@ namespace hirzel
 
 		// stores handle of library
 		void* _handle = nullptr;
+
 		// filepath of the shared object
 		std::string _filepath;
+		std::string _error;
+
 		// Stores pointers to the functions
 		std::unordered_map<std::string, Symbol> _symbols;
 
-		const char *bind_symbol(const std::string& label, bool function);
+		void get_system_error();
 
 	public:
 		/**
@@ -80,21 +83,15 @@ namespace hirzel
 		 * @brief	Binds dynamic library
 		 * @param	filepath	path to dynamic library
 		 */
-		const char *bind(const std::string& filepath);
+		bool bind(const std::string& filepath);
 		
 
-		inline const char *bind_function(const std::string& label)
-		{
-			return bind_symbol(label, true);
-		}
+		bool bind_function(const std::string& label);
+		bool bind_functions(const std::initializer_list<std::string>& labels);
 
-		const char *bind_functions(const std::initializer_list<std::string>& labels);
-		const char *bind_variables(const std::initializer_list<std::string>& labels);
+		bool bind_variable(const std::string& label);
+		bool bind_variables(const std::initializer_list<std::string>& labels);
 		
-		inline const char *bind_variable(const std::string& label)
-		{
-			return bind_symbol(label, false);
-		}
 
 		/**
 		 * @brief	Binds functions and adds pointer to it into map
@@ -174,6 +171,7 @@ namespace hirzel
 		 * @return	filepath of plugin
 		 */
 		inline const std::string& filepath() const { return _filepath; }
+		inline const std::string& error() const { return _error; }
 	};
 }
 
@@ -182,17 +180,12 @@ namespace hirzel
 #ifdef HIRZEL_IMPLEMENT
 #undef HIRZEL_IMPLEMENT
 
-#if defined(_WIN32) || defined(_WIN64)
-
-#define OS_IS_WINDOWS true
+#if OS_IS_WINDOWS
 #include <windows.h>
-
-#elif defined(__unix__) || defined(linux)
-
-#define OS_IS_WINDOWS false
+#else
 #include <dlfcn.h>
-
 #endif
+
 
 namespace hirzel
 {
@@ -208,15 +201,43 @@ namespace hirzel
 		}
 	}
 
-	const char *Plugin::bind(const std::string& filepath)
+
+	void Plugin::get_system_error()
 	{
-		if(_handle) return "handle is already bound: overwriting is not allowed.";
+		#if OS_IS_WINDOWS
+		LPSTR messageBuffer = nullptr;
+		size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPSTR)&messageBuffer, 0, NULL);
+    
+		//Copy the error message into a std::string.
+		_error = std::string(messageBuffer, size);
+		//Free the Win32's string's buffer.
+		LocalFree(messageBuffer);
+		#else
+		_error = dlerror();
+		#endif
+	}
+
+	bool Plugin::bind(const std::string& filepath)
+	{
+		if(_handle)
+		{
+			_error = "handle is already bound: overwriting is not allowed.";
+			return false;
+		}
 
 		_filepath = filepath;
 
-		if (_filepath.empty()) return "handle cannot be bound: filepath was empty";
+		if (_filepath.empty())
+		{
+			_error = "handle cannot be bound: filepath was empty";
+			return false;
+		}
 
 		#if OS_IS_WINDOWS
+		std::wstring tmp(filepath.begin(), filepath.end());
 		_handle = (void*)LoadLibrary(_filepath.c_str());
 		#else
 		_handle = dlopen(_filepath.c_str(), RTLD_NOW);
@@ -225,69 +246,99 @@ namespace hirzel
 		if(!_handle)
 		{
 			_filepath.clear();
-			#if OS_IS_WINDOWS
-			return GetLastError();
-			#else
-			return dlerror();
-			#endif
+			get_system_error();
+			return false;
 		}
 
-		return nullptr;
+		return true;
 	}
 
-	const char *Plugin::bind_symbol(const std::string& label, bool function)
+	bool Plugin::bind_function(const std::string& label)
 	{
 		//guard against unloaded library
-		if(!_handle) return "functions cannot be bound before a handle is bound";
-		if (_symbols.find(label) != _symbols.end()) return "symbol is already bound";
+		if(!_handle)
+		{
+			_error = "functions cannot be bound before a handle is bound";
+			return false;
+		}
+
+		if (_symbols.find(label) != _symbols.end())
+		{
+			_error = "a symbol is already bound with the same name";
+			return false;
+		}
 
 		Symbol s;
-		//loading function from library
-		if (function)
+		s.is_func = true;
+		#if OS_IS_WINDOWS
+		s.func = (Function)GetProcAddress((HMODULE)_handle, label.c_str());
+		#else
+		s.func = (Function)dlsym(_handle, label.c_str());
+		#endif
+
+		if (!s.func)
 		{
-			#if OS_IS_WINDOWS
-			s.func = (Function)GetProcAddress((HINSTANCE)_handle, funcname.c_str());
-			if (!s.func) return GetLastError();
-			#else
-			s.func = (Function)dlsym(_handle, label.c_str());
-			if (!s.func) return dlerror();
-			#endif
-			s.is_func = true;
-		}
-		else
-		{
-			#if OS_IS_WINDOWS
-			s.var = (Variable)GetProcAddress((HINSTANCE)_handle, funcname.c_str());
-			if (!s.var) return GetLastError();
-			#else
-			s.var = (Variable)dlsym(_handle, label.c_str());
-			if (!s.var) return dlerror();
-			#endif
-			s.is_func = false;
+			get_system_error();
+			return false;
 		}
 
 		_symbols[label] = s;
-		return nullptr;
+
+		return true;
 	}
 
-	const char *Plugin::bind_functions(const std::initializer_list<std::string>& labels)
+	bool Plugin::bind_functions(const std::initializer_list<std::string>& labels)
 	{
 		for (const std::string& label : labels)
 		{
-			const char *error = bind_symbol(label, true);
-			if (error) return error;
+			if (!bind_function(label)) return false;
 		}
-		return nullptr;
+		return true;
 	}
 
-	const char *Plugin::bind_variables(const std::initializer_list<std::string>& labels)
+
+	bool Plugin::bind_variable(const std::string& label)
+	{
+		//guard against unloaded library
+		if(!_handle)
+		{
+			_error = "variables cannot be bound before a handle is bound";
+			return false;
+		}
+
+		if (_symbols.find(label) != _symbols.end())
+		{
+			_error = "a symbol is already bound with the same name";
+			return false;
+		}
+
+		Symbol s;
+		s.is_func = false;
+		#if OS_IS_WINDOWS
+		s.var = (Variable)GetProcAddress((HMODULE)_handle, label.c_str());
+		#else
+		s.var = (Variable)dlsym(_handle, label.c_str());
+		#endif
+
+		if (!s.var)
+		{
+			get_system_error();
+			return false;
+		}
+
+		_symbols[label] = s;
+
+		return true;
+	}
+
+
+	bool Plugin::bind_variables(const std::initializer_list<std::string>& labels)
 	{
 		for (const std::string& label : labels)
 		{
-			const char *error = bind_symbol(label, false);
-			if (error) return error; 
+			if (!bind_variable(label)) return false;
 		}
-		return nullptr;
+		return true;
 	}
 
 
