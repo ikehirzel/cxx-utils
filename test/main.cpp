@@ -180,7 +180,8 @@ std::string pokemon_json= R"====(
 #define check_table(v, val)		assert(v.type() == Data::TABLE_TYPE); assert(v.is_table()); assert(v.empty() == val);
 #define check_array(v, val)		assert(v.type() == Data::ARRAY_TYPE); assert(v.is_array()); assert(v.empty() == val);
 
-#define assert_throws(x, type) { bool throws = false; try { x; } catch (type e) { throws = true; } assert(throws); }
+#define assert_throws(x, type) { bool throws = false; try { x; } catch (const type& e) { throws = true; } assert(throws); }
+#define assert_not_throws(x, type) { bool does_not_throw = true; try { x; } catch (const type& e) { does_not_throw = false; std::cout << "\033[31merror:\033[0m " << e.what() << std::endl; } assert(does_not_throw); }
 
 void test_null()
 {
@@ -310,32 +311,32 @@ void test_table()
 void test_parse_json()
 {
 	Data v;
-	v = Data::parse_json("true");
+	assert_not_throws(v = Data::parse_json("true"), Data::ParseException);
 	check_bool(v, true);
-	v = Data::parse_json("false");
+	assert_not_throws(v = Data::parse_json("false"), Data::ParseException);
 	check_bool(v, false);
-	v = Data::parse_json("null");
+	assert_not_throws(v = Data::parse_json("null"), Data::ParseException);
 	check_null(v);
-	v = Data::parse_json("3");
+	assert_not_throws(v = Data::parse_json("3"), Data::ParseException);
 	check_uint(v, 3);
-	v = Data::parse_json("-5");
+	assert_not_throws(v = Data::parse_json("-5"), Data::ParseException);
 	check_int(v, -5);
-	v = Data::parse_json("-876.02");
+	assert_not_throws(v = Data::parse_json("-876.02"), Data::ParseException);
 	check_float(v, -876.02);
-	v = Data::parse_json("5.342");
+	assert_not_throws(v = Data::parse_json("5.342"), Data::ParseException);
 	check_float(v, 5.342);
 	assert_throws(Data::parse_json("5.4."), Data::ParseException);
 
-	v = Data::parse_json("\"hello\"");
+	assert_not_throws(v = Data::parse_json("\"hello\""), Data::ParseException);
 	check_string(v, "hello");
 
-	v = Data::parse_json("[3,-5,\"hello\"]");
+	assert_not_throws(v = Data::parse_json("[3,-5,\"hello\"]"), Data::ParseException);
 	check_uint(v[0], 3);
 	check_int(v[1], -5);
 	check_string(v[2], "hello");
 
 	std::string ex_json = "{\"num\":3,\"str\":\"abcdef\",\"\":-4}";
-	v = Data::parse_json(ex_json);
+	assert_not_throws(v = Data::parse_json(ex_json), Data::ParseException);
 	assert(v.to_json() == ex_json);
 	check_table(v, false);
 	check_uint(v["num"], 3);
@@ -343,18 +344,19 @@ void test_parse_json()
 	check_int(v[""], -4);
 
 	ex_json = "{\"scooby\":{\"snacks\":{\"flavor\":\"spicy\",\"size\":3}},\"num\":3,\"arr\":[3,-5,2]}";
-	v = Data::parse_json(ex_json);
+	assert_not_throws(v = Data::parse_json(ex_json), Data::ParseException);
 	assert(v.to_json() == ex_json);
 	assert(!v["scooby"].is_null());
 	assert(v["scooby"].is_table());
 
-	v = Data::parse_json("[]");
+	assert_not_throws(v = Data::parse_json("[]"), Data::ParseException);
 	check_array(v, true);
-	v = Data::parse_json("{}");
+
+	assert_not_throws(v = Data::parse_json("{}"), Data::ParseException);
 	check_table(v, true);
 
 	std::string serial = v.to_json();
-	v = Data::parse_json(pokemon_json);
+	assert_not_throws(v = Data::parse_json(pokemon_json), Data::ParseException);
 	assert(v.contains("previous"));
 	check_null(v["previous"]);
 	assert(v.contains("results"));
@@ -365,7 +367,7 @@ void test_parse_json()
 	assert(v["results"][0].contains("url"));
 	check_string(v["results"][0]["url"], "https://pokeapi.co/api/v2/pokemon/1/");
 
-	v = Data::parse_json(colors_json);
+	assert_not_throws(v = Data::parse_json(colors_json), Data::ParseException);
 	assert(v.contains("colors"));
 	check_array(v["colors"], false);
 	assert(v["colors"].size() == 6);
