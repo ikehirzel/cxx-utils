@@ -1,5 +1,8 @@
+# everything except for testing files
 *
 */
 !.gitignore
-!build.sh
+!test.sh
+!test.ps1
 !main.cpp
+!impl.cpp

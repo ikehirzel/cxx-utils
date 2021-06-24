@@ -1,4 +1,3 @@
-#define HIRZEL_DATA_I
 #include <hirzel/data.h>
 #include <cassert>
 #include <iostream>
@@ -172,7 +171,6 @@ std::string pokemon_json= R"====(
 	assert(v.to_##func() == val);
 
 #define check_null(v)			assert(v.type() == Data::NULL_TYPE); assert(v.is_null());
-#define check_error(v)			assert(v.type() == Data::ERROR_TYPE); assert(v.is_error());
 #define check_char(v, val)		check_prim(v, val, Data::CHAR_TYPE, char)
 #define check_bool(v, val)		check_prim(v, val, Data::BOOL_TYPE, bool)
 #define check_int(v, val)		check_prim(v, val, Data::INT_TYPE, int)
@@ -181,6 +179,8 @@ std::string pokemon_json= R"====(
 #define check_string(v, val)	check_prim(v, val, Data::STRING_TYPE, string);
 #define check_table(v, val)		assert(v.type() == Data::TABLE_TYPE); assert(v.is_table()); assert(v.empty() == val);
 #define check_array(v, val)		assert(v.type() == Data::ARRAY_TYPE); assert(v.is_array()); assert(v.empty() == val);
+
+#define assert_throws(x, type) { bool throws = false; try { x; } catch (type e) { throws = true; } assert(throws); }
 
 void test_null()
 {
@@ -324,8 +324,8 @@ void test_parse_json()
 	check_float(v, -876.02);
 	v = Data::parse_json("5.342");
 	check_float(v, 5.342);
-	v = Data::parse_json("5.4.");
-	check_error(v);
+	assert_throws(Data::parse_json("5.4."), Data::ParseException);
+
 	v = Data::parse_json("\"hello\"");
 	check_string(v, "hello");
 
@@ -345,7 +345,6 @@ void test_parse_json()
 	ex_json = "{\"scooby\":{\"snacks\":{\"flavor\":\"spicy\",\"size\":3}},\"num\":3,\"arr\":[3,-5,2]}";
 	v = Data::parse_json(ex_json);
 	assert(v.to_json() == ex_json);
-	assert(!v.is_error());
 	assert(!v["scooby"].is_null());
 	assert(v["scooby"].is_table());
 
@@ -355,7 +354,6 @@ void test_parse_json()
 	check_table(v, true);
 
 	std::string serial = v.to_json();
-	assert(!v.is_error());
 	v = Data::parse_json(pokemon_json);
 	assert(v.contains("previous"));
 	check_null(v["previous"]);
