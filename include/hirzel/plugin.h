@@ -45,6 +45,58 @@ namespace hirzel
 		typedef void(*Function)();
 		typedef void *Variable;
 
+		class BindException : public std::exception
+		{
+		private:
+			std::string _msg;
+			BindException(const std::string& msg) : _msg(msg) {}
+		public:
+			static BindException variable(const std::string& symbol, const std::string& error = "")
+			{
+				std::string msg = "failed to bind to variable: " + symbol;
+				if (!error.empty()) msg += " : " + error;
+				return BindException(msg);
+			}
+
+			static BindException function(const std::string& symbol, const std::string& error = "")
+			{
+				std::string msg = "failed to bind to function: " + symbol;
+				if (!error.empty()) msg += " : " + error;
+				return BindException(msg);
+			}
+
+			static BindException plugin(const std::string& filepath, const std::string& error = "")
+			{
+				std::string msg = "failed to bind to plugin: " + filepath;
+				if (!error.empty()) msg += " : " + error;	
+				return BindException(msg);
+			}
+
+			const char *what() const noexcept override { return _msg.c_str(); }
+		};
+
+
+		class DneException : public std::exception
+		{
+		private:
+			std::string _msg;
+			DneException(const std::string& msg) : _msg(msg) {}
+
+		public:
+			static DneException variable(const std::string& symbol)
+			{
+				return DneException("the requested variable does not exist: " + symbol);
+			}
+
+			static DneException function(const std::string& function)
+			{
+				return DneException("the requested function does not exist: " + function);
+			}
+
+			const char *what() const noexcept override { return _msg.c_str(); }
+		};
+
+
 	private:
 		struct Symbol
 		{
@@ -61,18 +113,26 @@ namespace hirzel
 
 		// filepath of the shared object
 		std::string _filepath;
-		std::string _error;
 
 		// Stores pointers to the functions
 		std::unordered_map<std::string, Symbol> _symbols;
-
-		void get_system_error();
 
 	public:
 		/**
 		 * @brief	Default constructor
 		 */
 		Plugin() = default;
+		inline Plugin(const std::string& filepath)
+		{
+			try
+			{
+				bind(filepath);
+			}
+			catch (const BindException& e)
+			{
+				throw;
+			}
+		}
 
 		/**
 		 * @brief	Frees all bound symbols
@@ -83,14 +143,14 @@ namespace hirzel
 		 * @brief	Binds dynamic library
 		 * @param	filepath	path to dynamic library
 		 */
-		bool bind(const std::string& filepath);
+		void bind(const std::string& filepath);
 		
 
-		bool bind_function(const std::string& label);
-		bool bind_functions(const std::initializer_list<std::string>& labels);
+		void bind_function(const std::string& label);
+		void bind_functions(const std::initializer_list<std::string>& labels);
 
-		bool bind_variable(const std::string& label);
-		bool bind_variables(const std::initializer_list<std::string>& labels);
+		void bind_variable(const std::string& label);
+		void bind_variables(const std::initializer_list<std::string>& labels);
 		
 
 		/**
@@ -143,9 +203,9 @@ namespace hirzel
 		template <typename T>
 		inline T get_variable_val(const std::string& label) const 
 		{
-			auto iter = _symbols.find(label);
-			return (iter != _symbols.end() && !iter->second.is_func) ?
-				*(T*)iter->second.var : T();
+			T* ptr = (T*)get_variable_ptr(label);
+			if (!ptr) throw DneException::variable(label);
+			return *ptr;
 		}
 
 
@@ -153,7 +213,8 @@ namespace hirzel
 		inline T execute(const std::string& label, Args... args) const 
 		{
 			T(*func)(Args...) = (T(*)(Args...))get_function(label);
-			return (func) ? func(args...) : T();
+			if (!func) throw DneException::function(label);
+			return func(args...);
 		}
 
 
@@ -170,9 +231,13 @@ namespace hirzel
 		/**
 		 * @return	filepath of plugin
 		 */
-		inline const std::string& filepath() const { return _filepath; }
-		inline const std::string& error() const { return _error; }
+		inline const std::string& filepath() const
+		{
+			return _filepath;
+		}
 	};
+
+	
 }
 
 #endif // HIRZEL_PLUGIN_H
@@ -202,71 +267,29 @@ namespace hirzel
 	}
 
 
-	void Plugin::get_system_error()
+	void Plugin::bind(const std::string& filepath)
 	{
-		#if OS_IS_WINDOWS
-		LPSTR messageBuffer = nullptr;
-		size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPSTR)&messageBuffer, 0, NULL);
-    
-		//Copy the error message into a std::string.
-		_error = std::string(messageBuffer, size);
-		//Free the Win32's string's buffer.
-		LocalFree(messageBuffer);
-		#else
-		_error = dlerror();
-		#endif
-	}
+		if(_handle) throw BindException::plugin(filepath, "plugin is already bound");
+		if (filepath.empty()) throw BindException::plugin(filepath, "filepath was empty");
 
-	bool Plugin::bind(const std::string& filepath)
-	{
-		if(_handle)
-		{
-			_error = "handle is already bound: overwriting is not allowed.";
-			return false;
-		}
+		#if OS_IS_WINDOWS
+		_handle = (void*)LoadLibrary(filepath.c_str());
+		#else
+		_handle = dlopen(filepath.c_str(), RTLD_NOW);
+		#endif
+
+		if(!_handle) throw BindException::plugin(filepath, "plugin could not be found");
 
 		_filepath = filepath;
-
-		if (_filepath.empty())
-		{
-			_error = "handle cannot be bound: filepath was empty";
-			return false;
-		}
-
-		#if OS_IS_WINDOWS
-		std::wstring tmp(filepath.begin(), filepath.end());
-		_handle = (void*)LoadLibrary(_filepath.c_str());
-		#else
-		_handle = dlopen(_filepath.c_str(), RTLD_NOW);
-		#endif
-
-		if(!_handle)
-		{
-			_filepath.clear();
-			get_system_error();
-			return false;
-		}
-
-		return true;
 	}
 
-	bool Plugin::bind_function(const std::string& label)
+	void Plugin::bind_function(const std::string& label)
 	{
 		//guard against unloaded library
-		if(!_handle)
-		{
-			_error = "functions cannot be bound before a handle is bound";
-			return false;
-		}
+		if(!_handle) throw BindException::function(label, "plugin must be bound first");
 
 		if (_symbols.find(label) != _symbols.end())
-		{
-			_error = "a symbol is already bound with the same name";
-			return false;
-		}
+			throw BindException::function(label, "symbol is already bound");
 
 		Symbol s;
 		s.is_func = true;
@@ -276,41 +299,36 @@ namespace hirzel
 		s.func = (Function)dlsym(_handle, label.c_str());
 		#endif
 
-		if (!s.func)
-		{
-			get_system_error();
-			return false;
-		}
+		// assuring symbol bound
+		if (!s.func) throw BindException::function("symbol could not be found");
 
+		// storing symbol in table
 		_symbols[label] = s;
-
-		return true;
 	}
 
-	bool Plugin::bind_functions(const std::initializer_list<std::string>& labels)
+	void Plugin::bind_functions(const std::initializer_list<std::string>& labels)
 	{
 		for (const std::string& label : labels)
 		{
-			if (!bind_function(label)) return false;
+			try
+			{
+				bind_function(label);
+			}
+			catch (const BindException& e)
+			{
+				throw;
+			}
 		}
-		return true;
 	}
 
 
-	bool Plugin::bind_variable(const std::string& label)
+	void Plugin::bind_variable(const std::string& label)
 	{
 		//guard against unloaded library
-		if(!_handle)
-		{
-			_error = "variables cannot be bound before a handle is bound";
-			return false;
-		}
+		if(!_handle) throw BindException::variable(label, "plugin is not bound");
 
 		if (_symbols.find(label) != _symbols.end())
-		{
-			_error = "a symbol is already bound with the same name";
-			return false;
-		}
+			throw BindException::variable(label, "symbol is already bound");
 
 		Symbol s;
 		s.is_func = false;
@@ -320,25 +338,25 @@ namespace hirzel
 		s.var = (Variable)dlsym(_handle, label.c_str());
 		#endif
 
-		if (!s.var)
-		{
-			get_system_error();
-			return false;
-		}
+		if (!s.var) throw BindException::variable(label, "symbol could not be found");
 
 		_symbols[label] = s;
-
-		return true;
 	}
 
 
-	bool Plugin::bind_variables(const std::initializer_list<std::string>& labels)
+	void Plugin::bind_variables(const std::initializer_list<std::string>& labels)
 	{
 		for (const std::string& label : labels)
 		{
-			if (!bind_variable(label)) return false;
+			try
+			{
+				bind_variable(label);
+			}
+			catch (const BindException& e)
+			{
+				throw;
+			}
 		}
-		return true;
 	}
 
 
