@@ -336,8 +336,19 @@ void test_parse_json()
 	check_string(v[2], "hello");
 
 	std::string ex_json = "{\"num\":3,\"str\":\"abcdef\",\"\":-4}";
+	Data second;
 	assert_not_throws(v = Data::parse_json(ex_json), Data::ParseException);
-	assert(v.to_json() == ex_json);
+	assert(v != second);
+	assert(second != v);
+	assert_not_throws(second = Data::parse_json(ex_json), Data::ParseException);
+	assert(v == second);
+	assert(second == v);
+	assert_not_throws(second = Data::parse_json(v.to_json()), Data::ParseException);
+	assert(second == v);
+	assert(v == second);
+	assert_not_throws(v = Data::parse_json(second.to_json()), Data::ParseException);
+	assert(second == v);
+	assert(v == second);
 	check_table(v, false);
 	check_uint(v["num"], 3);
 	check_string(v["str"], "abcdef");
@@ -345,7 +356,17 @@ void test_parse_json()
 
 	ex_json = "{\"scooby\":{\"snacks\":{\"flavor\":\"spicy\",\"size\":3}},\"num\":3,\"arr\":[3,-5,2]}";
 	assert_not_throws(v = Data::parse_json(ex_json), Data::ParseException);
-	assert(v.to_json() == ex_json);
+	assert(v != second);
+	assert(second != v);
+	assert_not_throws(second = Data::parse_json(ex_json), Data::ParseException);
+	assert(v == second);
+	assert(second == v);
+	assert_not_throws(second = Data::parse_json(v.to_json()), Data::ParseException);
+	assert(second == v);
+	assert(v == second);
+	assert_not_throws(v = Data::parse_json(second.to_json()), Data::ParseException);
+	assert(second == v);
+	assert(v == second);
 	assert(!v["scooby"].is_null());
 	assert(v["scooby"].is_table());
 
