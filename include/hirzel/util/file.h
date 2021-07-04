@@ -1,5 +1,5 @@
-#ifndef UTIL_FILE_H
-#define UTIL_FILE_H
+#ifndef HIRZEL_UTIL_FILE_H
+#define HIRZEL_UTIL_FILE_H
 
 #include <vector>
 #include <string>
@@ -8,30 +8,44 @@ namespace hirzel
 {
 	namespace file
 	{
-		std::vector<std::string> read_lines(const std::string& filename,
+		std::vector<std::string> read_lines(const std::string& filepath,
 			 size_t first_line = 0, size_t n = -1);
-		std::string read(const std::string& filename, bool ignore_empty_lines = false,
-			const std::string& line_ending_fmt = "\n");
-		void write(const std::string& filename, const std::string& buf);
-		bool exists(const std::string& filepath);
+		std::string read(const std::string& filepath,
+			const std::string& line_ending = "\n");
+		bool write(const std::string& filepath, const std::string& buf);
+		bool exists(const std::string& filepath) noexcept;
+
+		class IoException : public std::exception
+		{
+		private:
+			std::string _msg;
+			IoException(const std::string& msg) : _msg(msg) {}
+		public:
+			static IoException dne(const std::string& filename) noexcept
+			{
+				return IoException("failed to open file: " + filename);
+			}
+			const char *what() const noexcept { return _msg.c_str(); }
+		};
 	}
 }
 
-#endif // UTIL_FILE_H
+#endif // HIRZEL_UTIL_FILE_H
 
-#ifdef HIRZEL_UTIL_FILE_I
-#undef HIRZEL_UTIL_FILE_I
+#ifdef HIRZEL_IMPLEMENT
 
 #include <fstream>
+#include <iostream>
 
 namespace hirzel
 {
 	namespace file
 	{
-		std::vector<std::string> read_lines(const std::string &filename, size_t first_line, size_t n)
+		std::vector<std::string> read_lines(const std::string &filepath, size_t first_line, size_t n)
 		{
-			std::ifstream fin(filename);
-			if (!fin.is_open()) return {};
+			std::ifstream fin(filepath);
+
+			if (!fin.is_open()) throw IoException::dne(filepath);
 
 			std::vector<std::string> lines(n);
 			std::string line;
@@ -53,43 +67,54 @@ namespace hirzel
 			return lines;
 		}
 
-		std::string read(const std::string &filename, bool ignore_empty_lines, const std::string &line_ending_fmt)
+
+		std::string read(const std::string& filepath,
+			const std::string& line_ending)
 		{
-			std::string text, line;
-			std::ifstream fin(filename);
+			std::ifstream file(filepath);
+			// confirm file exists
+			if (!file.is_open()) throw IoException::dne(filepath);
 
-			if (fin.is_open())
+			// create output buffer
+			file.seekg(0, std::ios::end);
+			std::string out;
+			out.reserve(file.tellg());
+			file.seekg(0, std::ios::beg);
+
+			std::string line;
+			
+			// copy data into buffer
+			while (std::getline(file, line))
 			{
-				while (std::getline(fin, line))
-				{
-					if (line.empty() && ignore_empty_lines)
-					{
-						continue;
-					}
+				// pop windows line ending
+				if (line.back() == '\r') line.pop_back();
 
-					while (line.back() == '\r' || line.back() == '\n')
-					{
-						line.pop_back();
-					}
-
-					text += line + line_ending_fmt;
-				}
-
-				fin.close();
+				// push line ending
+				out += line;
+				out += line_ending;
 			}
 
-			return text;
-		}
-
-		void write(const std::string &filename, const std::string &buf)
-		{
-			std::ofstream file;
-			file.open(filename);
-			file << buf;
+			// close file
 			file.close();
+
+			out.shrink_to_fit();
+
+			return out;
 		}
 
-		bool exists(const std::string &filepath)
+
+		bool write(const std::string &filepath, const std::string &buf)
+		{
+			std::ofstream file(filepath);
+			if (!file.is_open()) throw IoException::dne(filepath);
+			file << buf;
+			bool success = file.good();
+			file.close();
+			return success;
+		}
+
+
+		bool exists(const std::string &filepath) noexcept
 		{
 			std::ifstream file(filepath);
 			return file.good();

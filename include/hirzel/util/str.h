@@ -29,155 +29,74 @@ namespace hirzel
 
 		inline bool is_special(unsigned char c)
 		{
-			return (c > 32 && c < 48) || (c > 57 && c < 65) || (c > 90 && c < 97) || (c > 122 && c < 127);
+			return (c > 32 && c < 48) || (c > 57 && c < 65) ||
+				(c > 90 && c < 97) || (c > 122 && c < 127);
 		}
 
-		// tokenize a string with single char delimiters
-		std::vector<std::string> tokenize(const std::string& str, const std::string& delims,
-			bool ignore_invisible = false, bool save_delims = false);
-
 		// tokenize a string with multi-char delimiters
-		std::vector<std::string> tokenize(const std::string& str, const std::vector<std::string>& delims,
-			bool ignore_invisible = false, bool save_delims = false);
+		std::vector<std::string> tokenize(const std::string& str,
+			const std::vector<std::string>& delims) noexcept;
 
-		std::string purge_delims(const std::string& str, const std::string& delims, bool delim_invisible = false);
-		std::string replace_delims(const std::string& str, const std::string& delims, char replacement);
+		std::string purge_tokens(const std::string& str,
+			const std::vector<std::string>& tokens) noexcept;
 
-		void find_and_purge(std::string& str, const std::string& token);
-		void find_and_replace(std::string& str, const std::string& token, const std::string& replacement);
+		std::string replace_tokens(const std::string& str,
+			const std::vector<std::string>& tokens,
+			const std::string& replacement) noexcept;
 
-		std::string get_folder(const std::string& filepath);
-		std::string get_filename(const std::string& filepath);
-		std::string get_extension(const std::string& filepath);
-		std::string get_basename(const std::string& filepath);
+		std::string get_folder(const std::string& filepath) noexcept;
+		std::string get_filename(const std::string& filepath) noexcept;
+		std::string get_extension(const std::string& filepath) noexcept;
+		std::string get_basename(const std::string& filepath) noexcept;
 	}
 }
 
 #endif // HIRZEL_UTIL_STR_H
 
-#ifdef HIRZEL_UTIL_STR_I
-#undef HIRZEL_UTIL_STR_I
+#ifdef HIRZEL_IMPLEMENT
 
 namespace hirzel
 {
 	namespace str
 	{
-		std::vector<std::string> tokenize(const std::string &str, const std::string &delims,
-			bool ignore_invisible, bool save_delims)
-		{
-			std::string token;
-			std::vector<std::string> tokens;
-
-			for (char c : str)
-			{
-				bool is_delim = false;
-				for (char d : delims)
-				{
-					if (d == c)
-					{
-						is_delim = true;
-						break;
-					}
-				}
-
-				if (is_delim)
-				{
-					if (!token.empty())
-					{
-						tokens.push_back(token);
-						token.clear();
-					}
-					if (save_delims)
-					{
-						tokens.push_back(std::string(1, c));
-					}
-					continue;
-				}
-
-				if (ignore_invisible && is_invisible(c))
-					continue;
-
-				token += c;
-			}
-
-			if (!token.empty())
-			{
-				tokens.push_back(token);
-			}
-
-			return tokens;
-		}
-
-		std::vector<std::string> tokenize(const std::string &str, const std::vector<std::string> &delims,
-			bool ignore_invisible, bool save_delims)
+		std::vector<std::string> tokenize(const std::string& str,
+			const std::vector<std::string>& delims) noexcept
 		{
 			std::string token;
 			std::vector<std::string> tokens;
 
 			for (size_t i = 0; i < str.size(); i++)
 			{
-				int delim_index = -1;
+				bool delim_found = false;
+				
 				// check if the next chunk is a save delim
-				for (unsigned j = 0; j < delims.size(); j++)
+				for (const std::string& delim : delims)
 				{
-					// test the first character of the delimiters
-					if (str[i] == delims[j][0])
-					{
-						unsigned end = i + delims[j].size();
-						// the rest of the string is not long enough to be that token
-						if (end > str.size())
-						{
-							continue;
-						}
-						bool equal = true;
-						unsigned di = 0;
-						// comparing the two strings
-						for (unsigned c = i; c < end; c++)
-						{
-							if (str[c] != delims[j][di])
-							{
-								if (ignore_invisible && is_invisible(str[c]))
-								{
-									i++;
-									end++;
-									if (end <= str.size())
-										continue;
-								}
-								equal = false;
-								break;
-							}
-							di++;
-						}
+					size_t checki = i;
 
-						if (equal)
+					delim_found = true;
+					for (char c : delim)
+					{
+						if (checki >= str.size() || str[checki] != c)
 						{
-							// checking if the index has been set yet
-							if (delim_index < 0 || (delim_index >= 0 && delims[j].size() > delims[delim_index].size()))
-							{
-								delim_index = j;
-							}
+							delim_found = false;
+							break;
 						}
+						checki += 1;
+					}
+					
+					if (delim_found)
+					{
+						if (token.size() > 0)
+						{
+							tokens.push_back(token);
+							token.clear();
+						}
+						
+						i += delim.size();
+						break;
 					}
 				}
-
-				// delim is set
-				if (delim_index >= 0)
-				{
-					if (token.size() > 0)
-					{
-						tokens.push_back(token);
-						token.clear();
-					}
-					if (save_delims)
-					{
-						tokens.push_back(delims[delim_index]);
-					}
-					i += delims[delim_index].size() - 1;
-					continue;
-				}
-
-				if (ignore_invisible && is_invisible(str[i]))
-					continue;
 
 				token += str[i];
 			}
@@ -190,80 +109,86 @@ namespace hirzel
 			return tokens;
 		}
 
-		std::string purge_delims(const std::string &str, const std::string &delims, bool delim_invisible)
+
+		std::string purge_tokens(const std::string& str,
+			const std::vector<std::string>& tokens) noexcept
 		{
 			std::string out = str;
+			size_t oi = 0;
 
-			for (unsigned int i = out.size() - 1; i < out.size(); i--)
+			for (size_t i = 0; i < out.size(); ++i)
 			{
-				bool is_delim = false;
-				if (delim_invisible)
+				for (const std::string& tok : tokens)
 				{
-					is_delim |= is_invisible(out[i]);
-				}
-				for (char c : delims)
-				{
-					if (out[i] == c)
+					size_t checki = i;
+					bool is_tok = true;
+					for (char c : tok)
 					{
-						is_delim = true;
+						if (c != out[checki])
+						{
+							is_tok = false;
+							break;
+						}
+					}
+
+					if (is_tok)
+					{
+						oi += tok.size();
+						break;
 					}
 				}
-				if (is_delim)
-				{
-					out.erase(i, 1);
-				}
+
+				out[oi] = out[i];
 			}
 
 			return out;
 		}
 
-		std::string replace_delims(const std::string &str, const std::string &delims, char replacement)
-		{
-			std::string out = str;
 
-			for (unsigned int i = 0; i < out.size(); i++)
+		std::string replace_tokens(const std::string& str,
+			const std::vector<std::string>& tokens,
+			const std::string& replacement) noexcept
+		{
+			std::string out;
+			out.reserve(str.size());
+
+			for (size_t i = 0; i < str.size(); ++i)
 			{
-				bool is_delim = false;
-				for (char c : delims)
+				for (const std::string& tok : tokens)
 				{
-					if (out[i] == c)
+					size_t checki = i;
+					bool is_tok = true;
+
+					for (char c : tok)
 					{
-						is_delim = true;
+						if (c != str[checki])
+						{
+							is_tok = false;
+							break;
+						}
+					}
+
+					if (is_tok)
+					{
+						out += replacement;
+						break;
 					}
 				}
-				if (is_delim)
-				{
-					out[i] = replacement;
-				}
+				out += str[i];
 			}
+
+			out.shrink_to_fit();
 
 			return out;
 		}
 
-		void find_and_purge(std::string &str, const std::string &token)
-		{
-			size_t pos;
-			while ((pos = str.find(token)) != std::string::npos)
-			{
-				str.erase(pos, token.size());
-			}
-		}
 
-		void find_and_replace(std::string &str, const std::string &token, const std::string &replacement)
-		{
-			size_t pos;
-			while ((pos = str.find(token)) != std::string::npos)
-			{
-				str.replace(pos, token.size(), replacement);
-			}
-		}
-
-		std::string get_folder(const std::string &filepath)
+		std::string get_folder(const std::string &filepath) noexcept
 		{
 			unsigned int slashIndex = -1;
 			for (unsigned int i = 0; i < filepath.size(); i++)
 			{
-				if (filepath[i] == '/')
+				if (filepath[i] == '/' || filepath[i] == '\\')
 				{
 					slashIndex = i;
 				}
@@ -276,12 +201,13 @@ namespace hirzel
 			return ".";
 		}
 
-		std::string get_filename(const std::string &filepath)
+
+		std::string get_filename(const std::string &filepath) noexcept
 		{
 			int slashIndex = -1;
 			for (unsigned int i = 0; i < filepath.size(); i++)
 			{
-				if (filepath[i] == '/')
+				if (filepath[i] == '/' || filepath[i] == '\\')
 				{
 					slashIndex = i;
 				}
@@ -290,12 +216,13 @@ namespace hirzel
 			return filepath.substr(slashIndex + 1);
 		}
 
-		std::string get_extension(const std::string &filepath)
+
+		std::string get_extension(const std::string &filepath) noexcept
 		{
 			int slashIndex = -1, dotIndex = -1;
 			for (unsigned int i = 0; i < filepath.size(); i++)
 			{
-				if (filepath[i] == '/')
+				if (filepath[i] == '/' || filepath[i] == '\\')
 				{
 					slashIndex = i;
 					dotIndex = slashIndex;
@@ -309,12 +236,13 @@ namespace hirzel
 			return filepath.substr(dotIndex + 1);
 		}
 
-		std::string get_basename(const std::string &filepath)
+
+		std::string get_basename(const std::string &filepath) noexcept
 		{
 			int slashIndex = -1, dotIndex = -1;
 			for (unsigned int i = 0; i < filepath.size(); i++)
 			{
-				if (filepath[i] == '/')
+				if (filepath[i] == '/' || filepath[i] == '\\')
 				{
 					slashIndex = i;
 					dotIndex = slashIndex;

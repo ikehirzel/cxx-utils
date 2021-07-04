@@ -1,2 +1,12 @@
-#executable
-main
+# exclude everything
+*
+*/
+!.gitignore
+
+# ignore build scripts
+!test.sh
+!test.ps1
+
+# ignore source files
+!main.cpp
+!impl.cpp

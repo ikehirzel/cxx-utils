@@ -12,7 +12,7 @@ namespace hirzel
 		/**
 		 * @return	milliseconds since unix epoch
 		 */
-		inline long long epoch_millis()
+		inline long long epoch_millis() noexcept
 		{
 			return std::chrono::duration_cast<std::chrono::milliseconds>
 				(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -22,7 +22,7 @@ namespace hirzel
 		/**
 		 * @return	seconds since unix epoch
 		 */
-		inline long long epoch_seconds()
+		inline long long epoch_seconds() noexcept
 		{
 			return std::chrono::duration_cast<std::chrono::seconds>
 				(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -32,7 +32,7 @@ namespace hirzel
 		/**
 		 * Pauses thread until input is received from stdin
 		 */
-		inline void wait_for_key()
+		inline void wait_for_key() noexcept
 		{
 			std::cout << "Press enter to continue... ";
 			std::cin.get();
@@ -43,7 +43,7 @@ namespace hirzel
 		 * Pauses thread for specified time
 		 * @param	millis	milliseconds to sleep for
 		 */
-		inline void sleep_millis(unsigned millis)
+		inline void sleep_millis(unsigned millis) 
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(millis));
 		}
