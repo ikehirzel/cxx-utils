@@ -97,63 +97,12 @@ namespace hirzel
 
 		union Storage
 		{
+			long long itg = 0;
 			bool bol;
-			char chr;
 			double flt;
 			std::string* str;
-			unsigned long long uns;
-			long long itg = 0;
 			Array* arr;
 			Table* tbl;
-		};
-
-		class View
-		{
-		private:
-			Data *_ptr = nullptr;
-		public:
-			View(Data *ptr) : _ptr(ptr) {}
-
-			inline View operator[] (const std::string& key) const noexcept
-			{
-				if (!_ptr || !_ptr->is<Table>())
-					return View(nullptr);
-
-				return { &_ptr->as_table()[key] };
-			}
-
-			template <typename T>
-			inline T as()
-			{
-				if (!_ptr)
-					throw TypeException("data is nulllptr");
-
-				return _ptr->as<T>();
-			}
-
-			inline operator bool() const noexcept 
-			{ 
-				return _ptr;
-			}
-
-			inline Data& operator=(const Data& data)
-			{
-				if (!_ptr)
-					throw TypeException("data is nullptr");
-
-				*_ptr = data;
-				return *_ptr;
-			}
-
-			friend std::ostream& operator<< (std::ostream& out, const View v)
-			{
-				if (v)
-					out << "valid reference";
-				else
-					out << "invalid reference";
-					
-				return out;
-			}
 		};
 
 		class ParseException : public std::exception
@@ -185,9 +134,17 @@ namespace hirzel
 		unsigned _type = NULL_TYPE;
 		Storage _storage;
 
-		static Data parse_json_object(const std::string& src, size_t& i);
-		static Data parse_json_array(const std::string& src, size_t& i);
-		static Data parse_json_value(const std::string& src, size_t& i);
+		static std::pair<const char *, bool> parse_json_number_literal(const char *iter);
+
+		static std::string preprocess_json(const std::string& src);
+		template <bool expected>
+		static std::pair<Data, const char *> parse_json_bool(const char * iter);
+		static std::pair<Data, const char *> parse_json_null(const char * iter);
+		static std::pair<Data, const char *> parse_json_string(const char * iter);
+		static std::pair<Data, const char *> parse_json_number(const char * iter);
+		static std::pair<Data, const char *> parse_json_object(const char * iter);
+		static std::pair<Data, const char *> parse_json_array(const char * iter);
+		static std::pair<Data, const char *> parse_json_value(const char * iter);
 
 	public:
 
@@ -218,7 +175,6 @@ namespace hirzel
 
 		inline Data(const Array& arr) : _type(ARRAY_TYPE) { _storage.arr = new Array(arr); }
 		inline Data(const Table& table) : _type(TABLE_TYPE) { _storage.tbl = new Table(table); }
-		inline Data(const std::initializer_list<Data>& list) : Data(Array(list)) {}
 
 		~Data();
 
@@ -226,22 +182,26 @@ namespace hirzel
 		
 		long long as_int() const;
 		double as_float() const;
-		char as_char() const;
 		bool as_bool() const;
 		std::string	as_string() const;
-		std::string as_json() const;
 
-		Table& as_table();
-		inline const Table& as_table() const
-		{
-			return as_table();
-		}
-		
-		Array& as_array();
 		inline const Array& as_array() const
 		{
-			return as_array();
+			if (_type != ARRAY_TYPE)
+				throw TypeException("type must be an array to be cast as one");
+
+			return *_storage.arr;
 		}
+
+		inline const Table& as_table() const
+		{
+			if (_type != TABLE_TYPE)
+				throw TypeException("type must be a table to be cast as one");
+			
+			return *_storage.tbl;
+		}
+		
+		std::string as_json() const;
 
 		inline bool contains(const std::string& key) const
 		{
@@ -286,12 +246,12 @@ namespace hirzel
 
 		inline bool is_int() const noexcept
 		{
-			return _type == BOOL_TYPE;
+			return _type == INT_TYPE;
 		}
 
 		inline bool is_float() const noexcept
 		{
-			return _type == BOOL_TYPE;
+			return _type == FLOAT_TYPE;
 		}
 
 		inline bool is_num() const noexcept
@@ -301,17 +261,17 @@ namespace hirzel
 
 		inline bool is_string() const noexcept
 		{
-			return _type == BOOL_TYPE;
+			return _type == STRING_TYPE;
 		}
 
 		inline bool is_array() const noexcept
 		{
-			return _type == BOOL_TYPE;
+			return _type == ARRAY_TYPE;
 		}
 
 		inline bool is_table() const noexcept
 		{
-			return _type == BOOL_TYPE;
+			return _type == TABLE_TYPE;
 		}
 
 		template <typename T>
@@ -340,48 +300,69 @@ namespace hirzel
 
 		Data& operator=(const Data& other);
 
-		inline View at(size_t i)
+		inline Data& at(size_t i)
 		{
-			if (_type != ARRAY_TYPE || i >= _storage.arr->size())
-				return View(nullptr);
+			if (_type != ARRAY_TYPE)
+				throw TypeException("data must be array for integer indexing");
 
-			return View(&((*_storage.arr)[i]));
+			if (i >= _storage.arr->size())
+			{
+				_storage.arr->resize(i + 1);
+			}
+
+			return (*_storage.arr)[i];
 		}
 
-		inline const View at(size_t i) const
+		inline const Data& at(size_t i) const
 		{
-			return at(i);
+			if (_type != ARRAY_TYPE)
+				throw TypeException("data must be array for integer indexing");
+
+			if (i >= _storage.arr->size())
+				throw std::out_of_range("attempted to access index "
+					+ std::to_string(i)
+					+ " but size is "
+					+ std::to_string(_storage.arr->size()));
+
+			return (*_storage.arr)[i];
 		}
 
-		inline View operator[](size_t i)
+		inline Data& operator[](size_t i)
 		{
 			return at(i); 
 		}
 
-		inline const View operator[](size_t i) const
+		inline const Data& operator[](size_t i) const
 		{
 			return at(i); 
 		}
 
-		inline View at(const std::string& key)
+		inline Data& at(const std::string& key)
 		{
-			if (_type != TABLE_TYPE || _storage.tbl->find(key) == _storage.tbl->end())
-				return View(nullptr);
-
-			return View(&((*_storage.tbl)[key]));
+			if (_type != TABLE_TYPE)
+				throw TypeException("data must be a table for string indexing");
+			
+			return (*_storage.tbl)[key];
 		}
 
-		inline const View at(const std::string& key) const
+		inline const Data& at(const std::string& key) const
 		{
-			return at(key);
+			if (_type != TABLE_TYPE)
+				throw TypeException("data must be a table for string indexing");
+
+			if (_storage.tbl->find(key) == _storage.tbl->end())
+				throw std::out_of_range("attempted to access element at '"
+					+ key + "' but it does not exist");
+
+			return (*_storage.tbl)[key];
 		}
 
-		inline View operator[](const std::string& key)
+		inline Data& operator[](const std::string& key)
 		{
 			return at(key); 
 		}
 
-		inline const View operator[](const std::string& key) const
+		inline const Data& operator[](const std::string& key) const
 		{ 
 			return at(key);
 		} 
@@ -466,7 +447,14 @@ namespace hirzel
 			case FLOAT_TYPE:
 				return (long long)_storage.flt;
 			case STRING_TYPE:
-				return std::stoll(*_storage.str);
+				try
+				{
+					return std::stoll(*_storage.str);
+				}
+				catch (const std::exception& e)
+				{
+					return 0;
+				}
 			default:
 				throw TypeException("data can not be converted to integer");
 		}
@@ -489,7 +477,7 @@ namespace hirzel
 				{
 					return std::stod(*_storage.str);
 				}
-				catch(const std::invalid_argument& e)
+				catch(const std::exception& e)
 				{
 					return 0.0;
 				}
@@ -700,6 +688,8 @@ namespace hirzel
 	{
 		switch (_type)
 		{
+		case NULL_TYPE:
+			return 0;
 		case STRING_TYPE:
 			return _storage.str->size();
 		case ARRAY_TYPE:
@@ -795,237 +785,310 @@ namespace hirzel
 	#	Parsing code
 	###################################################*/
 
-	Data Data::parse_json_value(const std::string& src, size_t& i)
+	std::string Data::preprocess_json(const std::string& src)
 	{
-		char first = src[i];
-		if ((first >= '0' && first <= '9') || first == '-')
-		{
-			char tmp[128];
-			char* pos = tmp;
-			*pos++ = first;
-			i++;
-			bool is_decimal = false;
+		std::string out = src;
+		auto out_iter = out.begin();
 
-			while (true)
+		for (auto src_iter = src.begin(); src_iter != src.end(); ++src_iter)
+		{
+			if (*src_iter < 33)
+				continue;
+			
+			if (*src_iter == '\"')
 			{
-				if (i == src.size()) break;
-				char c = src[i];
-				// not a number
-				if (c == '.')
+				while (1)
 				{
-					if (is_decimal)
-						throw ParseException("stray '.' found in number literal at position: " + std::to_string(i));
-					is_decimal = true;
+					*out_iter = *src_iter;
+
+					if (*src_iter == '\"')
+					{
+						out_iter += 1;
+						break;
+					}
+
+					if (src_iter == src.end())
+						throw ParseException("unterminated string at position: "
+							+ std::to_string(src_iter - src.end()));
+
+					out_iter += 1;
+					src_iter += 1;
 				}
-				else if (c < '0' || c > '9') break;
-				*pos++ = c;
-				i++;
-			}
-			*pos = 0;
 
-			return is_decimal ? Data(std::stod(tmp)) : Data(std::stoll(tmp));
+				continue;
+			}
+
+			*out_iter = *src_iter;
+			out_iter += 1;
 		}
-		else if (first == '\"')
-		{
-			char tmp[256];
-			char* pos = tmp;
-			i++;
-			while (src[i] != '\"')
-			{
-				*pos++ = src[i++];
-			}
-			i++;
-			*pos = 0;
-			return Data(tmp);
-		}
-		else
-		{
-			const char* match;
-			int size;
-			switch(first)
-			{
-			case '{':
-				return parse_json_object(src, i);
-			case '[':
-				return parse_json_array(src, i);
-			case 't':
-				match = "true";
-				size = 4;
-				break;
 
-			case 'f':
-				match = "false";
-				size = 5;
-				break;
-
-			case 'n':
-				match = "null";
-				size = 4;
-				break;
-
-			default:
-				throw ParseException("invalid token '" + std::string(1, first) + "' at position: " + std::to_string(i));
-			}
-
-			const char* c = match + 1;
-			size_t start_of_literal = i;
-			i++;
-			while (true)
-			{	
-				if (c - match == size) break;
-				if (i == src.size())
-					throw ParseException("unexpected token '" + std::string(1, src[start_of_literal]) + "' in primitive literal at position: " + std::to_string(start_of_literal));
-				
-				if (src[i++] != *c++)
-					throw ParseException("unexpected token '" + std::string(1, *c) + "' in primitive literal at position: " + std::to_string(i));
-			}
-
-			switch (first)
-			{
-			case 't':
-				return Data(true);
-			case 'f':
-				return Data(false);
-			case 'n':
-				return Data();
-			}
-		}
+		out.resize(out_iter - out.begin());
 		
-		return Data();
-	}
-
-	Data Data::parse_json_array(const std::string& src, size_t& i)
-	{
-		Data arr(ARRAY_TYPE);
-		int index = 0;
-		i++;
-		if (src[i] == ']') return arr;
-		bool new_elem = true;
-		while (new_elem)
-		{
-			try
-			{
-				arr[index++] = parse_json_value(src, i);
-			}
-			catch (const ParseException& e)
-			{
-				throw;
-			}
-
-			if (src[i] == ',')
-				i++;
-			else
-				new_elem = false;
-		}
-		i++;
-		return arr;
+		return out;
 	}
 	
-	Data Data::parse_json_object(const std::string& src, size_t& i)
+	std::pair<const char *, bool> Data::parse_json_number_literal(const char *iter)
 	{
-		Data obj(Data::TABLE_TYPE);
-		i++;
-		bool new_member = false;
-		if (src[i] != '}') new_member = true;
+		bool is_decimal = false;
 		
-		while (new_member)
-		{
-			char label[128];
-			char* pos = label;
-		
-			if (src[i] != '\"') throw ParseException("invalid label given for member at position: " + std::to_string(i));
-			i++;
-			while (src[i] != '\"')
-			{
-				*pos++ = src[i++];
-			}
-			i++;
-			*pos = 0;
+		if (*iter == '-' || *iter == '+')
+			iter += 1;
 
-			if (src[i] != ':') throw ParseException("improper object member definition at position: " + std::to_string(i));
-			i++;
-			
-			try
+		while (true)
+		{
+			switch (*iter)
 			{
-				obj[label] = parse_json_value(src, i);
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					iter += 1;
+					break;
+
+				case '.':
+					if (is_decimal)
+						throw ParseException("extra '.' in number literal");
+
+					iter += 1;
+					is_decimal = true;
+					break;
+
+				default:
+					return { iter, is_decimal };
 			}
-			catch (const ParseException& e)
-			{
-				throw;
-			}
-			
-			if (src[i] == ',')
-			{
-			}
-			else
-			{
-				new_member = false;
-				if (src[i] != '}') throw ParseException("unexpected token '" + std::string(1, src[i]) + "' at position: " + std::to_string(i));
-			}
-			i++;
+		}
+	}
+
+	std::pair<Data, const char *> Data::parse_json_number(const char *iter)
+	{
+		const char * const start_of_number = iter;
+		auto res = parse_json_number_literal(iter);
+
+		iter = res.first;
+
+		if (*iter == 'e' || *iter == 'E')
+		{
+			auto exponent = parse_json_number_literal(iter);
+
+			if (exponent.second)
+				throw ParseException("stray '.' in exponent literal");
+
+			iter = exponent.first;
 		}
 
-		return obj;
+		std::string number_literal(start_of_number, iter - start_of_number);
+
+		return 
+		{
+			res.second
+				? Data(std::stod(number_literal))
+				: Data(std::stoll(number_literal)),
+			iter
+		};
+	}
+
+	std::pair<Data, const char *> Data::parse_json_string(const char *iter)
+	{
+		iter += 1;
+
+		const char * const start_of_string = iter;
+
+		while (*iter != '\"')
+		{
+			if (*iter == '\0')
+				throw ParseException("unterminated string: "
+					+ std::string(start_of_string, iter - start_of_string));
+
+			iter += 1;
+		}
+
+		Data out = std::string(start_of_string, iter - start_of_string);
+
+		iter += 1;
+
+		return { out, iter };
+	}
+	
+	std::pair<Data, const char *> Data::parse_json_null(const char *iter)
+	{
+		iter += 1;
+
+		for (const char *match = "ull"; *match; ++match)
+		{
+			if (*iter != *match)
+				throw ParseException("unexpected character '"
+					+ std::string(1, *iter)
+					+ "' found in null literal");
+
+			iter += 1;
+		}
+
+		return { Data(), iter };
+	}
+
+	template <bool expected>
+	std::pair<Data, const char *> Data::parse_json_bool(const char *iter)
+	{
+		iter += 1;
+
+		const char *match;
+
+		if constexpr (expected)
+			match = "rue";
+		else
+			match = "alse";
+
+		while (*match)
+		{
+			if (*iter != *match)
+				throw ParseException("unexpected character '"
+					+ std::string(1, *iter)
+					+ "' found in bool literal");
+
+			iter += 1;
+			match += 1;
+		}
+		
+		return { Data(expected), iter };
+	}
+
+	std::pair<Data, const char *> Data::parse_json_value(const char *iter)
+	{
+		switch (*iter)
+		{
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+			case '-':
+				return parse_json_number(iter);
+			case '\"':
+				return parse_json_string(iter);
+			case '{':
+				return Data::parse_json_object(iter);
+			case '[':
+				return Data::parse_json_array(iter);
+			case 't':
+				return parse_json_bool<true>(iter);
+			case 'f':
+				return parse_json_bool<false>(iter);
+			case 'n':
+				return parse_json_null(iter);
+			default:
+				throw ParseException("invalid literal");
+		}
+	}
+
+	std::pair<Data, const char *> Data::parse_json_array(const char *iter)
+	{
+		Data arr(ARRAY_TYPE);
+
+		iter += 1;
+
+		if (*iter == ']')
+			return { arr, iter + 1 };
+		size_t curr_array_index = 0;
+
+		while (true)
+		{
+			auto res = parse_json_value(iter);
+
+			arr[curr_array_index++] = res.first;
+			iter = res.second;
+
+			if (*iter != ',')
+				break;
+				
+			iter += 1;
+		}
+
+		if (*iter != ']')
+			throw ParseException("unterminated array");
+
+		iter += 1;
+
+		return { arr, iter };
+	}
+	
+	std::pair<Data, const char *> Data::parse_json_object(const char *iter)
+	{
+		Data obj(Data::TABLE_TYPE);
+
+		iter += 1;
+
+		if (*iter == '}')
+			return { obj, iter };
+		
+		while (true)
+		{
+			if (*iter != '\"')
+				throw ParseException("invalid label");
+
+			iter += 1;
+
+			const char *end_of_label = iter;
+			const char *start_of_label = iter;
+
+			while (*end_of_label != '\"')
+			{
+				if (!end_of_label[0])
+					throw ParseException("unterminated label: '"
+						+ std::string(start_of_label, end_of_label - start_of_label)
+						+ "'");
+
+				end_of_label += 1;
+			}
+
+			std::string label(start_of_label, end_of_label - start_of_label);
+			iter = end_of_label + 1;
+
+			if (*iter != ':')
+				throw ParseException("expected ':' but found: "
+					+ std::string(iter, 1));
+
+			iter += 1;
+			
+			auto res = parse_json_value(iter);
+			
+			obj[{ start_of_label, (size_t)(end_of_label - start_of_label) }] = res.first;
+			iter = res.second;
+			
+			if (*iter != ',')
+			{
+				if (*iter != '}')
+					throw ParseException("unterminated object found in JSON");
+				iter += 1;
+				break;
+			}
+
+			iter += 1;
+		}
+
+		return { obj, iter };
 	}
 
 	Data Data::parse_json(const std::string& src)
 	{
-		std::string preprocessed_src = src + '\0';
+		std::string preprocessed_src = preprocess_json(src);
 
-		// removing all non vital white space
-		size_t oi = 0;
-		// maximum depth of 128 for json file 
-		char pairs[128];
-		char* pair = pairs;
-		for (size_t i = 0; i < src.size(); i++)
-		{
-			if (preprocessed_src[i] < 33) continue;
+		if (preprocessed_src.empty())
+			throw ParseException("source string was empty");
 
-			switch(preprocessed_src[i])
-			{
-			case '\"':
-				preprocessed_src[oi++] = preprocessed_src[i++];
-				while (true)
-				{
-					if (i >= preprocessed_src.size()) throw ParseException("unterminated string at position: " + std::to_string(i - 1));
-					// end of string
-					if (preprocessed_src[i] == '\"' && preprocessed_src[i - 1] != '\\') break;
-					preprocessed_src[oi++] = preprocessed_src[i++];
-				}
-				break;
+		auto json = parse_json_value(preprocessed_src.c_str());
 
-			case '[':
-				*++pair = ']';
-				break;
-
-			case '{':
-				*++pair = '}';
-				break;
-
-			case ']':
-			case '}':
-				if (*pair == preprocessed_src[i])
-					pair--;
-				else
-					throw ParseException("stray '" + std::string(1, preprocessed_src[i]) + "' at position: " + std::to_string(i));
-			}
-
-			preprocessed_src[oi++] = preprocessed_src[i];
-		}
-
-		preprocessed_src.resize(oi);
-
-		if (preprocessed_src.empty()) throw ParseException("source string was empty");
-		
-		if (pair > pairs)
-		{
-			std::string type = (*pair == ']') ? "array" : "object";
-			throw ParseException("unterminated " + type + " definition");
-		}
-
-		oi = 0;
-
-		return parse_json_value(preprocessed_src, oi);
+		return json.first;
 	}
 } // namespace hirzel
 
