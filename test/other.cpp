@@ -5,11 +5,14 @@
 
 void logop()
 {
+	using hirzel::Logger;
+
 	std::string m = "message!";
-	PRINT("Logging in other.cpp\n");
-	INFO("This is an info %s", m);
-	SUCCESS("This is a success %s", m);
-	WARNING("This is a warning %s", m);
-	ERROR("This is an error %s", m);
-	FATAL("This is a fatal %s", m);
+
+	Logger::print("Logging in other.cpp\n");
+	Logger::info(__func__, "This is an info %s", { m });
+	Logger::success(__func__, "This is a success %s", { m });
+	Logger::warning(__func__, "This is a warning %s", { m });
+	Logger::error(__func__, "This is an error %s", { m });
+	Logger::fatal(__func__, "This is a fatal %s", { m });
 }

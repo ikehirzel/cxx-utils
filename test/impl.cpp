@@ -1,2 +1,2 @@
-#define HIRZEL_LOGGER_I
+#define HIRZEL_IMPLEMENT
 #include <hirzel/logger.h>

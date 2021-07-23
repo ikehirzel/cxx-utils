@@ -1,2 +1,6 @@
 # ide files
 .vscode/
+
+# executable files
+test/main
+test/main.exe
