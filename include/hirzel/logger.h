@@ -462,40 +462,81 @@ namespace hirzel
 	const char *Logger::_error_color = LOGGER_RED;
 	const char *Logger::_fatal_color = LOGGER_BRIGHT_RED;
 
+	const char *get_end_of_number_literal(const char *pos)
+	{
+		while (true)
+		{
+			switch (*pos)
+			{
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					pos += 1;
+					continue;
+				default:
+					return pos;
+			}
+		}
+	}
+
 	std::string Logger::format(const std::string &str, const std::vector<Arg>& args)
 	{
 		std::string out;
 		out.reserve(256);
 
-		auto arg_iterator = args.begin();
+		size_t arg_index = 0;
 
-		for (size_t i = 0; i < str.size(); i++)
+		for (const char *pos = str.c_str(); *pos; ++pos)
 		{
-			if (str[i] != '%')
+			if (*pos != '{')
 			{
-				// adding char to output
-				out += str[i];
+				out += *pos;
 				continue;
 			}
 
-			// incrementing to symbol associated with %
-			i++;
-			
-			if (str[i] == '%')
+			if (out.size() > 1 && out.back() == '\\')
 			{
-				out += '%';
+				out.back() = '{';
 				continue;
 			}
-			// no symbol was given
-			if (i >= str.size())
-				throw std::invalid_argument("No data type was supplied for '%'");
 
-			if (arg_iterator == args.end())
-				throw std::invalid_argument("not enough args supplied!");			
+			pos += 1;
 
-			out += arg_iterator->to_string();
+			auto num_literal_end = get_end_of_number_literal(pos);
+			size_t arg_to_print_index = arg_index;
 
-			arg_iterator += 1;
+			if (num_literal_end > pos)
+			{
+				std::string specified_index_str(pos, num_literal_end - pos);
+				size_t specified_index = (size_t)std::stoul(specified_index_str);
+
+				if (specified_index >= args.size())
+					throw std::invalid_argument("invalid argument position given in format: {"
+						+ specified_index_str
+						+ "}");
+
+				pos = num_literal_end;	
+				arg_to_print_index = specified_index;
+			}
+			else
+			{
+				if (arg_index >= args.size())
+					throw std::invalid_argument("not enough args supplied for format");
+
+				arg_index += 1;
+			}
+
+			if (*pos != '}')
+				throw std::invalid_argument("'{' must be escaped if not for argument designation");
+
+			out += args[arg_to_print_index].to_string();
 		}
 
 		out.shrink_to_fit();
@@ -545,7 +586,7 @@ namespace hirzel
 		std::time(&currtime);
 		std::strftime(timebuf, 16, "%T", localtime(&currtime));
 		
-		std::string log = format("[%s] %s %s : %s\n", { timebuf, tag, label, msg });
+		std::string log = format("[{}] {} {} : {}\n", { timebuf, tag, label, msg });
 
 		if (!_log_filename.empty())
 		{
