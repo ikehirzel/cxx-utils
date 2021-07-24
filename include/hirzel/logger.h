@@ -235,6 +235,7 @@ namespace hirzel
 		static std::string format(const std::string& str,
 			const std::vector<Arg>& args = {});
 		static void print(const std::string& str, const std::vector<Arg>& args = {});
+		static void println(const std::string& str, const std::vector<Arg>& args = {});
 		static void log(const char *tag, const std::string& label, const std::string& str,
 			const std::vector<Arg>& args);
 
@@ -548,6 +549,12 @@ namespace hirzel
 	{
 		std::string out = format(str, args);
 		std::fputs(out.c_str(), stdout);
+	}
+
+	void Logger::println(const std::string &str, const std::vector<Arg>& args)
+	{
+		std::string out = format(str, args);
+		std::puts(out.c_str());
 	}
 
 	void Logger::init(bool debug_mode, bool print_logs, const std::string& log_filename, size_t max_log_count)

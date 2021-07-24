@@ -14,20 +14,21 @@ int main()
 {
 	Logger::init();
 
-	std::cout << Logger::format("hello, {} A.K.A. {1}", { "Isaac" }) << std::endl;;
+	Logger::print("hello, {} A.K.A. {1}\n", { "Isaac", "Ike" });
+	Logger::println("hello, {} A.K.A. {1}", { "Isaac", "Ike" });
 
-	// Logger log("Main");
-	// test_methods(log);
+	Logger log("Main");
+	test_methods(log);
 
-	// std::string m = "message!";
-	// log.print("Logging in main.cpp\n");
-	// log.debug("This is a debug %s", { m });
-	// log.info("This is an info %s", { m });
-	// log.success("This is a success %s", { m });
-	// log.warning("This is a warning %s", { m });
-	// log.error("This is an error %s", { m });
-	// log.fatal("This is a fatal %s", { m });
-	// logop();
+	std::string m = "message!";
+	log.print("Logging in main.cpp\n");
+	log.debug("This is a debug %s", { m });
+	log.info("This is an info %s", { m });
+	log.success("This is a success %s", { m });
+	log.warning("This is a warning %s", { m });
+	log.error("This is an error %s", { m });
+	log.fatal("This is a fatal %s", { m });
+	logop();
 
 	return 0;
 }
