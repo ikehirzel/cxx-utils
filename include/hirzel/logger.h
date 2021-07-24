@@ -1,21 +1,217 @@
 #ifndef HIRZEL_LOGGER_H
 #define HIRZEL_LOGGER_H
 
-#ifdef HIRZEL_IMPLEMENT
-#undef HIRZEL_IMPLEMENT
-#include <hirzel/data.h>
-#define HIRZEL_IMPLEMENT
-#else
-#include <hirzel/data.h>
-#endif
-
 #include <vector>
 #include <mutex>
+#include <cstring>
 
 namespace hirzel
 {
 	class Logger
 	{
+	public:
+		class Arg
+		{
+		public:
+			enum ArgType
+			{
+				ARG_INTEGER,
+				ARG_UNSIGNED,
+				ARG_FLOATING,
+				ARG_CHARACTER,
+				ARG_BOOLEAN,
+				ARG_STRING,
+				ARG_ARRAY
+			};
+			struct Array
+			{
+				Arg *data;
+				size_t size;
+			};
+
+		private:
+			union
+			{
+				long long _integer;
+				unsigned long long _unsigned;
+				double _floating;
+				char _character;
+				bool _boolean;
+				char *_string;
+				Array _array;
+			};
+
+			ArgType _type;
+
+			inline Arg() : Arg(0) {}
+
+		public:
+
+			inline Arg(long long i) : _type(ARG_INTEGER), _integer(i) {}
+			inline Arg(long i) : Arg((long long)i) {}
+			inline Arg(int i) : Arg((long long)i) {}
+			inline Arg(short i) : Arg((long long)i) {}
+
+			inline Arg(unsigned long long u) : _type(ARG_UNSIGNED), _unsigned(u) {}
+			inline Arg(unsigned long u) : Arg((unsigned long long)u) {}
+			inline Arg(unsigned int u) : Arg((unsigned long long)u) {}
+			inline Arg(unsigned short u) : Arg((unsigned long long)u) {}
+
+			inline Arg(double f) : _type(ARG_FLOATING), _floating((double)f) {}
+			inline Arg(float f) : Arg((double)f) {}
+
+			inline Arg(char c) : _type(ARG_CHARACTER), _character(c) {}
+
+			inline Arg(bool b) : _type(ARG_BOOLEAN), _boolean(b) {}
+
+			inline Arg(const char *s) : _type(ARG_STRING), _string(new char[std::strlen(s) + 1])
+			{
+				std::strcpy(_string, s);
+			}
+
+			inline Arg(char *s) : Arg((const char *)s) {}
+
+			inline Arg(const std::string& s) : Arg(s.c_str()) {}
+
+			inline Arg(const Arg *data, size_t size) : _type(ARG_ARRAY)
+			{
+				_array.size = size;
+				_array.data = new Arg[size];
+
+				for (size_t i = 0; i < _array.size; ++i)
+					_array.data[i] = data[i];
+			}
+
+			inline Arg(const Array& a) : Arg(a.data, a.size) {}
+
+			inline Arg(const std::vector<Arg>& a) : _type(ARG_ARRAY)
+			{
+
+				_array.size = a.size();
+				_array.data = new Arg[a.size()];
+
+				for (size_t i = 0; i < a.size(); ++i)
+					_array.data[i] = a[i];
+			}
+
+			inline Arg(Arg&& other) { *this = other; }
+			inline Arg(const Arg& other) { *this = other; }
+
+			inline ~Arg()
+			{
+				switch (_type)
+				{
+					case ARG_STRING:
+						delete[] _string;
+						return;
+					case ARG_ARRAY:
+						delete[] _array.data;
+						return;
+				}
+			}
+
+			inline long long as_integer() const { return _integer; }
+			inline unsigned long long as_unsigned() const { return _unsigned; }
+			inline double as_floating() const { return _floating; }
+			inline char as_character() const { return _character; }
+			inline bool as_boolean() const { return _boolean; }
+			inline const char *as_string() const { return _string; }
+			inline const Array as_array() const { return _array; }
+
+			inline std::string to_string() const
+			{
+				switch (_type)
+				{
+					case ARG_INTEGER:
+						return std::to_string(_integer);
+					case ARG_UNSIGNED:
+						return std::to_string(_unsigned);
+					case ARG_FLOATING:
+						return std::to_string(_floating);
+					case ARG_CHARACTER:
+						return std::string(1, _character);
+					case ARG_BOOLEAN:
+						return _boolean ? "true" : "false";
+					case ARG_STRING:
+						return std::string(_string);
+					case ARG_ARRAY:
+					{
+						// std::string out = "[";
+						return "[]";
+					}
+					default:
+						throw std::invalid_argument("Arg is an invalid type");
+				}
+			}
+
+			inline ArgType type() const
+			{
+				return _type;
+			}
+
+			inline Arg& operator=(Arg&& other)
+			{
+				_type = other._type;
+				switch (_type)
+				{
+					case ARG_INTEGER:
+						_integer = other._integer;
+						return *this;
+					case ARG_UNSIGNED:
+						_unsigned = other._unsigned;
+						return *this;
+					case ARG_FLOATING:
+						_floating = other._floating;
+						return *this;
+					case ARG_CHARACTER:
+						_character = other._character;
+						return *this;
+					case ARG_BOOLEAN:
+						_boolean = other._boolean;
+						return *this;
+
+					case ARG_STRING:
+						_string = other._string;
+						other._string = nullptr;
+						other._type = ARG_INTEGER;
+						return *this;
+
+					case ARG_ARRAY:
+						_array = other._array;
+						other._array.data = nullptr;
+						other._type = ARG_INTEGER;
+						return *this;
+
+					default:
+						throw std::invalid_argument("Arg is an invalid type");
+				}
+			}
+
+			inline Arg& operator=(const Arg& other)
+			{
+				_type = other.type();
+				switch (_type)
+				{
+					case ARG_INTEGER:
+						return *this = other.as_integer();
+					case ARG_UNSIGNED:
+						return *this = other.as_unsigned();
+					case ARG_FLOATING:
+						return *this = other.as_floating();
+					case ARG_CHARACTER:
+						return *this = other.as_character();
+					case ARG_BOOLEAN:
+						return *this = other.as_boolean();
+					case ARG_STRING:
+						return *this = other.as_string();
+					case ARG_ARRAY:
+						return *this = Arg(other.as_array());
+					default:
+						throw std::invalid_argument("Arg is an invalid type");
+				}
+			}
+		};
+
 	private:
 
 		static std::mutex _mtx;
@@ -37,13 +233,13 @@ namespace hirzel
 		static void init(bool debug_mode = true, bool print_logs = true,
 			const std::string& log_filename = "", size_t max_log_count = 0);
 		static std::string format(const std::string& str,
-			const std::initializer_list<Data>& args = {});
-		static void print(const std::string& str, const std::initializer_list<Data>& args = {});
+			const std::vector<Arg>& args = {});
+		static void print(const std::string& str, const std::vector<Arg>& args = {});
 		static void log(const char *tag, const std::string& label, const std::string& str,
-			const std::initializer_list<Data>& args);
+			const std::vector<Arg>& args);
 
 		inline static void debug(const std::string& label, const std::string& msg,
-			const std::initializer_list<Data>& args = {})
+			const std::vector<Arg>& args = {})
 		{
 			std::fputs(_debug_color, stdout);
 			log("[DEBUG]  ", label, msg, args);
@@ -51,7 +247,7 @@ namespace hirzel
 		}
 
 		inline static void info(const std::string& label, const std::string& msg,
-			const std::initializer_list<Data>& args = {})
+			const std::vector<Arg>& args = {})
 		{
 			std::fputs(_info_color, stdout);
 			log("[INFO]   ", label, msg, args);
@@ -59,7 +255,7 @@ namespace hirzel
 		}
 
 		inline static void success(const std::string& label, const std::string& msg,
-			const std::initializer_list<Data>& args = {})
+			const std::vector<Arg>& args = {})
 		{
 			std::fputs(_success_color, stdout);
 			log("[SUCCESS]", label, msg, args);
@@ -67,7 +263,7 @@ namespace hirzel
 		}
 
 		inline static void warning(const std::string& label, const std::string& msg,
-			const std::initializer_list<Data>& args = {})
+			const std::vector<Arg>& args = {})
 		{
 			std::fputs(_warning_color, stdout);
 			log("[WARNING]", label, msg, args);
@@ -75,7 +271,7 @@ namespace hirzel
 		}
 
 		inline static void error(const std::string& label, const std::string& msg,
-			const std::initializer_list<Data>& args = {})
+			const std::vector<Arg>& args = {})
 		{
 			std::fputs(_error_color, stdout);
 			log("[ERROR]  ", label, msg, args);
@@ -84,7 +280,7 @@ namespace hirzel
 
 
 		inline static void fatal(const std::string& label, const std::string& msg,
-			const std::initializer_list<Data>& args = {})
+			const std::vector<Arg>& args = {})
 		{
 			std::fputs(_fatal_color, stdout);
 			log("[FATAL]  ", label, msg, args);
@@ -121,7 +317,6 @@ namespace hirzel
 			Logger::_fatal_color = ansi_escape_color;
 		}
 
-
 		static void dump_logs();
 
 		inline static const std::vector<std::string>& logs()
@@ -136,34 +331,34 @@ namespace hirzel
 	public:
 		Logger(const std::string& label) : _label(label) {}
 
-		inline void debug(const std::string& msg, const std::initializer_list<Data>& args = {}) const
+		inline void debug(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			return Logger::debug(_label, msg, args);
+			Logger::debug(_label, msg, args);
 		}
 
-		inline void info(const std::string& msg, const std::initializer_list<Data>& args = {}) const
+		inline void info(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			return Logger::info(_label, msg, args);
+			Logger::info(_label, msg, args);
 		}
 
-		inline void success(const std::string& msg, const std::initializer_list<Data>& args = {}) const
+		inline void success(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			return Logger::success(_label, msg, args);
+			Logger::success(_label, msg, args);
 		}
 
-		inline void warning(const std::string& msg, const std::initializer_list<Data>& args = {}) const
+		inline void warning(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			return Logger::warning(_label, msg, args);
+			Logger::warning(_label, msg, args);
 		}
 
-		inline void error(const std::string& msg, const std::initializer_list<Data>& args = {}) const
+		inline void error(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			return Logger::error(_label, msg, args);
+			Logger::error(_label, msg, args);
 		}
 
-		inline void fatal(const std::string& msg, const std::initializer_list<Data>& args = {}) const
+		inline void fatal(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			return Logger::fatal(_label, msg, args);
+			Logger::fatal(_label, msg, args);
 		}	
 	};
 }
@@ -182,9 +377,6 @@ namespace hirzel
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #endif
-
-// external libraries
-#include <hirzel/data.h>
 
 #define color(x) "\033[" #x "m"
 
@@ -270,11 +462,10 @@ namespace hirzel
 	const char *Logger::_error_color = LOGGER_RED;
 	const char *Logger::_fatal_color = LOGGER_BRIGHT_RED;
 
-	std::string Logger::format(const std::string &str, const std::initializer_list<Data>& args)
+	std::string Logger::format(const std::string &str, const std::vector<Arg>& args)
 	{
-		char out[512];
-		char* outp = out;
-		std::string tmp;
+		std::string out;
+		out.reserve(256);
 
 		auto arg_iterator = args.begin();
 
@@ -283,92 +474,36 @@ namespace hirzel
 			if (str[i] != '%')
 			{
 				// adding char to output
-				*outp++ = str[i];
+				out += str[i];
 				continue;
 			}
 
 			// incrementing to symbol associated with %
 			i++;
 			
-			// no symbol was given
-			if (i >= str.size())
-			{
-				throw std::invalid_argument("No data type was supplied for '%'");
-				*outp = 0;
-				return out;
-			}
-			
 			if (str[i] == '%')
 			{
-				*outp++ = '%';
+				out += '%';
 				continue;
 			}
+			// no symbol was given
+			if (i >= str.size())
+				throw std::invalid_argument("No data type was supplied for '%'");
 
 			if (arg_iterator == args.end())
 				throw std::invalid_argument("not enough args supplied!");			
 
-			switch (str[i])
-			{
-			case LOGGER_INT:
-				tmp = std::to_string(arg_iterator->as_int());
-				break;
-
-			case LOGGER_UINT:
-				tmp = details::utos(arg_iterator->as_int(), 10, true);
-				break;
-
-			case LOGGER_OCTAL:
-				tmp = "0o" + details::utos(arg_iterator->as_int(), 8, true);
-				break;
-
-			case LOGGER_BINARY:
-				tmp = "Ob" + details::utos(arg_iterator->as_int(), 2, true);
-				break;
-
-			case LOGGER_HEXUPPER:
-				tmp = "0x" + details::utos(arg_iterator->as_int(), 16, true);
-				break;
-
-			case LOGGER_HEXLOWER:
-				tmp = "0x" + details::utos(arg_iterator->as_int(), 16, false);
-				break;
-
-			case LOGGER_FLOAT:
-				tmp = std::to_string(arg_iterator->as_float());
-				break;
-
-			case LOGGER_BOOL:
-				tmp = arg_iterator->as_bool() ? "true" : "false";
-				break;
-
-			case LOGGER_STRING:
-				tmp = arg_iterator->as_string();
-				break;
-
-			case LOGGER_CHAR:
-				// incrementing Data_index here because this skips where it would naturally be done
-				*outp++ = arg_iterator->as_int();
-				arg_iterator += 1;
-				continue;
-
-			default:
-				throw std::invalid_argument("invalid argument type given");
-			}
-
-			// contents of tmp will be copied into out
-			for (unsigned j = 0; j < tmp.size(); j++)
-			{
-				*outp++ = tmp[j];
-			}
+			out += arg_iterator->to_string();
 
 			arg_iterator += 1;
 		}
 
-		*outp = 0;
-		return std::string(out);
+		out.shrink_to_fit();
+
+		return out;
 	}
 
-	void Logger::print(const std::string &str, const std::initializer_list<Data>& args)
+	void Logger::print(const std::string &str, const std::vector<Arg>& args)
 	{
 		std::string out = format(str, args);
 		std::fputs(out.c_str(), stdout);
@@ -400,7 +535,7 @@ namespace hirzel
 	}
 
 	void Logger::log(const char *tag, const std::string& label, const std::string &str,
-		const std::initializer_list<Data> &args)
+		const std::vector<Arg> &args)
 	{
 		std::string msg = format(str, args);
 

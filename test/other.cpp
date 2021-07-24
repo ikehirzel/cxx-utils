@@ -10,6 +10,7 @@ void logop()
 	std::string m = "message!";
 
 	Logger::print("Logging in other.cpp\n");
+	Logger::debug(__func__, "This is a debug %s", { m });
 	Logger::info(__func__, "This is an info %s", { m });
 	Logger::success(__func__, "This is a success %s", { m });
 	Logger::warning(__func__, "This is a warning %s", { m });
