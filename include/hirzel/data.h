@@ -35,49 +35,6 @@
 
 namespace hirzel
 {
-	class Data;
-
-	namespace details
-	{
-		template <typename T>
-		constexpr bool is_bool_data()
-		{
-			return std::is_same<T, bool>();
-		}
-
-		template <typename T>
-		constexpr bool is_int_data()
-		{
-			return std::is_same<T, char> () || std::is_same<T, short>()
-				|| std::is_same<T, int>() || std::is_same<T, long>()
-				|| std::is_same<T, long long>();
-		}
-		
-		template <typename T>
-		constexpr bool is_float_data()
-		{
-			return std::is_same<T, float>() || std::is_same<T, double>();
-		}
-
-		template <typename T>
-		constexpr bool is_string_data()
-		{
-			return std::is_same<T, std::string>();
-		}
-
-		template <typename T>
-		constexpr bool is_array_data()
-		{
-			return std::is_same<T, std::vector<Data>>();
-		}
-
-		template <typename T>
-		constexpr bool is_table_data()
-		{
-			return std::is_same<T, std::unordered_map<std::string, Data>>();
-		}
-	}
-
 	class Data
 	{
 	public:
@@ -210,27 +167,6 @@ namespace hirzel
 				false;
 		}
 
-		template <typename T>
-		inline auto as()
-		{
-			using namespace hirzel::details;
-
-			if constexpr (is_bool_data<T>())
-				return as_bool();
-			else if constexpr (is_int_data<T>())
-				return as_int();
-			else if constexpr (is_float_data<T>())
-				return as_float();
-			else if constexpr (is_string_data<T>())
-				return as_string();
-			else if constexpr (is_array_data<T>())
-				return as_array();
-			else if constexpr (is_table_data<T>())
-				return as_table();
-			else
-				throw TypeException("data is an invalid type");
-		}
-
 		bool is_empty() const;
 		size_t size() const;
 
@@ -272,27 +208,6 @@ namespace hirzel
 		inline bool is_table() const noexcept
 		{
 			return _type == TABLE_TYPE;
-		}
-
-		template <typename T>
-		inline bool is() const noexcept
-		{
-			using namespace hirzel::details;
-
-			if constexpr (is_bool_data<T>())
-				return is_bool();
-			else if constexpr (is_int_data<T>())
-				return _type == INT_TYPE;
-			else if constexpr (is_float_data<T>())
-				return _type == FLOAT_TYPE;
-			else if constexpr (is_string_data<T>())
-				return _type == STRING_TYPE;
-			else if constexpr (is_array_data<T>())
-				return _type == ARRAY_TYPE;
-			else if constexpr (is_table_data<T>())
-				return _type == TABLE_TYPE;
-			else
-				return false;
 		}
 
 		inline const Storage data() const { return _storage; }
@@ -596,7 +511,7 @@ namespace hirzel
 				{
 					const Data& v = (*_storage.arr)[i];
 					std::string tmp = v.as_string();
-					if (v.is<std::string>())
+					if (v.is_string())
 					{
 						tmp.insert(0, 1, '\"');
 						tmp.push_back('\"');
@@ -939,7 +854,7 @@ namespace hirzel
 
 		const char *match;
 
-		if constexpr (expected)
+		if (expected)
 			match = "rue";
 		else
 			match = "alse";
