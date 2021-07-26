@@ -4,6 +4,8 @@
 #include <vector>
 #include <mutex>
 #include <cstring>
+#include <fstream>
+#include <iostream>
 
 namespace hirzel
 {
@@ -23,6 +25,7 @@ namespace hirzel
 				ARG_STRING,
 				ARG_ARRAY
 			};
+
 			struct Array
 			{
 				Arg *data;
@@ -136,8 +139,14 @@ namespace hirzel
 						return std::string(_string);
 					case ARG_ARRAY:
 					{
-						// std::string out = "[";
-						return "[]";
+						std::string out = "[";
+						if (_array.size)
+						{
+							out += _array.data[0].to_string();
+							for (size_t i = 1; i < _array.size; ++i)
+								out += ", " + _array.data[i].to_string();
+						}
+						return out + "]";
 					}
 					default:
 						throw std::invalid_argument("Arg is an invalid type");
@@ -215,11 +224,11 @@ namespace hirzel
 	private:
 
 		static std::mutex _mtx;
-		static std::vector<std::string> _logs;
-		static std::string _log_filename;
-		static size_t _max_log_count;
-		static bool _print_logs;
-		static bool _debug_mode;
+		static std::string _log_filepath;
+		static std::ofstream _log_file;
+		static bool _is_log_printing_enabled;
+		static bool _is_debug_mode_enabled;
+		static bool _is_color_enabled;
 
 		static const char *_debug_color;
 		static const char *_info_color;
@@ -230,62 +239,50 @@ namespace hirzel
 
 	public:
 
-		static void init(bool debug_mode = true, bool print_logs = true,
-			const std::string& log_filename = "", size_t max_log_count = 0);
+		static void init_log_file(const std::string& log_filepath);
+		static void log(const char *color, const char *tag, const std::string& label,
+			const std::string& str, const std::vector<Arg>& args);
+
 		static std::string format(const std::string& str,
 			const std::vector<Arg>& args = {});
 		static void print(const std::string& str, const std::vector<Arg>& args = {});
-		static void println(const std::string& str, const std::vector<Arg>& args = {});
-		static void log(const char *tag, const std::string& label, const std::string& str,
-			const std::vector<Arg>& args);
+		static void println(const std::string& str, const std::vector<Arg>& args = {});		
 
-		inline static void debug(const std::string& label, const std::string& msg,
+		inline static void log_debug(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			std::fputs(_debug_color, stdout);
-			log("[DEBUG]  ", label, msg, args);
+			log(_debug_color, "[DEBUG]  ", label, msg, args);
+		}
+
+		inline static void log_info(const std::string& label, const std::string& msg,
+			const std::vector<Arg>& args = {})
+		{
+			log(_info_color, "[INFO]   ", label, msg, args);
+		}
+
+		inline static void log_success(const std::string& label, const std::string& msg,
+			const std::vector<Arg>& args = {})
+		{
+			log(_success_color, "[SUCCESS]", label, msg, args);
+		}
+
+		inline static void log_warning(const std::string& label, const std::string& msg,
+			const std::vector<Arg>& args = {})
+		{
+			log(_warning_color, "[WARNING]", label, msg, args);
 			std::fputs("\033[0m", stdout);
 		}
 
-		inline static void info(const std::string& label, const std::string& msg,
+		inline static void log_error(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			std::fputs(_info_color, stdout);
-			log("[INFO]   ", label, msg, args);
-			std::fputs("\033[0m", stdout);
+			log(_error_color, "[ERROR]  ", label, msg, args);
 		}
 
-		inline static void success(const std::string& label, const std::string& msg,
+		inline static void log_fatal(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			std::fputs(_success_color, stdout);
-			log("[SUCCESS]", label, msg, args);
-			std::fputs("\033[0m", stdout);
-		}
-
-		inline static void warning(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			std::fputs(_warning_color, stdout);
-			log("[WARNING]", label, msg, args);
-			std::fputs("\033[0m", stdout);
-		}
-
-		inline static void error(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			std::fputs(_error_color, stdout);
-			log("[ERROR]  ", label, msg, args);
-			std::fputs("\033[0m", stdout);
-		}
-
-
-		inline static void fatal(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			std::fputs(_fatal_color, stdout);
-			log("[FATAL]  ", label, msg, args);
-			std::fputs("\033[0m", stdout);
+			log(_fatal_color, "[FATAL]  ", label, msg, args);
 		}
 
 		inline static void set_debug_color(const char * const ansi_escape_color) noexcept
@@ -318,12 +315,9 @@ namespace hirzel
 			Logger::_fatal_color = ansi_escape_color;
 		}
 
-		static void dump_logs();
-
-		inline static const std::vector<std::string>& logs()
-		{
-			return _logs;
-		}
+		static void enable_log_printing(bool enable);
+		static void enable_debug_mode(bool enable);
+		static void enable_color(bool enable);
 
 	private:
 
@@ -334,32 +328,33 @@ namespace hirzel
 
 		inline void debug(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			Logger::debug(_label, msg, args);
+			Logger::log_debug(_label, msg, args);
 		}
 
 		inline void info(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			Logger::info(_label, msg, args);
+			Logger::log_info(_label, msg, args);
 		}
 
 		inline void success(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			Logger::success(_label, msg, args);
+
+			Logger::log_success(_label, msg, args);
 		}
 
 		inline void warning(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			Logger::warning(_label, msg, args);
+			Logger::log_warning(_label, msg, args);
 		}
 
 		inline void error(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			Logger::error(_label, msg, args);
+			Logger::log_error(_label, msg, args);
 		}
 
 		inline void fatal(const std::string& msg, const std::vector<Arg>& args = {}) const
 		{
-			Logger::fatal(_label, msg, args);
+			Logger::log_fatal(_label, msg, args);
 		}	
 	};
 }
@@ -376,7 +371,11 @@ namespace hirzel
 
 // environment libraries
 #if defined(_WIN32) || defined(_WIN64)
+#define OS_IS_WINDOWS true
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#else 
+#define OS_IS_WINDOWS false
 #endif
 
 #define color(x) "\033[" #x "m"
@@ -451,11 +450,12 @@ namespace hirzel
 	}
 
 	std::mutex Logger::_mtx;
-	std::vector<std::string> Logger::_logs;
-	std::string Logger::_log_filename;
-	size_t Logger::_max_log_count;
-	bool Logger::_print_logs;
-	bool Logger::_debug_mode;
+	std::ofstream Logger::_log_file;
+	std::string Logger::_log_filepath;
+	bool Logger::_is_log_printing_enabled = true;
+	bool Logger::_is_debug_mode_enabled = true;
+	bool Logger::_is_color_enabled = false;
+
 	const char *Logger::_debug_color = LOGGER_BLUE;
 	const char *Logger::_info_color = LOGGER_RESET;
 	const char *Logger::_success_color = LOGGER_GREEN;
@@ -491,7 +491,6 @@ namespace hirzel
 	{
 		std::string out;
 		out.reserve(256);
-
 		size_t arg_index = 0;
 
 		for (const char *pos = str.c_str(); *pos; ++pos)
@@ -557,32 +556,44 @@ namespace hirzel
 		std::puts(out.c_str());
 	}
 
-	void Logger::init(bool debug_mode, bool print_logs, const std::string& log_filename, size_t max_log_count)
+	void Logger::init_log_file(const std::string& log_filepath)
 	{
-		_log_filename = log_filename;
-		_print_logs = print_logs;
-		_max_log_count = max_log_count;
-		_debug_mode = debug_mode;
+		if (log_filepath.empty())
+			throw std::invalid_argument("log filename must not be empty");
 
-		if (!_log_filename.empty())
+		_log_filepath = log_filepath;
+		_log_file = std::ofstream(_log_filepath);
+
+		if (!_log_file.is_open())
+			throw std::runtime_error("failed to open log file: " + _log_filepath);
+	}
+
+	void Logger::enable_log_printing(bool enable)
+	{
+		_is_log_printing_enabled = enable;
+	}
+
+	void Logger::enable_debug_mode(bool enable)
+	{
+		_is_debug_mode_enabled = enable;
+	}
+
+	void Logger::enable_color(bool enable)
+	{
+		_is_color_enabled = enable;
+
+#if OS_IS_WINDOWS
+		if (_is_color_enabled)
 		{
-			std::ofstream file;
-			file.open(_log_filename);
-			if (file.is_open())
-			{
-				file << "---- START OF LOG FILE ----\n";
-			}
+			DWORD outMode = 0;
+			HANDLE outHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+			GetConsoleMode(outHandle, &outMode);
+			SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 		}
-
-#if defined(_WIN32) || defined(_WIN64)
-		DWORD outMode = 0;
-		HANDLE outHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-		GetConsoleMode(outHandle, &outMode);
-		SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
 	}
 
-	void Logger::log(const char *tag, const std::string& label, const std::string &str,
+	void Logger::log(const char *color, const char *tag, const std::string& label, const std::string &str,
 		const std::vector<Arg> &args)
 	{
 		std::string msg = format(str, args);
@@ -595,41 +606,24 @@ namespace hirzel
 		
 		std::string log = format("[{}] {} {} : {}\n", { timebuf, tag, label, msg });
 
-		if (!_log_filename.empty())
+		if (!_log_file.is_open())
 		{
 			_mtx.lock();
-			_logs.push_back(log);
-			if (_logs.size() >= _max_log_count)
-				dump_logs();
+			_log_file << log;
 			_mtx.unlock();
 		}
 
-		if (_print_logs)
+		if (_is_log_printing_enabled)
 		{
 			_mtx.lock();
-			std::fputs(log.c_str(), stdout);
+
+			if (_is_color_enabled)
+				std::cout << color << log << "\033[0m";
+			else
+				std::cout << log;
+
 			_mtx.unlock();
 		}
-	}
-
-	void Logger::dump_logs()
-	{
-		if (_log_filename.empty())
-			throw std::invalid_argument("output filename must set before dumping logs");
-
-		if (_logs.empty())
-			return;
-
-		std::ofstream file(_log_filename, std::ios_base::app);
-
-		if (!file.is_open())
-			throw std::runtime_error("failed to open log file");
-
-		for (const std::string& l : _logs)
-			file << l;
-
-		_logs.clear();
-		file.close();
 	}
 }
 

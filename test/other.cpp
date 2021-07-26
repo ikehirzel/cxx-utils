@@ -10,13 +10,10 @@ void logop()
 	std::string m = "message!";
 
 	Logger::print("Logging in other.cpp\n");
-	Logger::debug(__func__, "This is a debug %s", { m });
-	Logger::info(__func__, "This is an info %s", { m });
-	Logger::success(__func__, "This is a success %s", { m });
-	Logger::warning(__func__, "This is a warning %s", { m });
-	Logger::error(__func__, "This is an error %s", { m });
-	Logger::fatal(__func__, "This is a fatal %s", { m });
-
-	Logger::fatal(__func__, "This is a success $ % {} {0} message", { m });
-
+	Logger::log_debug(__func__, "This is a debug {}", { m });
+	Logger::log_info(__func__, "This is an info {}", { m });
+	Logger::log_success(__func__, "This is a success {}", { m });
+	Logger::log_warning(__func__, "This is a warning {}", { m });
+	Logger::log_error(__func__, "This is an error {}", { m });
+	Logger::log_fatal(__func__, "This is a fatal {}", { m });
 }

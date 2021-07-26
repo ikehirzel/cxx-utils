@@ -12,7 +12,8 @@ void test_methods(const Logger& log)
 
 int main()
 {
-	Logger::init();
+	Logger::init_log_file("./log.txt");
+	Logger::enable_color(true);
 
 	Logger::print("hello, {} A.K.A. {1}\n", { "Isaac", "Ike" });
 	Logger::println("hello, {} A.K.A. {1}", { "Isaac", "Ike" });
@@ -22,12 +23,12 @@ int main()
 
 	std::string m = "message!";
 	log.print("Logging in main.cpp\n");
-	log.debug("This is a debug %s", { m });
-	log.info("This is an info %s", { m });
-	log.success("This is a success %s", { m });
-	log.warning("This is a warning %s", { m });
-	log.error("This is an error %s", { m });
-	log.fatal("This is a fatal %s", { m });
+	log.debug("This is a debug {}", { m });
+	log.info("This is an info {}", { m });
+	log.success("This is a success {}", { m });
+	log.warning("This is a warning {}", { m });
+	log.error("This is an error {}", { m });
+	log.fatal("This is a fatal {}", { m });
 	logop();
 
 	return 0;
