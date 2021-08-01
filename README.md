@@ -1,4 +1,4 @@
-Fountain
+C++ Logger
 ========
 A simple cross platform C++ info logging library.
 
@@ -8,15 +8,17 @@ Example
 ========
 ```c++
 	// contents of main.cpp
-	#define HIRZEL_FOUNTAIN_IMPLEMENTATION
-	#include <hirzel/fountain.h>
-	using namespace hirzel;
+	#define HIRZEL_IMPLEMENTATION
+	#include <hirzel/logger.h>
+
 	int main()
 	{
-		fountain::init(true, true, "./report.log", 15);
-		INFO("This is an info message");
-		ERROR("This is a formatted %s\n", "error message");
-		fountain::dump(); // puts all logs into "./report.log"
+		hirzel::Logger log("Main");
+		
+		log.println("Hello, world!");
+		log.info("This is an {} message". { "info" });
+		log.error("This is a formatted {}", { "error message" });
+		
 		return 0;
 	}
 ```

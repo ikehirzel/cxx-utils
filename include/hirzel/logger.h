@@ -324,6 +324,8 @@ namespace hirzel
 		std::string _label;
 
 	public:
+
+		Logger() : _label("") {}
 		Logger(const std::string& label) : _label(label) {}
 
 		inline void debug(const std::string& msg, const std::vector<Arg>& args = {}) const
@@ -604,7 +606,9 @@ namespace hirzel
 		std::time(&currtime);
 		std::strftime(timebuf, 16, "%T", localtime(&currtime));
 		
-		std::string log = format("[{}] {} {} : {}\n", { timebuf, tag, label, msg });
+		std::string log = label.empty()
+			? format("[{}] {} {}\n", { timebuf, tag, msg })
+			: format("[{}] {} {} : {}\n", { timebuf, tag, label, msg });
 
 		if (!_log_file.is_open())
 		{
