@@ -243,7 +243,6 @@ namespace hirzel
 #endif // HIRZEL_PLUGIN_H
 
 #ifdef HIRZEL_IMPLEMENT
-#undef HIRZEL_IMPLEMENT
 
 #if OS_IS_WINDOWS
 #include <windows.h>
