@@ -29,12 +29,15 @@
 // standard library
 #include <string>
 #include <unordered_map>
-
+#include <vector>
+#include <stdexcept>
 
 #if defined(_WIN32) || defined(_WIN64)
 #define OS_IS_WINDOWS true
+#include <libloaderapi.h>
 #else
 #define OS_IS_WINDOWS false
+#include <dlfcn.h>
 #endif
 
 namespace hirzel
@@ -42,62 +45,10 @@ namespace hirzel
 	class Plugin
 	{
 	public:
+
 		typedef void(*Function)();
 		typedef void *Variable;
 
-		class BindException : public std::exception
-		{
-		private:
-			std::string _msg;
-			BindException(const std::string& msg) : _msg(msg) {}
-		public:
-			static BindException variable(const std::string& symbol, const std::string& error = "")
-			{
-				std::string msg = "failed to bind to variable: " + symbol;
-				if (!error.empty()) msg += " : " + error;
-				return BindException(msg);
-			}
-
-			static BindException function(const std::string& symbol, const std::string& error = "")
-			{
-				std::string msg = "failed to bind to function: " + symbol;
-				if (!error.empty()) msg += " : " + error;
-				return BindException(msg);
-			}
-
-			static BindException plugin(const std::string& filepath, const std::string& error = "")
-			{
-				std::string msg = "failed to bind to plugin: " + filepath;
-				if (!error.empty()) msg += " : " + error;	
-				return BindException(msg);
-			}
-
-			const char *what() const noexcept override { return _msg.c_str(); }
-		};
-
-
-		class DneException : public std::exception
-		{
-		private:
-			std::string _msg;
-			DneException(const std::string& msg) : _msg(msg) {}
-
-		public:
-			static DneException variable(const std::string& symbol)
-			{
-				return DneException("the requested variable does not exist: " + symbol);
-			}
-
-			static DneException function(const std::string& function)
-			{
-				return DneException("the requested function does not exist: " + function);
-			}
-
-			const char *what() const noexcept override { return _msg.c_str(); }
-		};
-
-
-	private:
 		struct Symbol
 		{
 			bool is_func = false;
@@ -106,63 +57,146 @@ namespace hirzel
 				Variable var = nullptr;
 				Function func;
 			};
+
+			Symbol() = default;
+
+			Symbol(Function function) :
+			is_func(true),
+			func(function)
+			{}
+
+			Symbol(Variable var) :
+			is_func(false),
+			var(var)
+			{}
 		};
 
-		// stores handle of library
+	private:
+
 		void* _handle = nullptr;
-
-		// filepath of the shared object
 		std::string _filepath;
-
-		// Stores pointers to the functions
 		std::unordered_map<std::string, Symbol> _symbols;
 
-	public:
-		/**
-		 * @brief	Default constructor
-		 */
-		Plugin() = default;
-		inline Plugin(const std::string& filepath)
+	private: // private functions
+
+		inline void bind_handle(const std::string& filepath)
 		{
+			if (filepath.empty())
+				throw std::invalid_argument("failed to bind to plugin: filepath was empty");
+
+			#if OS_IS_WINDOWS
+			_handle = (void*)LoadLibrary(filepath.c_str());
+			#else
+			_handle = dlopen(filepath.c_str(), RTLD_NOW);
+			#endif
+
+			if(!_handle)
+				throw std::invalid_argument("failed to bind to plugin '"
+					+ filepath
+					+ "': plugin could not be found");
+
+			_filepath = filepath;
+		}
+
+		inline void bind_function(const std::string& label)
+		{
+			if (_symbols.find(label) != _symbols.end())
+				throw std::invalid_argument("failed to bind variable '"
+					+ label
+					+ "': symbol is already bound");
+
+			#if OS_IS_WINDOWS
+			Function ptr = (Function)GetProcAddress((HMODULE)_handle, label.c_str());
+			// assuring symbol bound
+			if (!ptr)
+				throw std::invalid_argument("failed to bind function '"
+					+ label
+					+ "': symbol could not be found");
+			#else
+			Function ptr = (Function)dlsym(_handle, label.c_str());
+			if (!ptr)
+				throw std::invalid_argument("failed to bind function '"
+					+ label
+					+ "': "
+					+ dlerror());
+			#endif
+
+			_symbols[label] = Symbol(ptr);
+		}
+
+		inline void bind_variable(const std::string& label)
+		{
+			if (_symbols.find(label) != _symbols.end())
+				throw std::invalid_argument("failed to bind variable '"
+					+ label
+					+ "': symbol is already bound");
+
+			#if OS_IS_WINDOWS
+			Variable ptr = (Variable)GetProcAddress((HMODULE)_handle, label.c_str());
+			if (!ptr)
+				throw std::invalid_argument("failed to bind variable '"
+					+ label
+					+ "': symbol could not be found");
+			#else
+			Variable ptr = (Variable)dlsym(_handle, label.c_str());
+			if (!ptr)
+				throw std::invalid_argument("failed to bind variable '"
+					+ label
+					+ "': "
+					+ dlerror());
+			#endif
+
+			_symbols[label] = Symbol(ptr);
+		}
+
+		inline void free()
+		{
+			if (_handle)
+			{
+				#if OS_IS_WINDOWS
+				FreeLibrary((HINSTANCE)_handle);
+				#else
+				dlclose(_handle);
+				#endif
+			}
+		}
+
+	public:
+
+		Plugin() = default;
+
+		Plugin(const std::string& filepath, const std::vector<std::string>& functions = {},
+			const std::vector<std::string>& variables = {})
+		{
+			bind_handle(filepath);
+
 			try
 			{
-				bind(filepath);
+				for (const auto& label : functions)
+					bind_function(label);
+
+				for (const auto& label : variables)
+					bind_variable(label);
 			}
-			catch (const BindException& e)
+			catch (const std::exception&)
 			{
+				free();
 				throw;
 			}
 		}
 
-		/**
-		 * @brief	Frees all bound symbols
-		 */
-		~Plugin();
+		Plugin(Plugin&& other)
+		{
+			*this = std::move(other);
+		}
 
-		/**
-		 * @brief	Binds dynamic library
-		 * @param	filepath	path to dynamic library
-		 */
-		void bind(const std::string& filepath);
-		
+		Plugin(const Plugin&) = delete;
 
-		void bind_function(const std::string& label);
-		void bind_functions(const std::initializer_list<std::string>& labels);
+		~Plugin()
+		{
+			free();
+		}
 
-		void bind_variable(const std::string& label);
-		void bind_variables(const std::initializer_list<std::string>& labels);
-		
-
-		/**
-		 * @brief	Binds functions and adds pointer to it into map
-		 * @param	funcname	symbolic name of function
-		 * @return	pointer to function
-		 */
-
-		/**
-		 * @param	funcname	symbolic name of function
-		 * @return	true if symbol is bound, false if it is not
-		 */
 		inline bool contains(const std::string& label) const
 		{
 			return _symbols.find(label) != _symbols.end();
@@ -180,206 +214,76 @@ namespace hirzel
 			return iter != _symbols.end() && !iter->second.is_func;
 		}
 
-		/**
-		 * @return true if library and all symbols bound correctly, false if not
-		 */
-		inline bool is_bound() const { return _handle != nullptr; }
-
-
-		inline Function get_function(const std::string& label) const
+		inline Function get_function_ptr(const std::string& label) const
 		{
 			auto iter = _symbols.find(label);
-			return (iter != _symbols.end() && iter->second.is_func) ? iter->second.func : nullptr;
-		}
 
+			if (iter == _symbols.end())
+				throw std::invalid_argument("failed to get function '"
+					+ label
+					+ "': symbol is not bound");
+
+			if (!iter->second.is_func)
+				throw std::invalid_argument("symbol '"
+					+ label
+					+ "' does not reference a function");
+
+			return iter->second.func;
+		}
 
 		inline Variable get_variable_ptr(const std::string& label) const
 		{
 			auto iter = _symbols.find(label);
-			return (iter != _symbols.end() && !iter->second.is_func) ? iter->second.var : nullptr;
-		}
 
+			if (iter == _symbols.end())
+				throw std::invalid_argument("failed to get variable pointer '"
+					+ label
+					+ "': symbol is not bound");
+
+			if (iter->second.is_func)
+				throw std::invalid_argument("failed to get variable pointer '"
+					+ label
+					+ "': symbol does not reference a variable");
+
+			return iter->second.var;
+		}
 
 		template <typename T>
-		inline T get_variable_val(const std::string& label) const 
+		inline T get_variable(const std::string& label) const 
 		{
-			T* ptr = (T*)get_variable_ptr(label);
-			if (!ptr) throw DneException::variable(label);
-			return *ptr;
+			return *(T*)get_variable_ptr(label);
 		}
 
-
-		template <typename T, typename ...Args>
-		inline T execute(const std::string& label, Args... args) const 
+		template <typename T, typename... Args>
+		inline T call_function(const std::string& label, Args... args) const 
 		{
-			T(*func)(Args...) = (T(*)(Args...))get_function(label);
-			if (!func) throw DneException::function(label);
+			T(*func)(Args...) = (decltype(func))get_function_ptr(label);
 			return func(args...);
-		}
+		}		
 
+		inline Plugin& operator=(const Plugin&) = delete;
 
-		inline size_t count() const { return _symbols.size(); }
-		size_t function_count() const;
-		size_t variable_count() const;
-
-		inline void clear_symbols()
+		inline Plugin& operator=(Plugin&& other)
 		{
-			_symbols.clear();
+			_handle = other._handle;
+			_filepath = std::move(other._filepath);
+			_symbols = std::move(other._symbols);
+
+			other._handle = nullptr;
+
+			return *this;
 		}
 
+		inline size_t count() const
+		{
+			return _symbols.size();
+		}
 
-		/**
-		 * @return	filepath of plugin
-		 */
 		inline const std::string& filepath() const
 		{
 			return _filepath;
 		}
 	};
-
-	
 }
 
 #endif // HIRZEL_PLUGIN_H
-
-#ifdef HIRZEL_IMPLEMENT
-
-#if OS_IS_WINDOWS
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
-
-
-namespace hirzel
-{
-	Plugin::~Plugin()
-	{
-		if(_handle)
-		{
-			#if OS_IS_WINDOWS
-			FreeLibrary((HINSTANCE)_handle);
-			#else
-			dlclose(_handle);
-			#endif
-		}
-	}
-
-
-	void Plugin::bind(const std::string& filepath)
-	{
-		if(_handle) throw BindException::plugin(filepath, "plugin is already bound");
-		if (filepath.empty()) throw BindException::plugin(filepath, "filepath was empty");
-
-		#if OS_IS_WINDOWS
-		_handle = (void*)LoadLibrary(filepath.c_str());
-		#else
-		_handle = dlopen(filepath.c_str(), RTLD_NOW);
-		#endif
-
-		if(!_handle) throw BindException::plugin(filepath, "plugin could not be found");
-
-		_filepath = filepath;
-	}
-
-	void Plugin::bind_function(const std::string& label)
-	{
-		//guard against unloaded library
-		if(!_handle) throw BindException::function(label, "plugin must be bound first");
-
-		if (_symbols.find(label) != _symbols.end())
-			throw BindException::function(label, "symbol is already bound");
-
-		Symbol s;
-		s.is_func = true;
-		#if OS_IS_WINDOWS
-		s.func = (Function)GetProcAddress((HMODULE)_handle, label.c_str());
-		#else
-		s.func = (Function)dlsym(_handle, label.c_str());
-		#endif
-
-		// assuring symbol bound
-		if (!s.func) throw BindException::function("symbol could not be found");
-
-		// storing symbol in table
-		_symbols[label] = s;
-	}
-
-	void Plugin::bind_functions(const std::initializer_list<std::string>& labels)
-	{
-		for (const std::string& label : labels)
-		{
-			try
-			{
-				bind_function(label);
-			}
-			catch (const BindException& e)
-			{
-				throw;
-			}
-		}
-	}
-
-
-	void Plugin::bind_variable(const std::string& label)
-	{
-		//guard against unloaded library
-		if(!_handle) throw BindException::variable(label, "plugin is not bound");
-
-		if (_symbols.find(label) != _symbols.end())
-			throw BindException::variable(label, "symbol is already bound");
-
-		Symbol s;
-		s.is_func = false;
-		#if OS_IS_WINDOWS
-		s.var = (Variable)GetProcAddress((HMODULE)_handle, label.c_str());
-		#else
-		s.var = (Variable)dlsym(_handle, label.c_str());
-		#endif
-
-		if (!s.var) throw BindException::variable(label, "symbol could not be found");
-
-		_symbols[label] = s;
-	}
-
-
-	void Plugin::bind_variables(const std::initializer_list<std::string>& labels)
-	{
-		for (const std::string& label : labels)
-		{
-			try
-			{
-				bind_variable(label);
-			}
-			catch (const BindException& e)
-			{
-				throw;
-			}
-		}
-	}
-
-
-	size_t Plugin::function_count() const
-	{
-		size_t count = 0;
-		for (auto p : _symbols)
-		{
-			if (p.second.is_func) count += 1;
-		}
-		return count;
-	}
-
-
-	size_t Plugin::variable_count() const
-	{
-		size_t count = 0;
-		for (auto p : _symbols)
-		{
-			if (!p.second.is_func) count += 1;
-		}
-		return count;
-	}
-
-} // namespace hirzel
-
-#endif // HIRZEL_IMPLEMENT
