@@ -107,19 +107,14 @@ namespace hirzel
 
 			#if OS_IS_WINDOWS
 			Function ptr = (Function)GetProcAddress((HMODULE)_handle, label.c_str());
-			// assuring symbol bound
+			#else
+			Function ptr = (Function)dlsym(_handle, label.c_str());
+			#endif
+
 			if (!ptr)
 				throw std::invalid_argument("failed to bind function '"
 					+ label
 					+ "': symbol could not be found");
-			#else
-			Function ptr = (Function)dlsym(_handle, label.c_str());
-			if (!ptr)
-				throw std::invalid_argument("failed to bind function '"
-					+ label
-					+ "': "
-					+ dlerror());
-			#endif
 
 			_symbols[label] = Symbol(ptr);
 		}
@@ -133,18 +128,14 @@ namespace hirzel
 
 			#if OS_IS_WINDOWS
 			Variable ptr = (Variable)GetProcAddress((HMODULE)_handle, label.c_str());
+			#else
+			Variable ptr = (Variable)dlsym(_handle, label.c_str());
+			#endif
+
 			if (!ptr)
 				throw std::invalid_argument("failed to bind variable '"
 					+ label
 					+ "': symbol could not be found");
-			#else
-			Variable ptr = (Variable)dlsym(_handle, label.c_str());
-			if (!ptr)
-				throw std::invalid_argument("failed to bind variable '"
-					+ label
-					+ "': "
-					+ dlerror());
-			#endif
 
 			_symbols[label] = Symbol(ptr);
 		}
