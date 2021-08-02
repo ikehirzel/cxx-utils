@@ -86,14 +86,20 @@ namespace hirzel
 
 			#if OS_IS_WINDOWS
 			_handle = (void*)LoadLibrary(filepath.c_str());
+			if (!_handle)
+				throw std::invalid_argument("failed to bind to plugin '"
+					+ filepath
+					+ "': ERROR "
+					+ std::to_string(GetLastError()));
 			#else
 			_handle = dlopen(filepath.c_str(), RTLD_NOW);
-			#endif
-
 			if(!_handle)
 				throw std::invalid_argument("failed to bind to plugin '"
 					+ filepath
-					+ "': plugin could not be found");
+					+ "': "
+					+ std::string(dlerror()));
+			#endif
+
 
 			_filepath = filepath;
 		}
@@ -107,8 +113,18 @@ namespace hirzel
 
 			#if OS_IS_WINDOWS
 			Function ptr = (Function)GetProcAddress((HMODULE)_handle, label.c_str());
+			if (!ptr)
+				throw std::invalid_argument("failed to bind variable '"
+					+ label
+					+ "': ERROR "
+					+ std::to_string(GetLastError()));
 			#else
 			Function ptr = (Function)dlsym(_handle, label.c_str());
+			if (!ptr)
+				throw std::invalid_argument("failed to bind function '"
+					+ label
+					+ "': "
+					+ std::string(dlerror()));
 			#endif
 
 			if (!ptr)
@@ -128,14 +144,20 @@ namespace hirzel
 
 			#if OS_IS_WINDOWS
 			Variable ptr = (Variable)GetProcAddress((HMODULE)_handle, label.c_str());
-			#else
-			Variable ptr = (Variable)dlsym(_handle, label.c_str());
-			#endif
-
 			if (!ptr)
 				throw std::invalid_argument("failed to bind variable '"
 					+ label
-					+ "': symbol could not be found");
+					+ "': ERROR "
+					+ std::to_string(GetLastError()));
+			#else
+			Variable ptr = (Variable)dlsym(_handle, label.c_str());
+			if (!ptr)
+				throw std::invalid_argument("failed to bind variable '"
+					+ label
+					+ "': "
+					+ std::string(dlerror()));
+			#endif
+
 
 			_symbols[label] = Symbol(ptr);
 		}
