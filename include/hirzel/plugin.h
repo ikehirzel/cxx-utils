@@ -104,6 +104,56 @@ namespace hirzel
 			_filepath = filepath;
 		}
 
+		
+
+		inline void free()
+		{
+			if (_handle)
+			{
+				#if OS_IS_WINDOWS
+				FreeLibrary((HINSTANCE)_handle);
+				#else
+				dlclose(_handle);
+				#endif
+			}
+		}
+
+	public:
+
+		Plugin() = default;
+
+		Plugin(const std::string& filepath, const std::vector<std::string>& functions = {},
+			const std::vector<std::string>& variables = {})
+		{
+			bind_handle(filepath);
+
+			try
+			{
+				for (const auto& label : functions)
+					bind_function(label);
+
+				for (const auto& label : variables)
+					bind_variable(label);
+			}
+			catch (const std::exception&)
+			{
+				free();
+				throw;
+			}
+		}
+
+		Plugin(Plugin&& other)
+		{
+			*this = std::move(other);
+		}
+
+		Plugin(const Plugin&) = delete;
+
+		~Plugin()
+		{
+			free();
+		}
+
 		inline void bind_function(const std::string& label)
 		{
 			if (_symbols.find(label) != _symbols.end())
@@ -160,54 +210,6 @@ namespace hirzel
 
 
 			_symbols[label] = Symbol(ptr);
-		}
-
-		inline void free()
-		{
-			if (_handle)
-			{
-				#if OS_IS_WINDOWS
-				FreeLibrary((HINSTANCE)_handle);
-				#else
-				dlclose(_handle);
-				#endif
-			}
-		}
-
-	public:
-
-		Plugin() = default;
-
-		Plugin(const std::string& filepath, const std::vector<std::string>& functions = {},
-			const std::vector<std::string>& variables = {})
-		{
-			bind_handle(filepath);
-
-			try
-			{
-				for (const auto& label : functions)
-					bind_function(label);
-
-				for (const auto& label : variables)
-					bind_variable(label);
-			}
-			catch (const std::exception&)
-			{
-				free();
-				throw;
-			}
-		}
-
-		Plugin(Plugin&& other)
-		{
-			*this = std::move(other);
-		}
-
-		Plugin(const Plugin&) = delete;
-
-		~Plugin()
-		{
-			free();
 		}
 
 		inline bool contains(const std::string& label) const
