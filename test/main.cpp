@@ -78,6 +78,9 @@ void test_sys()
 
 int main()
 {
+	std::cout << "Currently running on " << sys::current_os() << std::endl;
+	std::cout << "Path to executable: " << sys::executable_path() << std::endl;
+	std::cout << "Dir of executable: " << sys::executable_dir() << std::endl;
 	test_file();
 	test_str();
 	test_sys();

@@ -1,12 +1,14 @@
-# exclude everything
+# ignore everything
 *
 */
+
+# include gitignore
 !.gitignore
 
-# ignore build scripts
-!test.sh
-!test.ps1
+# include build scripts
+!*.sh
+!*.ps1
 
-# ignore source files
-!main.cpp
-!impl.cpp
+# include source files
+!*.cpp
+!*.h
