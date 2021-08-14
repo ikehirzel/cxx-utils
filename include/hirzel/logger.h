@@ -251,38 +251,38 @@ namespace hirzel
 		inline static void log_debug(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			log(_debug_color, "[DEBUG]  ", label, msg, args);
+			log(_debug_color, "  DEBUG", label, msg, args);
 		}
 
 		inline static void log_info(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			log(_info_color, "[INFO]   ", label, msg, args);
+			log(_info_color, "   INFO", label, msg, args);
 		}
 
 		inline static void log_success(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			log(_success_color, "[SUCCESS]", label, msg, args);
+			log(_success_color, "SUCCESS", label, msg, args);
 		}
 
 		inline static void log_warning(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			log(_warning_color, "[WARNING]", label, msg, args);
+			log(_warning_color, "WARNING", label, msg, args);
 			std::fputs("\033[0m", stdout);
 		}
 
 		inline static void log_error(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			log(_error_color, "[ERROR]  ", label, msg, args);
+			log(_error_color, "  ERROR", label, msg, args);
 		}
 
 		inline static void log_fatal(const std::string& label, const std::string& msg,
 			const std::vector<Arg>& args = {})
 		{
-			log(_fatal_color, "[FATAL]  ", label, msg, args);
+			log(_fatal_color, "  FATAL", label, msg, args);
 		}
 
 		inline static void set_debug_color(const char * const ansi_escape_color) noexcept
@@ -607,8 +607,8 @@ namespace hirzel
 		std::strftime(timebuf, 16, "%T", localtime(&currtime));
 		
 		std::string log = label.empty()
-			? format("[{}] {} {}\n", { timebuf, tag, msg })
-			: format("[{}] {} {} : {}\n", { timebuf, tag, label, msg });
+			? format("[{} {}] {}\n", { timebuf, tag, msg })
+			: format("[{} {}] {} : {}\n", { timebuf, tag, label, msg });
 
 		if (!_log_file.is_open())
 		{
