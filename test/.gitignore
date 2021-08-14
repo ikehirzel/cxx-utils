@@ -1,0 +1,12 @@
+*
+*/
+!.gitignore
+
+# source files
+!impl.cpp
+!main.cpp
+!other.cpp
+!other.h
+
+# build scripts
+!test.sh
