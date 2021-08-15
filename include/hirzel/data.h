@@ -478,7 +478,7 @@ namespace hirzel
 				return out;
 			}
 			default:
-				"null";
+				return "null";
 		}
 	}
 
@@ -594,7 +594,7 @@ namespace hirzel
 				return out;
 			}
 			default:
-				"";
+				return "";
 		}
 	}
 
