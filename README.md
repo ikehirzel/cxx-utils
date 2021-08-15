@@ -20,13 +20,11 @@ The projects is currently still in active development
 # To Do
 
 * CSV parsing
-* INI parsing
-* Further operator implementations
-* Further and more stringent testing
+* XML parsing
 
 # Dependencies
 
-* C++11 STL
+* C++11 Standard Library
 
 # License
 

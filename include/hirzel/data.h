@@ -27,11 +27,9 @@
 #ifndef HIRZEL_DATA_H
 #define HIRZEL_DATA_H
 
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <string_view>
 
 namespace hirzel
 {
@@ -44,22 +42,12 @@ namespace hirzel
 		enum Type
 		{
 			NULL_TYPE,
-			INT_TYPE,
-			FLOAT_TYPE,
-			BOOL_TYPE,
+			INTEGER_TYPE,
+			DECIMAL_TYPE,
+			BOOLEAN_TYPE,
 			STRING_TYPE,
 			ARRAY_TYPE,
 			TABLE_TYPE
-		};
-
-		union Storage
-		{
-			long long itg = 0;
-			bool bol;
-			double flt;
-			std::string* str;
-			Array* arr;
-			Table* tbl;
 		};
 
 		class ParseException : public std::exception
@@ -80,6 +68,15 @@ namespace hirzel
 			std::string _msg;
 		public:
 			TypeException(const std::string& msg) : _msg(msg) {}
+
+			inline static TypeException cast_exception(const char *from, const char *to)
+			{
+				return TypeException("data of type '"
+					+ std::string(from)
+					+ "' cannot be cast as "
+					+ std::string(to));
+			}
+
 			const char *what() const noexcept override
 			{
 				return _msg.c_str(); 
@@ -87,9 +84,17 @@ namespace hirzel
 		};
 
 	private:
+		Type _type = NULL_TYPE;
+		union
+		{
+			long long _integer = 0;
+			bool _boolean;
+			double _decimal;
+			std::string *_string;
+			Array *_array;
+			Table *_table;
+		};
 
-		unsigned _type = NULL_TYPE;
-		Storage _storage;
 
 		static std::pair<const char *, bool> parse_json_number_literal(const char *iter);
 
@@ -105,57 +110,101 @@ namespace hirzel
 
 	public:
 
-		Data() = default;
-		Data(Data&& other);
+		Data() : _type(NULL_TYPE), _integer(0) {}
+		Data(const Data& other) { *this = other; }
+		Data(Data&& other) { *this = other; }
 		Data(Type t);
 
-		inline Data(const Data& other) { *this = other; }
+		inline Data(short i) : _type(INTEGER_TYPE), _integer(i) {}
+		inline Data(int i) : _type(INTEGER_TYPE), _integer(i) {}
+		inline Data(long i) : _type(INTEGER_TYPE), _integer(i) {}
+		inline Data(long long i) : _type(INTEGER_TYPE), _integer(i) {}
 
-		inline Data(short i) : _type(INT_TYPE) { _storage.itg = i; }
-		inline Data(int i) : _type(INT_TYPE) { _storage.itg = i; }
-		inline Data(long i) : _type(INT_TYPE) { _storage.itg = i; }
-		inline Data(long long i) : _type(INT_TYPE) { _storage.itg = i; }
-
-		inline Data(unsigned short i) : _type(INT_TYPE) { _storage.itg = i; }
-		inline Data(unsigned int i) : _type(INT_TYPE) { _storage.itg = i; }
-		inline Data(unsigned long i) : _type(INT_TYPE) { _storage.itg = i; }
-		inline Data(unsigned long long i) : _type(INT_TYPE) { _storage.itg = i; }
+		inline Data(unsigned short i) : _type(INTEGER_TYPE), _integer(i) {}
+		inline Data(unsigned int i) : _type(INTEGER_TYPE), _integer(i) {}
+		inline Data(unsigned long i) : _type(INTEGER_TYPE), _integer(i) {}
+		inline Data(unsigned long long i) : _type(INTEGER_TYPE), _integer(i) {}
 		
-		inline Data(float f) : _type(FLOAT_TYPE) { _storage.flt = f; }
-		inline Data(double f) : _type(FLOAT_TYPE) { _storage.flt = f; }
+		inline Data(float d) : _type(DECIMAL_TYPE), _decimal(d) {}
+		inline Data(double d) : _type(DECIMAL_TYPE), _decimal(d) {}
 
-		inline Data(bool b) : _type(BOOL_TYPE) { _storage.bol = b; }
+		inline Data(bool b) : _type(BOOLEAN_TYPE), _boolean(b) {}
 
-		inline Data(const std::string& s) : _type(STRING_TYPE) { _storage.str = new std::string(s); }
-		inline Data(char* s) : _type(STRING_TYPE) { _storage.str = new std::string(s); }
-		inline Data(const char* s) : _type(STRING_TYPE) { _storage.str = new std::string(s); }
+		inline Data(const std::string& s) : _type(STRING_TYPE), _string(new std::string(s)) {}
+		inline Data(char* s) : _type(STRING_TYPE), _string(new std::string(s)) {}
+		inline Data(const char* s) : _type(STRING_TYPE), _string(new std::string(s)) {}
 
-		inline Data(const Array& arr) : _type(ARRAY_TYPE) { _storage.arr = new Array(arr); }
-		inline Data(const Table& table) : _type(TABLE_TYPE) { _storage.tbl = new Table(table); }
+		inline Data(const Array& array) : _type(ARRAY_TYPE), _array(new Array(array)) {}
+		inline Data(const Table& table) : _type(TABLE_TYPE), _table(new Table(table)) {}
 
 		~Data();
 
 		static Data parse_json(const std::string& src);
 		
-		long long as_int() const;
-		double as_float() const;
+
+		inline long long integer() const { return _integer; }
+		inline double decimal() const { return _decimal; }
+		inline bool boolean() const { return _boolean; }
+		inline const std::string& string() const { return *_string; }
+		inline const Array& array() const { return *_array; }
+		inline const Table& table() const { return *_table; }
+
+		long long as_long_long() const;
+		inline long as_long() const { return (long)as_long_long(); }
+		inline int as_int() const { return (int)as_long_long(); }
+		inline short as_short() const { return (short)as_long_long(); }
+
+		double as_double() const;
+		inline float as_float() const { return (float)as_double(); }
 		bool as_bool() const;
 		std::string	as_string() const;
 
-		inline const Array& as_array() const
+		inline bool get_boolean() const
 		{
-			if (_type != ARRAY_TYPE)
-				throw TypeException("type must be an array to be cast as one");
+			if (_type != BOOLEAN_TYPE)
+				throw TypeException::cast_exception(type_name(), "boolean");
 
-			return *_storage.arr;
+			return _boolean;
+		}	
+
+		inline long long get_integer() const
+		{
+			if (_type != BOOLEAN_TYPE)
+				throw TypeException::cast_exception(type_name(), "integer");
+				
+			return _boolean;
 		}
 
-		inline const Table& as_table() const
+		inline double get_decimal() const 
+		{
+			if (_type != DECIMAL_TYPE)
+				throw TypeException::cast_exception(type_name(), "decimal");
+				
+			return _decimal;
+		}
+
+		inline const std::string& get_string() const
+		{
+			if (_type != STRING_TYPE)
+				throw TypeException::cast_exception(type_name(), "string");
+
+			return *_string;
+		}
+
+		inline const Array& get_array() const
+		{
+			if (_type != ARRAY_TYPE)
+				throw TypeException::cast_exception(type_name(), "array");
+
+			return *_array;
+		}
+
+		inline const Table& get_table() const
 		{
 			if (_type != TABLE_TYPE)
-				throw TypeException("type must be a table to be cast as one");
+				throw TypeException::cast_exception(type_name(), "rable");
 			
-			return *_storage.tbl;
+			return *_table;
 		}
 		
 		std::string as_json() const;
@@ -163,69 +212,39 @@ namespace hirzel
 		inline bool contains(const std::string& key) const
 		{
 			return _type == TABLE_TYPE ?
-				_storage.tbl->find(key) != _storage.tbl->end() :
+				_table->find(key) != _table->end() :
 				false;
 		}
 
 		bool is_empty() const;
 		size_t size() const;
 
-		inline bool is_null() const noexcept
-		{
-			return _type == NULL_TYPE;
-		}
+		inline bool is_null() const noexcept { return _type == NULL_TYPE; }
+		inline bool is_integer() const noexcept { return _type == INTEGER_TYPE; }
+		inline bool is_decimal() const noexcept { return _type == DECIMAL_TYPE; }
+		inline bool is_number() const noexcept { return _type == INTEGER_TYPE || _type == DECIMAL_TYPE; }
+		inline bool is_boolean() const noexcept { return _type == BOOLEAN_TYPE; }
+		inline bool is_string() const noexcept { return _type == STRING_TYPE; }
+		inline bool is_array() const noexcept { return _type == ARRAY_TYPE; }
+		inline bool is_table() const noexcept { return _type == TABLE_TYPE; }
 
-		inline bool is_bool() const noexcept
-		{
-			return _type == BOOL_TYPE;
-		}
-
-		inline bool is_int() const noexcept
-		{
-			return _type == INT_TYPE;
-		}
-
-		inline bool is_float() const noexcept
-		{
-			return _type == FLOAT_TYPE;
-		}
-
-		inline bool is_num() const noexcept
-		{
-			return _type == INT_TYPE || _type == FLOAT_TYPE;
-		}
-
-		inline bool is_string() const noexcept
-		{
-			return _type == STRING_TYPE;
-		}
-
-		inline bool is_array() const noexcept
-		{
-			return _type == ARRAY_TYPE;
-		}
-
-		inline bool is_table() const noexcept
-		{
-			return _type == TABLE_TYPE;
-		}
-
-		inline const Storage data() const { return _storage; }
-		inline unsigned type() const { return (unsigned)_type; }
+		inline Type type() const { return _type; }
+		const char *type_name() const noexcept;
 
 		Data& operator=(const Data& other);
+		Data& operator=(Data&& other);
 
 		inline Data& at(size_t i)
 		{
 			if (_type != ARRAY_TYPE)
 				throw TypeException("data must be array for integer indexing");
 
-			if (i >= _storage.arr->size())
+			if (i >= _array->size())
 			{
-				_storage.arr->resize(i + 1);
+				_array->resize(i + 1);
 			}
 
-			return (*_storage.arr)[i];
+			return (*_array)[i];
 		}
 
 		inline const Data& at(size_t i) const
@@ -233,13 +252,13 @@ namespace hirzel
 			if (_type != ARRAY_TYPE)
 				throw TypeException("data must be array for integer indexing");
 
-			if (i >= _storage.arr->size())
+			if (i >= _array->size())
 				throw std::out_of_range("attempted to access index "
 					+ std::to_string(i)
 					+ " but size is "
-					+ std::to_string(_storage.arr->size()));
+					+ std::to_string(_array->size()));
 
-			return (*_storage.arr)[i];
+			return (*_array)[i];
 		}
 
 		inline Data& operator[](size_t i)
@@ -257,7 +276,7 @@ namespace hirzel
 			if (_type != TABLE_TYPE)
 				throw TypeException("data must be a table for string indexing");
 			
-			return (*_storage.tbl)[key];
+			return (*_table)[key];
 		}
 
 		inline const Data& at(const std::string& key) const
@@ -265,11 +284,11 @@ namespace hirzel
 			if (_type != TABLE_TYPE)
 				throw TypeException("data must be a table for string indexing");
 
-			if (_storage.tbl->find(key) == _storage.tbl->end())
+			if (_table->find(key) == _table->end())
 				throw std::out_of_range("attempted to access element at '"
 					+ key + "' but it does not exist");
 
-			return (*_storage.tbl)[key];
+			return (*_table)[key];
 		}
 
 		inline Data& operator[](const std::string& key)
@@ -280,9 +299,7 @@ namespace hirzel
 		inline const Data& operator[](const std::string& key) const
 		{ 
 			return at(key);
-		} 
-
-		friend std::ostream& operator<<(std::ostream& out, const Data& v);
+		}
 
 		bool operator==(const Data& other) const;
 		inline bool operator!=(const Data& other) const { return !(*this == other); }
@@ -295,38 +312,37 @@ namespace hirzel
 
 namespace hirzel
 {
-	Data::Data(Data&& other)
-	{
-		_type = other._type;
-		_storage = other._storage;
-		other._type = NULL_TYPE;
-	}
-
 	Data::Data(Type t)
 	{
 		_type = t;
+
 		switch (t)
 		{
 		case NULL_TYPE:
-			_storage.itg = 0;
 			break;
-		case INT_TYPE:
-			_storage.itg = 0;
+
+		case INTEGER_TYPE:
+			_integer = 0;
 			break;
-		case FLOAT_TYPE:
-			_storage.flt = 0.0;
+
+		case DECIMAL_TYPE:
+			_decimal = 0.0;
 			break;
-		case BOOL_TYPE:
-			_storage.bol = false;
+
+		case BOOLEAN_TYPE:
+			_boolean = false;
 			break;
+
 		case STRING_TYPE:
-			_storage.str = new std::string();
+			_string = new std::string();
 			break;
+			
 		case ARRAY_TYPE:
-			_storage.arr = new Array();
+			_array = new Array();
 			break;
+
 		case TABLE_TYPE:
-			_storage.tbl = new Table();
+			_table = new Table();
 			break;
 		}
 	}
@@ -336,61 +352,57 @@ namespace hirzel
 		switch (_type)
 		{
 			case STRING_TYPE:
-				delete _storage.str;
+				delete _string;
 				break;
-
 			case ARRAY_TYPE:
-				delete _storage.arr;
+				delete _array;
 				break;
-
 			case TABLE_TYPE:
-				delete _storage.tbl;
+				delete _table;
+				break;
+			default:
 				break;
 		}
 	}
 
-	long long Data::as_int() const
+	long long Data::as_long_long() const
 	{
 		switch(_type)
 		{
-			case NULL_TYPE:
-				return 0;
-			case INT_TYPE:
-				return _storage.itg;
-			case BOOL_TYPE:
-				return (long long)_storage.bol;
-			case FLOAT_TYPE:
-				return (long long)_storage.flt;
+			case INTEGER_TYPE:
+				return _integer;
+			case BOOLEAN_TYPE:
+				return (long long)_boolean;
+			case DECIMAL_TYPE:
+				return (long long)_decimal;
 			case STRING_TYPE:
 				try
 				{
-					return std::stoll(*_storage.str);
+					return std::stoll(*_string);
 				}
 				catch (const std::exception& e)
 				{
 					return 0;
 				}
 			default:
-				throw TypeException("data can not be converted to integer");
+				return 0;
 		}
 	}
 
-	double Data::as_float() const
+	double Data::as_double() const
 	{
 		switch(_type)
 		{
-			case NULL_TYPE:
-				return 0.0;
-			case INT_TYPE:
-				return (double)_storage.itg;
-			case BOOL_TYPE:
-				return (double)_storage.bol;
-			case FLOAT_TYPE:
-				return _storage.flt;
+			case INTEGER_TYPE:
+				return (double)_integer;
+			case BOOLEAN_TYPE:
+				return (double)_boolean;
+			case DECIMAL_TYPE:
+				return _decimal;
 			case STRING_TYPE:
 				try
 				{
-					return std::stod(*_storage.str);
+					return std::stod(*_string);
 				}
 				catch(const std::exception& e)
 				{
@@ -405,14 +417,14 @@ namespace hirzel
 	{
 		switch(_type)
 		{
-			case INT_TYPE:
-				return (bool)_storage.itg;
-			case BOOL_TYPE:
-				return _storage.bol;
-			case FLOAT_TYPE:
-				return (bool)_storage.flt;
+			case INTEGER_TYPE:
+				return (bool)_integer;
+			case BOOLEAN_TYPE:
+				return _boolean;
+			case DECIMAL_TYPE:
+				return (bool)_decimal;
 			case STRING_TYPE:
-				return !_storage.str->empty();
+				return !_string->empty();
 			default:
 				return false;
 		}
@@ -422,24 +434,22 @@ namespace hirzel
 	{
 		switch(_type)
 		{
-			case NULL_TYPE:
-				return "null";
-			case INT_TYPE:
-				return std::to_string(_storage.itg);
-			case BOOL_TYPE:
-				return (_storage.bol ? "true" : "false");
-			case FLOAT_TYPE:
-				return std::to_string(_storage.flt);
+			case INTEGER_TYPE:
+				return std::to_string(_integer);
+			case BOOLEAN_TYPE:
+				return (_boolean ? "true" : "false");
+			case DECIMAL_TYPE:
+				return std::to_string(_decimal);
 			case STRING_TYPE:
-				return "\"" + *_storage.str + "\"";
+				return "\"" + *_string + "\"";
 			case ARRAY_TYPE:
 			{
 				std::string out;
 
 				out = "[";
-				for (auto iter = _storage.arr->begin(); iter != _storage.arr->end(); iter++)
+				for (auto iter = _array->begin(); iter != _array->end(); iter++)
 				{
-					if (iter != _storage.arr->begin()) out += ',';
+					if (iter != _array->begin()) out += ',';
 					out += iter->as_json();
 				}
 				out += ']';
@@ -450,9 +460,9 @@ namespace hirzel
 			{
 				std::string out;
 
-				std::vector<std::string> str_reps(_storage.tbl->size());
+				std::vector<std::string> str_reps(_table->size());
 				int i = 0;
-				for (auto iter = _storage.tbl->begin(); iter != _storage.tbl->end(); iter++)
+				for (auto iter = _table->begin(); iter != _table->end(); iter++)
 				{
 					str_reps[i++] = "\"" + iter->first + "\":" + iter->second.as_json();
 				}
@@ -468,7 +478,7 @@ namespace hirzel
 				return out;
 			}
 			default:
-				throw TypeException("data is an invalid type");
+				"null";
 		}
 	}
 
@@ -493,23 +503,29 @@ namespace hirzel
 		{
 			case NULL_TYPE:
 				return "null";
-			case INT_TYPE:
-				return std::to_string(_storage.itg);
-			case BOOL_TYPE:
-				return (_storage.bol ? "true" : "false");
-			case FLOAT_TYPE:
-				return std::to_string(_storage.flt);
+
+			case INTEGER_TYPE:
+				return std::to_string(_integer);
+
+			case BOOLEAN_TYPE:
+				return (_boolean ? "true" : "false");
+
+			case DECIMAL_TYPE:
+				return std::to_string(_decimal);
+
 			case STRING_TYPE:
-				return *_storage.str;
+				return *_string;
+
 			case ARRAY_TYPE:
 			{
 				std::string out;
-				std::vector<std::string> str_reps(_storage.arr->size());
+				std::vector<std::string> str_reps(_array->size());
 
 				bool vert = false;
-				for (size_t i = 0; i < _storage.arr->size(); i++)
+
+				for (size_t i = 0; i < _array->size(); i++)
 				{
-					const Data& v = (*_storage.arr)[i];
+					const Data& v = (_array)[i];
 					std::string tmp = v.as_string();
 					if (v.is_string())
 					{
@@ -551,10 +567,10 @@ namespace hirzel
 				std::string out;
 				std::vector<std::string> str_reps;
 
-				if (_storage.tbl->empty()) return "{}";
-				str_reps.resize(_storage.tbl->size());
+				if (_table->empty()) return "{}";
+				str_reps.resize(_table->size());
 				int i = 0;
-				for (auto iter = _storage.tbl->begin(); iter != _storage.tbl->end(); iter++)
+				for (auto iter = _table->begin(); iter != _table->end(); iter++)
 				{
 					const Data& v = iter->second;
 					str_reps[i] = "\n\t" + iter->first + ":\t";
@@ -578,7 +594,7 @@ namespace hirzel
 				return out;
 			}
 			default:
-				throw TypeException("data is not a valid type");
+				"";
 		}
 	}
 
@@ -587,11 +603,11 @@ namespace hirzel
 		switch (_type)
 		{
 		case STRING_TYPE:
-			return _storage.str->empty();
+			return _string->empty();
 		case ARRAY_TYPE:
-			return _storage.arr->empty();
+			return _array->empty();
 		case TABLE_TYPE:
-			return _storage.tbl->empty();
+			return _table->empty();
 		case NULL_TYPE:
 			return true;
 		default:
@@ -606,11 +622,11 @@ namespace hirzel
 		case NULL_TYPE:
 			return 0;
 		case STRING_TYPE:
-			return _storage.str->size();
+			return _string->size();
 		case ARRAY_TYPE:
-			return _storage.arr->size();
+			return _array->size();
 		case TABLE_TYPE:
-			return _storage.tbl->size();
+			return _table->size();
 		default:
 			return 1;
 		}
@@ -619,32 +635,71 @@ namespace hirzel
 	Data& Data::operator=(const Data& other)
 	{
 		_type = other.type();
-		switch(_type)
+		
+		switch (_type)
 		{
-		case ARRAY_TYPE:
-			_storage.arr = new Array(*other.data().arr);
-			break;
-
-		case TABLE_TYPE:
-			_storage.tbl = new Table(*other.data().tbl);
-			break;
-
-		case STRING_TYPE:
-			_storage.str = new std::string(*other.data().str);
-			break;
-
-		default:
-			_storage = other.data();
-			break;
+			case NULL_TYPE:
+				_integer = 0;
+				break;
+			case INTEGER_TYPE:
+				_integer = other.integer();
+				break;
+			case DECIMAL_TYPE:
+				_decimal = other.decimal();
+				break;
+			case BOOLEAN_TYPE:
+				_boolean = other.boolean();
+				break;
+			case STRING_TYPE:
+				_string = new std::string(other.string());
+				break;
+			case ARRAY_TYPE:
+				_array = new Array(other.array());
+				break;
+			case TABLE_TYPE:
+				_table = new Table(other.table());
+				break;
+			default:
+				throw TypeException("attempted copy data of invalid type");
 		}
-
 		return *this;
 	}
 
-	std::ostream& operator<<(std::ostream& out, const Data& v)
+	Data& Data::operator=(Data&& other)
 	{
-		out << v.as_string();
-		return out;
+		_type = other._type;
+		other._type = NULL_TYPE;
+
+		switch (_type)
+		{
+			case NULL_TYPE:
+				break;
+			case INTEGER_TYPE:
+				_integer = other._integer;
+				break;
+			case DECIMAL_TYPE:
+				_decimal = other._decimal;
+				break;
+			case BOOLEAN_TYPE:
+				_boolean = other._boolean;
+				break;
+			case STRING_TYPE:
+				_string = other._string;
+				other._string = nullptr;
+				break;
+			case ARRAY_TYPE:
+				_array = other._array;
+				other._array = nullptr;
+				break;
+			case TABLE_TYPE:
+				_table = other._table;
+				other._table = nullptr;
+				break;
+			default:
+				throw TypeException("attempted copy data of invalid type");
+		}
+
+		return *this;
 	}
 
 	bool Data::operator==(const Data& other) const
@@ -655,19 +710,19 @@ namespace hirzel
 		{
 			case NULL_TYPE:
 				return true;
-			case INT_TYPE:
-				return _storage.itg == other.data().itg;
-			case FLOAT_TYPE:
-				return _storage.flt == other.data().flt;
-			case BOOL_TYPE:
-				return _storage.bol == other.data().bol;
+			case INTEGER_TYPE:
+				return _integer == other.integer();
+			case DECIMAL_TYPE:
+				return _decimal == other.decimal();
+			case BOOLEAN_TYPE:
+				return _boolean == other.boolean();
 			case STRING_TYPE:
-				return *_storage.str == *other.data().str;
+				return *_string == other.string();
 			case ARRAY_TYPE:
 			{
 				// for every child element
-				const std::vector<Data>& arr = *_storage.arr;
-				const std::vector<Data>& oarr = *other.data().arr;
+				const auto& arr = *_array;
+				const auto& oarr = other.array();
 
 				for (size_t i = 0; i < arr.size(); ++i)
 				{
@@ -679,8 +734,9 @@ namespace hirzel
 
 			case TABLE_TYPE:
 			{
-				const std::unordered_map<std::string, Data>& table = *_storage.tbl;
-				const std::unordered_map<std::string, Data>& otable = *other.data().tbl;
+				const auto& table = *_table;
+				const auto& otable = other.table();
+
 				for (auto p : table)
 				{
 					auto iter = otable.find(p.first);
@@ -694,6 +750,29 @@ namespace hirzel
 		}
 
 		return false;
+	}
+
+	const char * Data::type_name() const noexcept
+	{
+		switch (_type)
+		{
+			case NULL_TYPE:
+				return "null";
+			case INTEGER_TYPE:
+				return "integer";
+			case DECIMAL_TYPE:
+				return "floating-point";
+			case BOOLEAN_TYPE:
+				return "boolean";
+			case STRING_TYPE:
+				return "string";
+			case ARRAY_TYPE:
+				return "array";
+			case TABLE_TYPE:
+				return "table";
+			default:
+				return "invalid-type";
+		}
 	}
 
 	/*#################################################

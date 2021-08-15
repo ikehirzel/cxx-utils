@@ -209,11 +209,11 @@ std::string pokemon_json= R"====(
 
 #define assert_cast_values(data, int_val, float_val, bool_val, string_val)\
 	assert(data.as_int() == int_val);\
-	assert(data.as_float() == float_val);\
+	assert(data.as_double() == float_val);\
 	assert(data.as_bool() == bool_val);\
 	assert(data.as_string() == string_val);\
-	assert_throws(data.as_array(), Data::TypeException);\
-	assert_throws(data.as_table(), Data::TypeException)
+	assert_throws(data.get_array(), Data::TypeException);\
+	assert_throws(data.get_table(), Data::TypeException)
 
 #define assert_primitive(data, typename, funcname, value)\
 	assert(data.type() == typename);\
@@ -225,9 +225,9 @@ std::string pokemon_json= R"====(
 	assert(!data.is_##funcname())
 
 #define assert_not_null(data)		assert(data.type() != Data::NULL_TYPE); assert(!data.is_null());
-#define assert_not_bool(data)		assert_not_primitive(data, Data::BOOL_TYPE, bool)
-#define assert_not_int(data)		assert_not_primitive(data, Data::INT_TYPE, int)
-#define assert_not_float(data)		assert_not_primitive(data, Data::FLOAT_TYPE, float)
+#define assert_not_bool(data)		assert_not_primitive(data, Data::BOOLEAN_TYPE, boolean)
+#define assert_not_int(data)		assert_not_primitive(data, Data::INTEGER_TYPE, integer)
+#define assert_not_float(data)		assert_not_primitive(data, Data::DECIMAL_TYPE, decimal)
 #define assert_not_string(data)		assert_not_primitive(data, Data::STRING_TYPE, string)
 #define assert_not_array(data)		assert(data.type() != Data::ARRAY_TYPE); assert(!data.is_array())
 #define assert_not_table(data)		assert(data.type() != Data::TABLE_TYPE); assert(!data.is_table())
@@ -243,7 +243,7 @@ std::string pokemon_json= R"====(
 	assert_not_table(data)
 
 #define assert_bool(data, value)\
-	assert_primitive(data, Data::BOOL_TYPE, bool, value);\
+	assert_primitive(data, Data::BOOLEAN_TYPE, boolean, value);\
 	assert_cast_values(data, (int)value, (double)value, value, (value ? "true" : "false"));\
 	assert_not_null(data);\
 	assert_not_int(data);\
@@ -253,9 +253,9 @@ std::string pokemon_json= R"====(
 	assert_not_table(data)
 
 #define assert_int(data, value)\
-	assert_primitive(data, Data::INT_TYPE, int, value);\
+	assert_primitive(data, Data::INTEGER_TYPE, integer, value);\
 	assert_cast_values(data, value, (double)value, (bool)value, std::to_string(value));\
-	assert(data.is_num());\
+	assert(data.is_number());\
 	assert_not_null(data);\
 	assert_not_bool(data);\
 	assert_not_float(data);\
@@ -264,9 +264,9 @@ std::string pokemon_json= R"====(
 	assert_not_table(data)
 
 #define assert_float(data, value)\
-	assert_primitive(data, Data::FLOAT_TYPE, float, value);\
+	assert_primitive(data, Data::DECIMAL_TYPE, decimal, value);\
 	assert_cast_values(data, (int)value, (double)value, (bool)value, std::to_string(value));\
-	assert(data.is_num());\
+	assert(data.is_number());\
 	assert_not_null(data);\
 	assert_not_int(data);\
 	assert_not_bool(data);\
@@ -301,9 +301,6 @@ std::string pokemon_json= R"====(
 	assert_not_float(data);\
 	assert_not_string(data);\
 	assert_not_array(data)
-
-// #define assert_throws(x, type) { bool throws = false; try { x; } catch (const type& e) { throws = true; } assert(throws); }
-// #define assert_not_throws(x, type) { bool does_not_throw = true; try { x; } catch (const type& e) { does_not_throw = false; std::cout << "\033[31merror:\033[0m " << e.what() << std::endl; } assert(does_not_throw); }
 
 void test_null()
 {
@@ -397,7 +394,7 @@ void test_array()
 {
 	Data assign;
 	assert_null(assign);
-	assign = Data::Array({ 1, false, -23.4, "hello" });
+	assign = Data::Array({ 1, false, -23.4, "hello" });;
 	assert_array(assign);
 	assert(assign.size() == 4);
 	assert_int(assign[0], 1);
