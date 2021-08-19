@@ -1,9 +1,11 @@
-#include <hirzel/data.h>
+#include <hirzel/data/data.h>
+#include <hirzel/data/json.h>
+#include <hirzel/data/validation.h>
 #include <cassert>
 #include <iostream>
 #include <fstream>
 
-using namespace hirzel;
+using namespace hirzel::data;
 
 struct SourceLocation
 {
@@ -427,45 +429,45 @@ void test_table()
 
 }
 
-void test_parse_json()
+void test_json()
 {
 	Data v;
-	assert_not_throws(v = Data::parse_json("true"), Data::ParseException);
+	assert_not_throws(v = parse_json("true"), JsonException);
 	assert_bool(v, true);
-	assert_not_throws(v = Data::parse_json("false"), Data::ParseException);
+	assert_not_throws(v = parse_json("false"), JsonException);
 	assert_bool(v, false);
-	assert_not_throws(v = Data::parse_json("null"), Data::ParseException);
+	assert_not_throws(v = parse_json("null"), JsonException);
 	assert_null(v);
-	assert_not_throws(v = Data::parse_json("3"), Data::ParseException);
+	assert_not_throws(v = parse_json("3"), JsonException);
 	assert_int(v, 3);
-	assert_not_throws(v = Data::parse_json("-5"), Data::ParseException);
+	assert_not_throws(v = parse_json("-5"), JsonException);
 	assert_int(v, -5);
-	assert_not_throws(v = Data::parse_json("-876.02"), Data::ParseException);
+	assert_not_throws(v = parse_json("-876.02"), JsonException);
 	assert_float(v, -876.02);
-	assert_not_throws(v = Data::parse_json("5.342"), Data::ParseException);
+	assert_not_throws(v = parse_json("5.342"), JsonException);
 	assert_float(v, 5.342);
-	assert_throws(Data::parse_json("5.4."), Data::ParseException);
+	assert_throws(parse_json("5.4."), JsonException);
 
-	assert_not_throws(v = Data::parse_json("\"hello\""), Data::ParseException);
+	assert_not_throws(v = parse_json("\"hello\""), JsonException);
 	assert_string(v, 0, 0.0, true, "hello");
 
-	assert_not_throws(v = Data::parse_json(R"([3,-5,"hello"])"), Data::ParseException);
+	assert_not_throws(v = parse_json(R"([3,-5,"hello"])"), JsonException);
 	assert_int(v[0], 3);
 	assert_int(v[1], -5);
 	assert_string(v[2], 0, 0.0, true, "hello");
 
 	std::string ex_json = R"({"num":3,"str":"abcdef","":-4})";
 	Data second;
-	assert_not_throws(v = Data::parse_json(ex_json), Data::ParseException);
+	assert_not_throws(v = parse_json(ex_json), JsonException);
 	assert(v != second);
 	assert(second != v);
-	assert_not_throws(second = Data::parse_json(ex_json), Data::ParseException);
+	assert_not_throws(second = parse_json(ex_json), JsonException);
 	assert(v == second);
 	assert(second == v);
-	assert_not_throws(second = Data::parse_json(v.as_json()), Data::ParseException);
+	assert_not_throws(second = parse_json(v.as_json()), JsonException);
 	assert(second == v);
 	assert(v == second);
-	assert_not_throws(v = Data::parse_json(second.as_json()), Data::ParseException);
+	assert_not_throws(v = parse_json(second.as_json()), JsonException);
 	assert(second == v);
 	assert(v == second);
 	assert_table(v);
@@ -474,32 +476,32 @@ void test_parse_json()
 	assert_int(v[""], -4);
 
 	ex_json = R"({"scooby":{"snacks":{"flavor":"spicy","size":3}},"num":3,"arr":[3,-5,2]})";
-	assert_not_throws(v = Data::parse_json(ex_json), Data::ParseException);
+	assert_not_throws(v = parse_json(ex_json), JsonException);
 	assert(v != second);
 	assert(second != v);
-	assert_not_throws(second = Data::parse_json(ex_json), Data::ParseException);
+	assert_not_throws(second = parse_json(ex_json), JsonException);
 	assert(v == second);
 	assert(second == v);
-	assert_not_throws(second = Data::parse_json(v.as_json()), Data::ParseException);
+	assert_not_throws(second = parse_json(v.as_json()), JsonException);
 	assert(second == v);
 	assert(v == second);
-	assert_not_throws(v = Data::parse_json(second.as_json()), Data::ParseException);
+	assert_not_throws(v = parse_json(second.as_json()), JsonException);
 	assert(second == v);
 	assert(v == second);
 	assert(!v["scooby"].is_null());
 	assert(v["scooby"].is_table());
 
-	assert_not_throws(v = Data::parse_json("[]"), Data::ParseException);
+	assert_not_throws(v = parse_json("[]"), JsonException);
 	assert_array(v);
 	assert(v.size() == 0);
 	assert(!v.as_bool());
 
-	assert_not_throws(v = Data::parse_json("{}"), Data::ParseException);
+	assert_not_throws(v = parse_json("{}"), JsonException);
 	assert_table(v);
 	assert(v.size() == 0);
 
 	std::string serial = v.as_json();
-	assert_not_throws(v = Data::parse_json(pokemon_json), Data::ParseException);
+	assert_not_throws(v = parse_json(pokemon_json), JsonException);
 	assert(v.contains("previous"));
 	assert_null(v["previous"]);
 	assert(v.contains("results"));
@@ -510,13 +512,62 @@ void test_parse_json()
 	assert(v["results"][0].contains("url"));
 	assert_string(v["results"][0]["url"], 0, 0.0, true, "https://pokeapi.co/api/v2/pokemon/1/");
 
-	assert_not_throws(v = Data::parse_json(colors_json), Data::ParseException);
+	assert_not_throws(v = parse_json(colors_json), JsonException);
 	assert(v.contains("colors"));
 	assert_array(v["colors"]);
 	assert(v["colors"].size() == 6);
 	assert_table(v["colors"][0]);
 	assert(v["colors"][0].contains("color"));
 	assert_string(v["colors"][0]["color"], 0, 0.0, true, "black");
+}
+
+void test_validation()
+{
+	using Array = Data::Array;
+	using Table = Data::Table;
+
+	Data form = Table({
+		{ "first_name", "Ike" },
+		{ "last_name", "Hirzel" },
+		{ "age", 22 },
+		{ "patience", 0.5 },
+		{ "minor", false },
+		{ "friends", Array({ "Alex", "Jacob", "Jared" }) }
+	});
+
+	// string
+	assert(Validator("''")(Data("hello")).empty());
+	assert(!Validator("''")(Data()).empty());
+	assert(validate("?''")(Data("hello")).empty());
+	assert(validate(Data(), "?''").empty());
+
+	// integer
+	assert(validate(Data(123), "#").empty());
+	assert(!validate(Data(), "#").empty());
+	assert(validate(Data(123), "?#").empty());
+	assert(validate(Data(), "?#").empty());
+
+	// decimal
+	assert(validate(Data(12.3), ".#").empty());
+	assert(!validate(Data(), ".#").empty());
+	assert(validate(Data(12.3), "?.#").empty());
+	assert(validate(Data(), "?.#").empty());
+
+	// boolean
+	assert(validate(Data(true), "~").empty());
+	assert(!validate(Data(), "~").empty());
+	assert(validate(Data(true), "?~").empty());
+	assert(validate(Data(), "?~").empty());
+
+	// table
+	auto test = Data(Data::Table({
+		{ "key", "value" }
+	}));
+	assert(validate(test, "{key:''}").empty());
+
+	auto errors = validate(form, "{first_name:'',middle_name:?'',last_name:'',age:#,minor:~,patience:%,s:}");
+	for (auto error : errors)
+		std::cout << "error: " << error << std::endl;
 }
 
 #define TEST(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
@@ -531,6 +582,8 @@ int main()
 	TEST(array);
 	TEST(table);
 
-	TEST(parse_json);
+	TEST(json);
+	TEST(validation);
+
 	return 0;
 }

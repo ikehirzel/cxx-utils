@@ -1,10 +1,12 @@
+#ifndef HIRZEL_DATA_DATA_H
+#define HIRZEL_DATA_DATA_H
 
 /**
  * @file data.h
  * @brief A universal data type
  * @author Ike Hirzel
  * 
- * Copyright 2020 Ike Hirzel
+ * Copyright 2021 Ike Hirzel
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -24,14 +26,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef HIRZEL_DATA_H
-#define HIRZEL_DATA_H
-
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace hirzel
+namespace hirzel::data
 {
 	class Data
 	{
@@ -83,7 +82,8 @@ namespace hirzel
 			}
 		};
 
-	private:
+	private: // data members
+
 		Type _type = NULL_TYPE;
 		union
 		{
@@ -94,19 +94,6 @@ namespace hirzel
 			Array *_array;
 			Table *_table;
 		};
-
-
-		static std::pair<const char *, bool> parse_json_number_literal(const char *iter);
-
-		static std::string preprocess_json(const std::string& src);
-		template <bool expected>
-		static std::pair<Data, const char *> parse_json_bool(const char * iter);
-		static std::pair<Data, const char *> parse_json_null(const char * iter);
-		static std::pair<Data, const char *> parse_json_string(const char * iter);
-		static std::pair<Data, const char *> parse_json_number(const char * iter);
-		static std::pair<Data, const char *> parse_json_object(const char * iter);
-		static std::pair<Data, const char *> parse_json_array(const char * iter);
-		static std::pair<Data, const char *> parse_json_value(const char * iter);
 
 	public:
 
@@ -138,9 +125,6 @@ namespace hirzel
 		inline Data(const Table& table) : _type(TABLE_TYPE), _table(new Table(table)) {}
 
 		~Data();
-
-		static Data parse_json(const std::string& src);
-		
 
 		inline long long integer() const { return _integer; }
 		inline double decimal() const { return _decimal; }
@@ -308,9 +292,10 @@ namespace hirzel
 
 #endif // HIRZEL_DATA_H
 
-#ifdef HIRZEL_IMPLEMENT
+#if !defined(HIRZEL_DATA_DATA_I) && defined(HIRZEL_IMPLEMENT)
+#define HIRZEL_DATA_DATA_I
 
-namespace hirzel
+namespace hirzel::data
 {
 	Data::Data(Type t)
 	{
@@ -774,316 +759,6 @@ namespace hirzel
 				return "invalid-type";
 		}
 	}
-
-	/*#################################################
-	#	Parsing code
-	###################################################*/
-
-	std::string Data::preprocess_json(const std::string& src)
-	{
-		std::string out = src;
-		auto out_iter = out.begin();
-
-		for (auto src_iter = src.begin(); src_iter != src.end(); ++src_iter)
-		{
-			if (*src_iter < 33)
-				continue;
-			
-			if (*src_iter == '\"')
-			{
-				while (1)
-				{
-					*out_iter = *src_iter;
-
-					if (*src_iter == '\"')
-					{
-						out_iter += 1;
-						break;
-					}
-
-					if (src_iter == src.end())
-						throw ParseException("unterminated string at position: "
-							+ std::to_string(src_iter - src.end()));
-
-					out_iter += 1;
-					src_iter += 1;
-				}
-
-				continue;
-			}
-
-			*out_iter = *src_iter;
-			out_iter += 1;
-		}
-
-		out.resize(out_iter - out.begin());
-		
-		return out;
-	}
-	
-	std::pair<const char *, bool> Data::parse_json_number_literal(const char *iter)
-	{
-		bool is_decimal = false;
-		
-		if (*iter == '-' || *iter == '+')
-			iter += 1;
-
-		while (true)
-		{
-			switch (*iter)
-			{
-				case '0':
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
-				case '9':
-					iter += 1;
-					break;
-
-				case '.':
-					if (is_decimal)
-						throw ParseException("extra '.' in number literal");
-
-					iter += 1;
-					is_decimal = true;
-					break;
-
-				default:
-					return { iter, is_decimal };
-			}
-		}
-	}
-
-	std::pair<Data, const char *> Data::parse_json_number(const char *iter)
-	{
-		const char * const start_of_number = iter;
-		auto res = parse_json_number_literal(iter);
-
-		iter = res.first;
-
-		if (*iter == 'e' || *iter == 'E')
-		{
-			auto exponent = parse_json_number_literal(iter);
-
-			if (exponent.second)
-				throw ParseException("stray '.' in exponent literal");
-
-			iter = exponent.first;
-		}
-
-		std::string number_literal(start_of_number, iter - start_of_number);
-
-		return 
-		{
-			res.second
-				? Data(std::stod(number_literal))
-				: Data(std::stoll(number_literal)),
-			iter
-		};
-	}
-
-	std::pair<Data, const char *> Data::parse_json_string(const char *iter)
-	{
-		iter += 1;
-
-		const char * const start_of_string = iter;
-
-		while (*iter != '\"')
-		{
-			if (*iter == '\0')
-				throw ParseException("unterminated string: "
-					+ std::string(start_of_string, iter - start_of_string));
-
-			iter += 1;
-		}
-
-		Data out = std::string(start_of_string, iter - start_of_string);
-
-		iter += 1;
-
-		return { out, iter };
-	}
-	
-	std::pair<Data, const char *> Data::parse_json_null(const char *iter)
-	{
-		iter += 1;
-
-		for (const char *match = "ull"; *match; ++match)
-		{
-			if (*iter != *match)
-				throw ParseException("unexpected character '"
-					+ std::string(1, *iter)
-					+ "' found in null literal");
-
-			iter += 1;
-		}
-
-		return { Data(), iter };
-	}
-
-	template <bool expected>
-	std::pair<Data, const char *> Data::parse_json_bool(const char *iter)
-	{
-		iter += 1;
-
-		const char *match;
-
-		if (expected)
-			match = "rue";
-		else
-			match = "alse";
-
-		while (*match)
-		{
-			if (*iter != *match)
-				throw ParseException("unexpected character '"
-					+ std::string(1, *iter)
-					+ "' found in bool literal");
-
-			iter += 1;
-			match += 1;
-		}
-		
-		return { Data(expected), iter };
-	}
-
-	std::pair<Data, const char *> Data::parse_json_value(const char *iter)
-	{
-		switch (*iter)
-		{
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-			case '-':
-				return parse_json_number(iter);
-			case '\"':
-				return parse_json_string(iter);
-			case '{':
-				return Data::parse_json_object(iter);
-			case '[':
-				return Data::parse_json_array(iter);
-			case 't':
-				return parse_json_bool<true>(iter);
-			case 'f':
-				return parse_json_bool<false>(iter);
-			case 'n':
-				return parse_json_null(iter);
-			default:
-				throw ParseException("invalid literal");
-		}
-	}
-
-	std::pair<Data, const char *> Data::parse_json_array(const char *iter)
-	{
-		Data arr(ARRAY_TYPE);
-
-		iter += 1;
-
-		if (*iter == ']')
-			return { arr, iter + 1 };
-		size_t curr_array_index = 0;
-
-		while (true)
-		{
-			auto res = parse_json_value(iter);
-
-			arr[curr_array_index++] = res.first;
-			iter = res.second;
-
-			if (*iter != ',')
-				break;
-				
-			iter += 1;
-		}
-
-		if (*iter != ']')
-			throw ParseException("unterminated array");
-
-		iter += 1;
-
-		return { arr, iter };
-	}
-	
-	std::pair<Data, const char *> Data::parse_json_object(const char *iter)
-	{
-		Data obj(Data::TABLE_TYPE);
-
-		iter += 1;
-
-		if (*iter == '}')
-			return { obj, iter };
-		
-		while (true)
-		{
-			if (*iter != '\"')
-				throw ParseException("invalid label");
-
-			iter += 1;
-
-			const char *end_of_label = iter;
-			const char *start_of_label = iter;
-
-			while (*end_of_label != '\"')
-			{
-				if (!end_of_label[0])
-					throw ParseException("unterminated label: '"
-						+ std::string(start_of_label, end_of_label - start_of_label)
-						+ "'");
-
-				end_of_label += 1;
-			}
-
-			std::string label(start_of_label, end_of_label - start_of_label);
-			iter = end_of_label + 1;
-
-			if (*iter != ':')
-				throw ParseException("expected ':' but found: "
-					+ std::string(iter, 1));
-
-			iter += 1;
-			
-			auto res = parse_json_value(iter);
-			
-			obj[{ start_of_label, (size_t)(end_of_label - start_of_label) }] = res.first;
-			iter = res.second;
-			
-			if (*iter != ',')
-			{
-				if (*iter != '}')
-					throw ParseException("unterminated object found in JSON");
-				iter += 1;
-				break;
-			}
-
-			iter += 1;
-		}
-
-		return { obj, iter };
-	}
-
-	Data Data::parse_json(const std::string& src)
-	{
-		std::string preprocessed_src = preprocess_json(src);
-
-		if (preprocessed_src.empty())
-			throw ParseException("source string was empty");
-
-		auto json = parse_json_value(preprocessed_src.c_str());
-
-		return json.first;
-	}
 } // namespace hirzel
 
-#endif // HIRZEL_IMPLEMENT
+#endif
