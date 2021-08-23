@@ -521,6 +521,17 @@ void test_json()
 	assert_string(v["colors"][0]["color"], 0, 0.0, true, "black");
 }
 
+#define assert_no_errors(fmt, arg) {\
+	auto errors = Validator(fmt)(arg);\
+	if (errors.size())\
+	{\
+		std::cout << "Assertion failed! " #arg " produces " << errors.size() << " errors with format " #fmt " \n the following errors were returned:\n";\
+		for (auto s : errors)\
+			std::cout << '\t' << s << std::endl;\
+	}\
+}
+#define assert_has_errors(fmt, arg) assert(Validator(fmt)(arg).size())
+
 void test_validation()
 {
 	using Array = Data::Array;
@@ -535,39 +546,69 @@ void test_validation()
 		{ "friends", Array({ "Alex", "Jacob", "Jared" }) }
 	});
 
-	// string
-	assert(Validator("''")(Data("hello")).empty());
-	assert(!Validator("''")(Data()).empty());
-	assert(validate("?''")(Data("hello")).empty());
-	assert(validate(Data(), "?''").empty());
-
 	// integer
-	assert(validate(Data(123), "#").empty());
-	assert(!validate(Data(), "#").empty());
-	assert(validate(Data(123), "?#").empty());
-	assert(validate(Data(), "?#").empty());
+	assert_no_errors("#", Data(123));
+	assert_has_errors("#", Data());
+	assert_has_errors("#", Data("hello"));
+	assert_no_errors("#?", Data(123));
+	assert_no_errors("#?", Data());
 
-	// decimal
-	assert(validate(Data(12.3), ".#").empty());
-	assert(!validate(Data(), ".#").empty());
-	assert(validate(Data(12.3), "?.#").empty());
-	assert(validate(Data(), "?.#").empty());
+	assert_no_errors("#[0 , 1]", Data(0));
+	assert_no_errors("#[0,1]", Data(1));
+	assert_has_errors("#(0, 1]", Data(0));
+	assert_has_errors("#[0,1)", Data(1));
+	assert_has_errors("#(0,1)", Data(0));
+	assert_has_errors("#(0,1)", Data(1));
 
-	// boolean
-	assert(validate(Data(true), "~").empty());
-	assert(!validate(Data(), "~").empty());
-	assert(validate(Data(true), "?~").empty());
-	assert(validate(Data(), "?~").empty());
+	// array
+	assert_no_errors("[]", Data::Array());
+	assert_has_errors("[]", Data::Array({ 1 }));
+	assert_has_errors("[]", Data());
+	assert_has_errors("[]", Data(1));
 
-	// table
-	auto test = Data(Data::Table({
-		{ "key", "value" }
-	}));
-	assert(validate(test, "{key:''}").empty());
+	assert_no_errors("[]?", Data::Array());
+	assert_no_errors("[]?", Data());
+	assert_has_errors("[]?", Data::Array({ 1 }));
+	assert_has_errors("[]?", Data(1));
 
-	auto errors = validate(form, "{first_name:'',middle_name:?'',last_name:'',age:#,minor:~,patience:%,s:}");
-	for (auto error : errors)
-		std::cout << "error: " << error << std::endl;
+	assert_no_errors("[#]", Data::Array({ 1 }));
+	assert_has_errors("[#]", Data::Array({ 1, 2 }));
+	assert_has_errors("[#]", Data::Array({ "hello" }));
+	assert_has_errors("[#]", Data::Array({ Data() }));
+
+	assert_no_errors("[#?]", Data::Array({ Data() }));
+	assert_has_errors("[#?]", Data::Array({ "hello" }));
+	assert_no_errors("[#?]", Data::Array({ }));
+	assert_no_errors("[#?, #?]", Data::Array({ }));
+
+	// // string
+	// assert(Validator("''")(Data("hello")).empty());
+	// assert(!Validator("''")(Data()).empty());
+	// assert(Validator("?''")(Data("hello")).empty());
+	// assert(validate(Data(), "?''").empty());
+
+
+	// // decimal
+	// assert(validate(Data(12.3), ".#").empty());
+	// assert(!validate(Data(), ".#").empty());
+	// assert(validate(Data(12.3), "?.#").empty());
+	// assert(validate(Data(), "?.#").empty());
+
+	// // boolean
+	// assert(validate(Data(true), "~").empty());
+	// assert(!validate(Data(), "~").empty());
+	// assert(validate(Data(true), "?~").empty());
+	// assert(validate(Data(), "?~").empty());
+
+	// // table
+	// auto test = Data(Data::Table({
+	// 	{ "key", "value" }
+	// }));
+	// assert(validate(test, "{key:''}").empty());
+
+	// auto errors = validate(form, "{first_name:'',middle_name:?'',last_name:'',age:#,minor:~,patience:%,s:}");
+	// for (auto error : errors)
+	// 	std::cout << "error: " << error << std::endl;
 }
 
 #define TEST(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
@@ -587,3 +628,15 @@ int main()
 
 	return 0;
 }
+
+/*
+	Single interface, multiple implementation of data
+	Validator
+		operator()
+
+	DataValidator
+		no constructor
+		virtual std::vector<std::string> validate(const Data&) = 0;
+
+	
+*/

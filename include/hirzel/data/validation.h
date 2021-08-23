@@ -28,8 +28,6 @@
 
 #include <hirzel/data/data.h>
 
-#include <string_view>
-
 namespace hirzel::data
 {
 	class FormatException : public std::exception
@@ -46,94 +44,98 @@ namespace hirzel::data
 	
 	class DataValidator
 	{
-	protected:
-
-		bool _is_nullable;
-
-		DataValidator(bool is_nullable) :
-		_is_nullable(is_nullable)
-		{}
-
-		DataValidator(const char*& iter);
-
 	public:
-
-		virtual ~DataValidator();
-
-		DataValidator(const std::string& fmt);
-
-		virtual std::vector<std::string> operator()(const Data& data);
+		virtual ~DataValidator() {};
+		virtual std::vector<std::string> validate(const Data& data) const = 0;
 	};
 
 	class IntegerValidator : public DataValidator
 	{
 	private:
 
+		bool _is_nullable = false;
 		long long _min = 0;
 		long long _max = 0;
 
-		IntegerValidator(bool is_nullable, long long min, long long max) :
-		DataValidator(is_nullable),
-		_min(min),
-		_max(max)
-		{}		
-	};
-
-	class TableValidator : public DataValidator
-	{
-	private:
-
-		bool _is_nullable;
-		std::vector<std::pair<DataValidator*, std::string>> _validators;
-	
-		TableValidator(bool is_nullable, decltype(_validators)&& validators) :
-		DataValidator(is_nullable),
-		_validators(validators)
-		{}
-
 	public:
 
-		~TableValidator()
-		{
-			for (const auto& pair : _validators)
-				delete pair.first;
-		}
+		IntegerValidator(const char *&fmt);
+		~IntegerValidator() {}
+
+		std::vector<std::string> validate(const Data& data) const;
 	};
+
+	// class TableValidator : public DataValidator
+	// {
+	// private:
+
+	// 	bool _is_nullable = false;
+	// 	std::vector<std::pair<DataValidator*, std::string>> _validators;
+	
+	// 	TableValidator(bool is_nullable, decltype(_validators)&& validators) :
+	// 	_is_nullable(is_nullable),
+	// 	_validators(validators)
+	// 	{}
+
+	// public:
+
+	// 	TableValidator(const char *&fmt);
+
+	// 	~TableValidator()
+	// 	{
+	// 		for (const auto& pair : _validators)
+	// 			delete pair.first;
+	// 	}
+
+	// 	std::vector<std::string> validate(const Data& data) const;
+	// };
 
 	class ArrayValidator : public DataValidator
 	{
 	private:
 
-		std::vector<std::pair<DataValidator*, unsigned>> _validators;
-
-		ArrayValidator(bool is_nullable, decltype(_validators)&& validators) :
-		DataValidator(is_nullable),
-		_validators(validators)
-		{}
+		bool _is_nullable = false;
+		std::vector<DataValidator*> _validators;
 
 	public:
 
+		ArrayValidator(const char *&fmt);
+
 		~ArrayValidator()
 		{
-			for (const auto& pair : _validators)
-				delete pair.first;
+			for (auto validator : _validators)
+				delete validator;
 		}
+
+		std::vector<std::string> validate(const Data& data) const;
 	};
 
 	class Validator
 	{
-		DataValidator *_validator;
+		DataValidator *_validator = nullptr;
+
 	public:
+
 		Validator(const std::string& fmt);
 
-		std::vector<std::string> operator()(const Data& data);
-	}
+		~Validator()
+		{
+			delete _validator;
+		}
+
+		inline std::vector<std::string> operator()(const Data& data) const
+		{
+			return _validator->validate(data);
+		}
+	};
 }
 
 #endif
 
 #if !defined(HIRZEL_DATA_VALIDATION_I) && defined(HIRZEL_IMPLEMENT)
 #define HIRZEL_DATA_VALIDATION_I
+
+#include <climits>
 
 namespace hirzel::data
 {
@@ -144,34 +146,252 @@ namespace hirzel::data
 			: "expected value of type '" + expected + "' but got '" + actual + "'";
 	}
 
+
+	namespace details
+	{
+		DataValidator *parse_data_validator(const char *&iter)
+		{
+			switch (*iter)
+			{
+				case '#':
+					return new IntegerValidator(iter);
+				case '[':
+					return new ArrayValidator(iter);
+				default:
+					throw FormatException("expected value format but got '"
+						+ std::string(1, *iter)
+						+ "'");
+			}
+		}
+
+		bool parse_nullable(const char *&iter)
+		{
+			if (*iter != '?')
+				return false;
+
+			iter += 1;
+
+			return true;
+		}
+	}
+
+	namespace details
+	{
+		std::string preprocess_format(const std::string& fmt)
+		{
+			std::string out(fmt.size(), 0);
+			size_t oi = 0;
+
+			for (char c : fmt)
+			{
+				if (c > ' ')
+					out[oi++] = c;
+			}
+
+			out.resize(oi);
+
+			return out;
+		}
+	}
+
 	Validator::Validator(const std::string& fmt)
 	{
-		if (fmt.empty())
+		auto preprocessed_fmt = details::preprocess_format(fmt);
+
+		if (preprocessed_fmt.empty())
 			throw std::invalid_argument("format must not be empty");
 
-		const char *iter = fmt.c_str();
+		const char *iter = preprocessed_fmt.c_str();
 
-		switch (*iter)
+		_validator = details::parse_data_validator(iter);
+	}
+
+	namespace details
+	{
+		inline long long parse_integer(const char *&iter)
 		{
-			case '{':
-				_validator = new TableValidator(iter);
-				return;
+			const char *start_of_literal = iter;
 
-			case '[':
-				_type = ARRAY_TYPE;
-				_array = ArrayValidator(iter);
-				return;
+			while (*iter >= '0' && *iter <= '9')
+				iter += 1;
 
-			case '#':
-				_type = INTEGER_TYPE;
-				_integer = IntegerValidator(iter);
-				return;
+			auto number_str = std::string(start_of_literal, iter - start_of_literal);
 
-			default:
-				throw FormatException("expected value format but got '"
+			return std::stoll(number_str);
+		}
+
+		inline std::pair<long long, long long> parse_integer_range(const char *& iter)
+		{
+			bool exclusive = false;
+
+			switch (*iter)
+			{
+				case '[':
+					break;
+				case '(':
+					exclusive = true;
+					break;
+				default:
+					return { LLONG_MIN, LLONG_MAX };
+			}
+			iter += 1;
+
+			long long min;
+
+			try
+			{
+				min = parse_integer(iter) + exclusive;
+			}
+			catch (const std::exception& e)
+			{
+				throw FormatException("invalid lower bound of integer range");
+			}
+
+			if (*iter != ',')
+				throw FormatException("unexpected token in range format '"
 					+ std::string(1, *iter)
 					+ "'");
+
+			iter += 1;
+
+			long long max;
+
+			try
+			{
+				max = parse_integer(iter);
+			}
+			catch (const std::exception& e)
+			{
+				throw FormatException("invalid upper bound of integer range");
+			}
+			
+			switch (*iter)
+			{
+				case ']':
+					exclusive = false;
+					break;
+				case ')':
+					exclusive = true;
+					break;
+				default:
+					throw FormatException("unexpected token in range format '"
+					+ std::string(1, *iter)
+					+ "'");
+			}
+
+			iter += 1;
+
+			return { min, max - exclusive };
 		}
+	}
+
+	IntegerValidator::IntegerValidator(const char *&iter)
+	{
+		iter += 1;
+
+		auto range = details::parse_integer_range(iter);
+
+		_min = range.first;
+		_max = range.second;
+		_is_nullable = details::parse_nullable(iter);
+	}
+
+	std::vector<std::string> IntegerValidator::validate(const Data& data) const
+	{
+		bool is_correct_type = data.is_integer() || (data.is_null() && _is_nullable);
+
+		if (!is_correct_type)
+			return { "expected data of type 'integer' but got '" + std::string(data.type_name()) + "'" };
+
+		auto value = data.as_long_long();
+
+		if (value < _min)
+			return { "expected integer >= " + std::to_string(_min) + " but got " + std::to_string(value) };
+
+		if (value > _max)
+			return { "expected integer <= " + std::to_string(_max) + " but got " + std::to_string(value) };
+
+		return {};
+	}
+
+	
+
+	ArrayValidator::ArrayValidator(const char *&iter)
+	{
+		iter += 1;
+
+		if (*iter != ']')
+		{
+			while (true)
+			{
+				auto validator = details::parse_data_validator(iter);
+				_validators.push_back(validator);
+
+				switch (*iter)
+				{
+					case ',':
+						iter += 1;
+						continue;
+
+					case ']':
+						break;
+
+					default:
+						throw FormatException("unexpected token in array format '"
+							+ std::string(1, *iter)
+							+ "'");
+				}
+
+				break;
+			}
+		}
+
+		iter += 1;
+		_is_nullable = details::parse_nullable(iter);
+	}
+
+
+	std::vector<std::string> ArrayValidator::validate(const Data& data) const
+	{
+		auto is_correct_type = data.is_array() || (data.is_null() && _is_nullable);
+
+		if (!is_correct_type)
+			return { "expected data of type 'array' but got '"
+				+ std::string(data.type_name())
+				+ "'" };
+
+		if (data.is_null())
+			return {};
+
+		std::vector<std::string> out;
+
+		DataValidator *last_validator = nullptr;
+
+		size_t validator_index = 0;
+		auto array = data.array();
+
+		for (auto element : array)
+		{
+			if (validator_index >= _validators.size())
+			{
+				out.push_back("expected "
+					+  std::to_string(_validators.size())
+					+ " elements but got "
+					+ std::to_string(data.size()));
+
+				break;
+			}
+
+			auto validation_errors = _validators[validator_index]->validate(element);
+
+			out.insert(out.end(),
+				std::make_move_iterator(validation_errors.begin()),
+				std::make_move_iterator(validation_errors.end()));
+
+			validator_index += 1;
+		}
+
+		return out;
 	}
 
 	std::string validate_boolean(const Data& data, const char *& iter, bool is_nullable)
@@ -395,34 +615,6 @@ namespace hirzel::data
 		}
 
 		return out;
-	}
-
-	std::string preprocess_format(const std::string& fmt)
-	{
-		std::string out(fmt.size(), 0);
-		size_t oi = 0;
-
-		for (char c : fmt)
-		{
-			if (c > ' ')
-				out[oi++] = c;
-		}
-
-		out.resize(oi);
-
-		return out;
-	}
-
-	std::vector<std::string> validate(const Data& data, const std::string& fmt)
-	{
-		std::string preprocessed_fmt = preprocess_format(fmt);
-
-		if (preprocessed_fmt.empty())
-			throw FormatException("formats must not be empty");
-
-		const char *iter = fmt.c_str();
-
-		return validate_value(data, iter);
 	}
 }
 
