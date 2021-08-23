@@ -528,9 +528,15 @@ void test_json()
 		std::cout << "Assertion failed! " #arg " produces " << errors.size() << " errors with format " #fmt " \n the following errors were returned:\n";\
 		for (auto s : errors)\
 			std::cout << '\t' << s << std::endl;\
+		std::abort();\
 	}\
 }
-#define assert_has_errors(fmt, arg) assert(Validator(fmt)(arg).size())
+#define assert_has_errors(fmt, arg) {\
+	if (Validator(fmt)(arg).empty()) {\
+		std::cout << "Assertion failed! " #arg " produces no errors with format " #fmt << std::endl;\
+		std::abort();\
+	}\
+}
 
 void test_validation()
 {
@@ -576,10 +582,25 @@ void test_validation()
 	assert_has_errors("[#]", Data::Array({ "hello" }));
 	assert_has_errors("[#]", Data::Array({ Data() }));
 
+	assert_no_errors("[#]?", Data::Array({ 1 }));
+	assert_has_errors("[#]?", Data::Array({ 1, 2 }));
+	assert_has_errors("[#]?", Data::Array({ "hello" }));
+	assert_has_errors("[#]?", Data::Array({ Data() }));
+
 	assert_no_errors("[#?]", Data::Array({ Data() }));
 	assert_has_errors("[#?]", Data::Array({ "hello" }));
 	assert_no_errors("[#?]", Data::Array({ }));
 	assert_no_errors("[#?, #?]", Data::Array({ }));
+
+	assert_no_errors("[#?]?", Data::Array({ Data() }));
+	assert_has_errors("[#?]?", Data::Array({ "hello" }));
+	assert_no_errors("[#?]?", Data::Array({ }));
+	assert_no_errors("[#?, #?]?", Data::Array({ }));
+
+	// table
+	assert_no_errors("{}", Data::Table());
+	assert_has_errors("{}", Data());
+	assert_has_errors("{}", Data(1));
 
 	// // string
 	// assert(Validator("''")(Data("hello")).empty());
