@@ -556,8 +556,10 @@ void test_validation()
 	assert_no_errors("#", Data(123));
 	assert_has_errors("#", Data());
 	assert_has_errors("#", Data("hello"));
+
 	assert_no_errors("#?", Data(123));
 	assert_no_errors("#?", Data());
+	assert_has_errors("#?", Data("hello"));
 
 	assert_no_errors("#[0 , 1]", Data(0));
 	assert_no_errors("#[0,1]", Data(1));
@@ -601,6 +603,19 @@ void test_validation()
 	assert_no_errors("{}", Data::Table());
 	assert_has_errors("{}", Data());
 	assert_has_errors("{}", Data(1));
+
+	assert_no_errors("{}?", Data());
+	assert_no_errors("{}?", Data::Table());
+	assert_has_errors("{}?", 1);
+
+	assert_no_errors("{key:#}", Data::Table({ { "key", 47 } }));
+	assert_has_errors("{key:#}", Data::Table({ { "key", Data() } }));
+	assert_has_errors("{key:#}", Data::Table({ }));
+
+	assert_no_errors("{key:#?}", Data::Table({{ "key", Data() }}));
+	assert_no_errors("{key:#?}", Data::Table({{ "key", 1 }}));
+	assert_has_errors("{key:#?}", Data::Table({{ "key", "hello" }}));
+
 
 	// // string
 	// assert(Validator("''")(Data("hello")).empty());

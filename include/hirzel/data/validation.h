@@ -396,7 +396,6 @@ namespace hirzel::data
 	{
 		iter += 1;
 
-		std::vector<std::pair<std::string, DataValidator*>> out;
 		if (*iter != '}')
 		{
 			while (true)
@@ -404,14 +403,13 @@ namespace hirzel::data
 				auto key = details::parse_table_key(iter);
 				auto validator = details::parse_data_validator(iter);
 
-				out.push_back({ key, validator });
+				_validators.push_back({ key, validator });
 
 				switch (*iter)
 				{
 					case ',':
 						continue;
 					case '}':
-						iter += 1;
 						break;
 					default:
 						throw details::unexpected_token_error("table", *iter);
@@ -420,7 +418,8 @@ namespace hirzel::data
 				break;
 			}
 		}
-		
+
+		iter += 1;
 		_is_nullable = details::parse_is_nullable(iter);
 	}
 
