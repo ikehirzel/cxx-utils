@@ -28,6 +28,9 @@
 
 #include <hirzel/data/data.h>
 
+#include <climits>
+#include <cfloat>
+
 namespace hirzel::data
 {
 	class FormatException : public std::exception
@@ -52,16 +55,78 @@ namespace hirzel::data
 
 	class IntegerValidator : public DataValidator
 	{
+	public:
+
+		struct Range
+		{
+			long long min = LLONG_MIN;
+			long long max = LLONG_MAX;
+			bool min_exclusive = false;
+			bool max_exclusive = false;
+		};
+
 	private:
 
 		bool _is_nullable = false;
-		long long _min = 0;
-		long long _max = 0;
+		Range _range;
 
 	public:
 
 		IntegerValidator(const char *&fmt);
 		~IntegerValidator() {}
+
+		std::vector<std::string> validate(const Data& data) const;
+	};
+
+	class StringValidator : public DataValidator
+	{
+	private:
+
+		bool _is_nullable = false;
+
+	public:
+
+		StringValidator(const char *&fmt);
+		~StringValidator() {}
+
+		std::vector<std::string> validate(const Data& data) const;
+	};
+
+	class DecimalValidator : public DataValidator
+	{
+	public:
+	
+		struct Range
+		{
+			double min = -DBL_MAX;
+			double max = DBL_MAX;
+			bool min_exclusive = false;
+			bool max_exclusive = false;
+		};
+
+	private:
+
+		bool _is_nullable = false;
+		Range _range;
+
+	public:
+
+		DecimalValidator(const char *&fmt);
+		~DecimalValidator() {}
+
+		std::vector<std::string> validate(const Data& data) const;
+	};
+
+	class BooleanValidator : public DataValidator
+	{
+	private:
+
+		bool _is_nullable = false;
+
+	public:
+
+		BooleanValidator(const char *&fmt);
+		~BooleanValidator() {}
 
 		std::vector<std::string> validate(const Data& data) const;
 	};
@@ -131,8 +196,6 @@ namespace hirzel::data
 #if !defined(HIRZEL_DATA_VALIDATION_I) && defined(HIRZEL_IMPLEMENT)
 #define HIRZEL_DATA_VALIDATION_I
 
-#include <climits>
-
 namespace hirzel::data
 {
 	namespace details
@@ -146,7 +209,7 @@ namespace hirzel::data
 
 		inline FormatException unexpected_token_error(const std::string& type, char c)
 		{
-			return FormatException("unepxected token in "
+			return FormatException("unexpected token in "
 				+ type
 				+ " format '"
 				+ std::string(1, c)
@@ -163,6 +226,12 @@ namespace hirzel::data
 					return new ArrayValidator(iter);
 				case '{':
 					return new TableValidator(iter);
+				case '$':
+					return new StringValidator(iter);
+				case '&':
+					return new BooleanValidator(iter);
+				case '%':
+					return new DecimalValidator(iter);
 				default:
 					throw FormatException("expected value format but got '"
 						+ std::string(1, *iter)
@@ -196,11 +265,16 @@ namespace hirzel::data
 			return out;
 		}
 
+		inline bool is_integer_char(char c)
+		{
+			return c >= '0' && c <= '9';
+		}
+
 		inline long long parse_range_integer(const char *&iter)
 		{
 			const char *start_of_literal = iter;
 
-			while (*iter >= '0' && *iter <= '9')
+			while (is_integer_char(*iter))
 				iter += 1;
 
 			auto number_str = std::string(start_of_literal, iter - start_of_literal);
@@ -217,46 +291,136 @@ namespace hirzel::data
 			}
 		}
 
-		inline std::pair<long long, long long> parse_integer_range(const char *& iter)
+		IntegerValidator::Range parse_integer_range(const char *& iter)
 		{
-			bool exclusive = false;
+			IntegerValidator::Range out;
 
 			switch (*iter)
 			{
 				case '[':
 					break;
 				case '(':
-					exclusive = true;
+					out.min_exclusive = true;
 					break;
 				default:
-					return { LLONG_MIN, LLONG_MAX };
+					return out;
 			}
+
 			iter += 1;
 
-			long long min = details::parse_range_integer(iter) + exclusive;
+			out.min = details::parse_range_integer(iter);
 
 			if (*iter != ',')
-				throw details::unexpected_token_error("range", *iter);
+				throw details::unexpected_token_error("integer range", *iter);
 
 			iter += 1;
 
-			long long max = details::parse_range_integer(iter);
+			out.max = details::parse_range_integer(iter);
 			
 			switch (*iter)
 			{
 				case ']':
-					exclusive = false;
 					break;
 				case ')':
-					exclusive = true;
+					out.max_exclusive = true;
 					break;
 				default:
-					throw details::unexpected_token_error("range", *iter);
+					throw details::unexpected_token_error("integer range", *iter);
 			}
 
 			iter += 1;
 
-			return { min, max - exclusive };
+			return out;
+		}
+
+		bool is_decimal_char(char c)
+		{
+			return (c >= '0' && c <= '9') || c == '.';
+		}
+
+		double parse_range_decimal(const char *&iter)
+		{
+			const char *start_of_literal = iter;
+
+			while (is_decimal_char(*iter))
+				iter += 1;
+
+			auto number_str = std::string(start_of_literal, iter - start_of_literal);
+
+			try
+			{
+				return std::stod(number_str);
+			}
+			catch (const std::exception& e)
+			{
+				throw FormatException("expected decimal for range bounds but got '"
+					+ number_str
+					+ "'");
+			}
+		}
+
+		std::string integer_range_error(const IntegerValidator::Range& range, long long value)
+		{
+			auto range_str = (range.min_exclusive ? "(" : "[")
+				+ std::to_string(range.min)
+				+ ", "
+				+ std::to_string(range.max)
+				+ (range.max_exclusive ? ")" : "]");
+
+			return "expected integer in range " + range_str + " but got " + std::to_string(value);
+		}
+
+		std::string decimal_range_error(const DecimalValidator::Range& range, double value)
+		{
+			auto range_str = (range.min_exclusive ? "(" : "[")
+				+ std::to_string(range.min)
+				+ ", "
+				+ std::to_string(range.max)
+				+ (range.max_exclusive ? ")" : "]");
+
+			return "expected decimal in range " + range_str + " but got " + std::to_string(value);
+		}
+
+		DecimalValidator::Range parse_decimal_range(const char *&iter)
+		{
+			DecimalValidator::Range out;
+
+			switch (*iter)
+			{
+				case '(':
+					out.min_exclusive = true;
+					break;
+				case '[':
+					break;
+				default:
+					return out;
+			}
+
+			iter += 1;
+
+			out.min = parse_range_decimal(iter);
+
+			if (*iter != ',')
+				throw unexpected_token_error("decimal range", *iter);
+			
+			iter += 1;
+
+			out.max = parse_range_decimal(iter);
+
+			switch (*iter)
+			{
+				case ')':
+					out.max_exclusive = true;
+					break;
+				case ']':
+					break;
+				default:
+					throw unexpected_token_error("decimal range", *iter);
+			}
+
+			iter += 1;
+
+			return out;
 		}
 
 		inline bool is_key_char(char c)
@@ -297,10 +461,7 @@ namespace hirzel::data
 	{
 		iter += 1;
 
-		auto range = details::parse_integer_range(iter);
-
-		_min = range.first;
-		_max = range.second;
+		_range = details::parse_integer_range(iter);
 		_is_nullable = details::parse_is_nullable(iter);
 	}
 
@@ -312,12 +473,72 @@ namespace hirzel::data
 			return { details::value_type_error("integer", data.type_name(), _is_nullable) };
 
 		auto value = data.as_long_long();
+		auto is_out_of_range = value < _range.min
+			|| (value == _range.min && _range.min_exclusive)
+			|| value > _range.max
+			|| (value == _range.max && _range.max_exclusive);
 
-		if (value < _min)
-			return { "expected integer >= " + std::to_string(_min) + " but got " + std::to_string(value) };
+		if (is_out_of_range)
+			return { details::integer_range_error(_range, value) };
 
-		if (value > _max)
-			return { "expected integer <= " + std::to_string(_max) + " but got " + std::to_string(value) };
+		return {};
+	}
+
+	DecimalValidator::DecimalValidator(const char *&iter)
+	{
+		iter += 1;
+
+		_range = details::parse_decimal_range(iter);
+		_is_nullable = details::parse_is_nullable(iter);
+	}
+
+	std::vector<std::string> DecimalValidator::validate(const Data& data) const
+	{
+		bool is_correct_type = data.is_number() || (data.is_null() && _is_nullable);
+
+		if (!is_correct_type)
+			return { details::value_type_error("decimal", data.type_name(), _is_nullable) };
+
+		auto value = data.as_double();
+		auto is_out_of_range = value < _range.min
+			|| (value == _range.min && _range.min_exclusive)
+			|| value > _range.max
+			|| (value == _range.max && _range.max_exclusive);
+
+		if (is_out_of_range)
+			return { details::decimal_range_error(_range, value) };
+
+		return {};
+	}
+
+	StringValidator::StringValidator(const char *&iter)
+	{
+		iter += 1;
+		_is_nullable = details::parse_is_nullable(iter);
+	}
+
+	std::vector<std::string> StringValidator::validate(const Data& data) const
+	{
+		auto is_correct_type = data.is_string() || (data.is_null() && _is_nullable);
+
+		if (!is_correct_type)
+			return { details::value_type_error("string", data.type_name(), _is_nullable) };
+
+		return {};
+	}
+
+	BooleanValidator::BooleanValidator(const char *&iter)
+	{
+		iter += 1;
+		_is_nullable = details::parse_is_nullable(iter);
+	}
+
+	std::vector<std::string> BooleanValidator::validate(const Data& data) const
+	{
+		auto is_correct_type = data.is_boolean() || (data.is_null() && _is_nullable);
+
+		if (!is_correct_type)
+			return { details::value_type_error("boolean", data.type_name(), _is_nullable) };
 
 		return {};
 	}
@@ -408,6 +629,7 @@ namespace hirzel::data
 				switch (*iter)
 				{
 					case ',':
+						iter += 1;
 						continue;
 					case '}':
 						break;

@@ -553,31 +553,51 @@ void test_validation()
 	});
 
 	// integer
-	assert_no_errors("#", Data(123));
+	assert_no_errors("#", 123);
 	assert_has_errors("#", Data());
-	assert_has_errors("#", Data("hello"));
+	assert_has_errors("#", "hello");
 
-	assert_no_errors("#?", Data(123));
+	assert_no_errors("#?", 123);
 	assert_no_errors("#?", Data());
-	assert_has_errors("#?", Data("hello"));
+	assert_has_errors("#?", "hello");
 
-	assert_no_errors("#[0 , 1]", Data(0));
-	assert_no_errors("#[0,1]", Data(1));
-	assert_has_errors("#(0, 1]", Data(0));
-	assert_has_errors("#[0,1)", Data(1));
-	assert_has_errors("#(0,1)", Data(0));
-	assert_has_errors("#(0,1)", Data(1));
+	assert_no_errors("#[0,1]", 0);
+	assert_no_errors("#[0,1]", 1);
+	assert_has_errors("#(0,1]", 0);
+	assert_has_errors("#[0,1)", 1);
+	assert_has_errors("#(0,1)", 0);
+	assert_has_errors("#(0,1)", 1);
+	assert_no_errors("#[0,0]", 0);
+	assert_has_errors("#(0,0)", 0);
+
+	// decimal
+	assert_no_errors("%", 123);
+	assert_has_errors("%", Data());
+	assert_has_errors("%", "hello");
+
+	assert_no_errors("%?", 123);
+	assert_no_errors("%?", Data());
+	assert_has_errors("%?", "hello");
+
+	assert_no_errors("%[0.0,1.0]", 0.0);
+	assert_no_errors("%[12,56]", 12.0);
+	assert_has_errors("%(0,1]", 0);
+	assert_has_errors("%[0,1)", 1);
+	assert_has_errors("%(0,1)", 0);
+	assert_has_errors("%(0,1)", 1);
+	assert_no_errors("%[0,0]", 0);
+	assert_has_errors("%(0,0)", 0);
 
 	// array
 	assert_no_errors("[]", Data::Array());
 	assert_has_errors("[]", Data::Array({ 1 }));
 	assert_has_errors("[]", Data());
-	assert_has_errors("[]", Data(1));
+	assert_has_errors("[]", 1);
 
 	assert_no_errors("[]?", Data::Array());
 	assert_no_errors("[]?", Data());
 	assert_has_errors("[]?", Data::Array({ 1 }));
-	assert_has_errors("[]?", Data(1));
+	assert_has_errors("[]?", 1);
 
 	assert_no_errors("[#]", Data::Array({ 1 }));
 	assert_has_errors("[#]", Data::Array({ 1, 2 }));
@@ -602,7 +622,8 @@ void test_validation()
 	// table
 	assert_no_errors("{}", Data::Table());
 	assert_has_errors("{}", Data());
-	assert_has_errors("{}", Data(1));
+	assert_has_errors("{}", 1);
+	assert_no_errors("{}", Data::Table({{ "key", 4 }}));
 
 	assert_no_errors("{}?", Data());
 	assert_no_errors("{}?", Data::Table());
@@ -616,35 +637,39 @@ void test_validation()
 	assert_no_errors("{key:#?}", Data::Table({{ "key", 1 }}));
 	assert_has_errors("{key:#?}", Data::Table({{ "key", "hello" }}));
 
+	assert_no_errors("{key:#,name:$}", Data::Table({ { "key", 47 }, { "name", "Ike" } }));
+	assert_has_errors("{key:#,name:$}", Data::Table({ { "key", Data() } }));
+	assert_has_errors("{key:#,name:$}", Data::Table({ { "key", Data() }, { "name", Data() } }));
+	assert_has_errors("{key:#,name:$}", Data::Table({ }));
 
-	// // string
-	// assert(Validator("''")(Data("hello")).empty());
-	// assert(!Validator("''")(Data()).empty());
-	// assert(Validator("?''")(Data("hello")).empty());
-	// assert(validate(Data(), "?''").empty());
+	// string
+	assert_no_errors("$", "hello");
+	assert_has_errors("$", 1);
+	assert_has_errors("$", Data());
 
+	assert_no_errors("$?", Data());
+	assert_no_errors("$?", "hello");
+	assert_has_errors("$?", 1);
 
-	// // decimal
-	// assert(validate(Data(12.3), ".#").empty());
-	// assert(!validate(Data(), ".#").empty());
-	// assert(validate(Data(12.3), "?.#").empty());
-	// assert(validate(Data(), "?.#").empty());
+	// boolean
+	assert_no_errors("&", true);
+	assert_has_errors("&", 1);
+	assert_has_errors("&", Data());
 
-	// // boolean
-	// assert(validate(Data(true), "~").empty());
-	// assert(!validate(Data(), "~").empty());
-	// assert(validate(Data(true), "?~").empty());
-	// assert(validate(Data(), "?~").empty());
+	assert_no_errors("&?", Data());
+	assert_no_errors("&?", false);
+	assert_has_errors("&?", 1);
 
-	// // table
-	// auto test = Data(Data::Table({
-	// 	{ "key", "value" }
-	// }));
-	// assert(validate(test, "{key:''}").empty());
-
-	// auto errors = validate(form, "{first_name:'',middle_name:?'',last_name:'',age:#,minor:~,patience:%,s:}");
-	// for (auto error : errors)
-	// 	std::cout << "error: " << error << std::endl;
+	auto format = "{first_name:$,middle_name:$?,last_name:$,age:#[0,150],minor:&,patience:%[0,1],friends:[$, $, $]}";
+	auto data = Data::Table({
+		{ "first_name", "Ike" },
+		{ "last_name", "Hirzel" },
+		{ "age", 22 },
+		{ "minor", false },
+		{ "patience", 0.6 },
+		{ "friends", Data::Array({ "Alex", "Jacob", "Memo" }) }
+	});
+	assert_no_errors(format, data);
 }
 
 #define TEST(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
