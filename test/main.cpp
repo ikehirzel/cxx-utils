@@ -525,7 +525,7 @@ void test_json()
 	auto errors = Validator(fmt)(arg);\
 	if (errors.size())\
 	{\
-		std::cout << "Assertion failed! " #arg " produces " << errors.size() << " errors with format " #fmt " \n the following errors were returned:\n";\
+		std::cout << "Assertion failed! '" #arg "' produces " << errors.size() << " error(s) with format " #fmt " \n the following errors were returned:\n";\
 		for (auto s : errors)\
 			std::cout << '\t' << s << std::endl;\
 		std::abort();\
@@ -570,6 +570,22 @@ void test_validation()
 	assert_no_errors("#[0,0]", 0);
 	assert_has_errors("#(0,0)", 0);
 
+	assert_no_errors("#[0,~]", 0);
+	assert_no_errors("#[0,~]", 1);
+	assert_no_errors("#[0,~]", LLONG_MAX);
+	assert_no_errors("#[0,~)", 0);
+	assert_no_errors("#[0,~)", 1);
+	assert_has_errors("#[0,~)", LLONG_MAX);
+
+	assert_has_errors("#[~,0]", 1);
+	assert_no_errors("#[~,0]", 0);
+	assert_no_errors("#[~,0]", -1);
+	assert_no_errors("#[~,0]", -134543);
+	assert_no_errors("#[~,0]", LLONG_MIN);
+	assert_no_errors("#(~,0]", 0);
+	assert_no_errors("#(~,0]", -1);
+	assert_has_errors("#(~,0]", LLONG_MIN);
+
 	// decimal
 	assert_no_errors("%", 123);
 	assert_has_errors("%", Data());
@@ -587,6 +603,22 @@ void test_validation()
 	assert_has_errors("%(0,1)", 1);
 	assert_no_errors("%[0,0]", 0);
 	assert_has_errors("%(0,0)", 0);
+
+	assert_no_errors("%[0,~]", 0.0);
+	assert_no_errors("%[0,~]", 1.0);
+	assert_no_errors("%[0,~]", DBL_MAX);
+	assert_no_errors("%[0,~)", 0.0);
+	assert_no_errors("%[0,~)", 1.0);
+	assert_has_errors("%[0,~)", DBL_MAX);
+
+	assert_has_errors("%[~,0]", 1.0);
+	assert_no_errors("%[~,0]", 0.0);
+	assert_no_errors("%[~,0]", -1.0);
+	assert_no_errors("%[~,0]", -134543.0);
+	assert_no_errors("%[~,0]", -DBL_MAX);
+	assert_no_errors("%(~,0]", 0.0);
+	assert_no_errors("%(~,0]", -1.0);
+	assert_has_errors("%(~,0]", DBL_MAX);
 
 	// array
 	assert_no_errors("[]", Data::Array());

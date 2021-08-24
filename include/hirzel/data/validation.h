@@ -270,14 +270,32 @@ namespace hirzel::data
 			return c >= '0' && c <= '9';
 		}
 
-		inline long long parse_range_integer(const char *&iter)
+		inline bool is_range_terminal(char c)
+		{
+			switch (c)
+			{
+				case ',':
+				case '[':
+				case ']':
+				case '(':
+				case ')':
+					return true;
+				default:
+					return false;
+			}
+		}
+
+		inline long long parse_range_integer(const char *&iter, bool is_lower_bound)
 		{
 			const char *start_of_literal = iter;
 
-			while (is_integer_char(*iter))
+			while (!is_range_terminal(*iter))
 				iter += 1;
 
 			auto number_str = std::string(start_of_literal, iter - start_of_literal);
+
+			if (number_str == "~")
+				return is_lower_bound ? LLONG_MIN : LLONG_MAX;
 
 			try
 			{
@@ -308,14 +326,14 @@ namespace hirzel::data
 
 			iter += 1;
 
-			out.min = details::parse_range_integer(iter);
+			out.min = details::parse_range_integer(iter, true);
 
 			if (*iter != ',')
 				throw details::unexpected_token_error("integer range", *iter);
 
 			iter += 1;
 
-			out.max = details::parse_range_integer(iter);
+			out.max = details::parse_range_integer(iter, false);
 			
 			switch (*iter)
 			{
@@ -338,14 +356,17 @@ namespace hirzel::data
 			return (c >= '0' && c <= '9') || c == '.';
 		}
 
-		double parse_range_decimal(const char *&iter)
+		double parse_range_decimal(const char *&iter, bool is_lower_bound)
 		{
 			const char *start_of_literal = iter;
 
-			while (is_decimal_char(*iter))
+			while (!is_range_terminal(*iter))
 				iter += 1;
 
 			auto number_str = std::string(start_of_literal, iter - start_of_literal);
+
+			if (number_str == "~")
+				return (is_lower_bound) ? -DBL_MAX : DBL_MAX;
 
 			try
 			{
@@ -398,14 +419,14 @@ namespace hirzel::data
 
 			iter += 1;
 
-			out.min = parse_range_decimal(iter);
+			out.min = parse_range_decimal(iter, true);
 
 			if (*iter != ',')
 				throw unexpected_token_error("decimal range", *iter);
 			
 			iter += 1;
 
-			out.max = parse_range_decimal(iter);
+			out.max = parse_range_decimal(iter, false);
 
 			switch (*iter)
 			{
