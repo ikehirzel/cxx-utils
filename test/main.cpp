@@ -14,12 +14,12 @@ using namespace hirzel::data;
 	try\
 	{\
 		expr;\
-		assertion_failure("'" #expr "' expected " #exception_type " but no exception was thrown.");\
+		hirzel::assertion_failure(#expr, "Expected " #exception_type " but no exception was thrown.");\
 	}\
 	catch(const exception_type& e) { }\
 	catch(const std::exception& e)\
 	{\
-		assertion_failure("'" #expr "' expected " #exception_type " but caught unhandled exception");\
+		hirzel::assertion_failure(#expr, "Expected " #exception_type " but caught unhandled exception");\
 	}\
 }
 
