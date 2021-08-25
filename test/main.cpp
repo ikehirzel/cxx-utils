@@ -5,44 +5,21 @@
 #include <iostream>
 #include <fstream>
 
+#include "assert.h"
+
 using namespace hirzel::data;
-
-struct SourceLocation
-{
-  const char *filename;
-  unsigned line;
-  const char *function_name;
-};
-
-#define CURRENT_SOURCE_LOCATION SourceLocation{__FILE__, __LINE__, __func__}
-
-void print_assert_message(SourceLocation location, const char *expression, const char *msg)
-{
-	std::cerr << location.filename << "@" << location.line << "::"
-		<< location.function_name << ": assertion '" << expression
-		<< "' failed!";
-
-	if (msg)
-		std::cerr << " : " << msg;
-		
-	std::cerr << std::endl;
-}
 
 #define assert_throws(expr, exception_type)\
 {\
 	try\
 	{\
 		expr;\
-		print_assert_message(CURRENT_SOURCE_LOCATION, #expr,\
-			"expression did not throw an exception");\
-		std::abort();\
+		assertion_failure("'" #expr "' expected " #exception_type " but no exception was thrown.");\
 	}\
 	catch(const exception_type& e) { }\
 	catch(const std::exception& e)\
 	{\
-		print_assert_message(CURRENT_SOURCE_LOCATION, #expr,\
-			"incorrect type of exception");\
-		throw e;\
+		assertion_failure("'" #expr "' expected " #exception_type " but caught unhandled exception");\
 	}\
 }
 
@@ -60,154 +37,7 @@ void print_assert_message(SourceLocation location, const char *expression, const
 	}\
 }
 
-std::string colors_json =
-R"=====({
-  "colors": [
-    {
-      "color": "black",
-      "category": "hue",
-      "type": "primary",
-      "code": {
-        "rgba": [255,255,255,1],
-        "hex": "#000"
-      }
-    },
-    {
-      "color": "white",
-      "category": "value",
-      "code": {
-        "rgba": [0,0,0,1],
-        "hex": "#FFF"
-      }
-    },
-    {
-      "color": "red",
-      "category": "hue",
-      "type": "primary",
-      "code": {
-        "rgba": [255,0,0,1],
-        "hex": "#FF0"
-      }
-    },
-    {
-      "color": "blue",
-      "category": "hue",
-      "type": "primary",
-      "code": {
-        "rgba": [0,0,255,1],
-        "hex": "#00F"
-      }
-    },
-    {
-      "color": "yellow",
-      "category": "hue",
-      "type": "primary",
-      "code": {
-        "rgba": [255,255,0,1],
-        "hex": "#FF0"
-      }
-    },
-    {
-      "color": "green",
-      "category": "hue",
-      "type": "secondary",
-      "code": {
-        "rgba": [0,255,0,1],
-        "hex": "#0F0"
-      }
-    }
-  ]
-})=====";
 
-std::string pokemon_json= R"====(
-	{
-  "count": 1118,
-  "next": "https://pokeapi.co/api/v2/pokemon?offset=20&limit=20",
-  "previous": null,
-  "results": [
-    {
-      "name": "bulbasaur",
-      "url": "https://pokeapi.co/api/v2/pokemon/1/"
-    },
-    {
-      "name": "ivysaur",
-      "url": "https://pokeapi.co/api/v2/pokemon/2/"
-    },
-    {
-      "name": "venusaur",
-      "url": "https://pokeapi.co/api/v2/pokemon/3/"
-    },
-    {
-      "name": "charmander",
-      "url": "https://pokeapi.co/api/v2/pokemon/4/"
-    },
-    {
-      "name": "charmeleon",
-      "url": "https://pokeapi.co/api/v2/pokemon/5/"
-    },
-    {
-      "name": "charizard",
-      "url": "https://pokeapi.co/api/v2/pokemon/6/"
-    },
-    {
-      "name": "squirtle",
-      "url": "https://pokeapi.co/api/v2/pokemon/7/"
-    },
-    {
-      "name": "wartortle",
-      "url": "https://pokeapi.co/api/v2/pokemon/8/"
-    },
-    {
-      "name": "blastoise",
-      "url": "https://pokeapi.co/api/v2/pokemon/9/"
-    },
-    {
-      "name": "caterpie",
-      "url": "https://pokeapi.co/api/v2/pokemon/10/"
-    },
-    {
-      "name": "metapod",
-      "url": "https://pokeapi.co/api/v2/pokemon/11/"
-    },
-    {
-      "name": "butterfree",
-      "url": "https://pokeapi.co/api/v2/pokemon/12/"
-    },
-    {
-      "name": "weedle",
-      "url": "https://pokeapi.co/api/v2/pokemon/13/"
-    },
-    {
-      "name": "kakuna",
-      "url": "https://pokeapi.co/api/v2/pokemon/14/"
-    },
-    {
-      "name": "beedrill",
-      "url": "https://pokeapi.co/api/v2/pokemon/15/"
-    },
-    {
-      "name": "pidgey",
-      "url": "https://pokeapi.co/api/v2/pokemon/16/"
-    },
-    {
-      "name": "pidgeotto",
-      "url": "https://pokeapi.co/api/v2/pokemon/17/"
-    },
-    {
-      "name": "pidgeot",
-      "url": "https://pokeapi.co/api/v2/pokemon/18/"
-    },
-    {
-      "name": "rattata",
-      "url": "https://pokeapi.co/api/v2/pokemon/19/"
-    },
-    {
-      "name": "raticate",
-      "url": "https://pokeapi.co/api/v2/pokemon/20/"
-    }
-  ]
-}
-)====";
 
 #define assert_cast_values(data, int_val, float_val, bool_val, string_val)\
 	assert(data.as_int() == int_val);\
@@ -431,283 +261,20 @@ void test_table()
 
 void test_json()
 {
-	Data v;
-	assert_not_throws(v = parse_json("true"), JsonException);
-	assert_bool(v, true);
-	assert_not_throws(v = parse_json("false"), JsonException);
-	assert_bool(v, false);
-	assert_not_throws(v = parse_json("null"), JsonException);
-	assert_null(v);
-	assert_not_throws(v = parse_json("3"), JsonException);
-	assert_int(v, 3);
-	assert_not_throws(v = parse_json("-5"), JsonException);
-	assert_int(v, -5);
-	assert_not_throws(v = parse_json("-876.02"), JsonException);
-	assert_float(v, -876.02);
-	assert_not_throws(v = parse_json("5.342"), JsonException);
-	assert_float(v, 5.342);
-	assert_throws(parse_json("5.4."), JsonException);
-
-	assert_not_throws(v = parse_json("\"hello\""), JsonException);
-	assert_string(v, 0, 0.0, true, "hello");
-
-	assert_not_throws(v = parse_json(R"([3,-5,"hello"])"), JsonException);
-	assert_int(v[0], 3);
-	assert_int(v[1], -5);
-	assert_string(v[2], 0, 0.0, true, "hello");
-
-	std::string ex_json = R"({"num":3,"str":"abcdef","":-4})";
-	Data second;
-	assert_not_throws(v = parse_json(ex_json), JsonException);
-	assert(v != second);
-	assert(second != v);
-	assert_not_throws(second = parse_json(ex_json), JsonException);
-	assert(v == second);
-	assert(second == v);
-	assert_not_throws(second = parse_json(v.as_json()), JsonException);
-	assert(second == v);
-	assert(v == second);
-	assert_not_throws(v = parse_json(second.as_json()), JsonException);
-	assert(second == v);
-	assert(v == second);
-	assert_table(v);
-	assert_int(v["num"], 3);
-	assert_string(v["str"], 0, 0.0, true, "abcdef");
-	assert_int(v[""], -4);
-
-	ex_json = R"({"scooby":{"snacks":{"flavor":"spicy","size":3}},"num":3,"arr":[3,-5,2]})";
-	assert_not_throws(v = parse_json(ex_json), JsonException);
-	assert(v != second);
-	assert(second != v);
-	assert_not_throws(second = parse_json(ex_json), JsonException);
-	assert(v == second);
-	assert(second == v);
-	assert_not_throws(second = parse_json(v.as_json()), JsonException);
-	assert(second == v);
-	assert(v == second);
-	assert_not_throws(v = parse_json(second.as_json()), JsonException);
-	assert(second == v);
-	assert(v == second);
-	assert(!v["scooby"].is_null());
-	assert(v["scooby"].is_table());
-
-	assert_not_throws(v = parse_json("[]"), JsonException);
-	assert_array(v);
-	assert(v.size() == 0);
-	assert(!v.as_bool());
-
-	assert_not_throws(v = parse_json("{}"), JsonException);
-	assert_table(v);
-	assert(v.size() == 0);
-
-	std::string serial = v.as_json();
-	assert_not_throws(v = parse_json(pokemon_json), JsonException);
-	assert(v.contains("previous"));
-	assert_null(v["previous"]);
-	assert(v.contains("results"));
-	assert_array(v["results"]);
-	assert_table(v["results"][0]);
-	assert(v["results"][0].contains("name"));
-	assert_string(v["results"][0]["name"], 0, 0.0, true, "bulbasaur");
-	assert(v["results"][0].contains("url"));
-	assert_string(v["results"][0]["url"], 0, 0.0, true, "https://pokeapi.co/api/v2/pokemon/1/");
-
-	assert_not_throws(v = parse_json(colors_json), JsonException);
-	assert(v.contains("colors"));
-	assert_array(v["colors"]);
-	assert(v["colors"].size() == 6);
-	assert_table(v["colors"][0]);
-	assert(v["colors"][0].contains("color"));
-	assert_string(v["colors"][0]["color"], 0, 0.0, true, "black");
-}
-
-#define assert_no_errors(fmt, arg) {\
-	auto errors = Validator(fmt)(arg);\
-	if (errors.size())\
-	{\
-		std::cout << "Assertion failed! '" #arg "' produces " << errors.size() << " error(s) with format " #fmt " \n the following errors were returned:\n";\
-		for (auto s : errors)\
-			std::cout << '\t' << s << std::endl;\
-		std::abort();\
-	}\
-}
-#define assert_has_errors(fmt, arg) {\
-	if (Validator(fmt)(arg).empty()) {\
-		std::cout << "Assertion failed! " #arg " produces no errors with format " #fmt << std::endl;\
-		std::abort();\
-	}\
-}
-
-void test_validation()
-{
-	using Array = Data::Array;
-	using Table = Data::Table;
-
-	Data form = Table({
-		{ "first_name", "Ike" },
-		{ "last_name", "Hirzel" },
-		{ "age", 22 },
-		{ "patience", 0.5 },
-		{ "minor", false },
-		{ "friends", Array({ "Alex", "Jacob", "Jared" }) }
-	});
-
-	// integer
-	assert_no_errors("#", 123);
-	assert_has_errors("#", Data());
-	assert_has_errors("#", "hello");
-
-	assert_no_errors("#?", 123);
-	assert_no_errors("#?", Data());
-	assert_has_errors("#?", "hello");
-
-	assert_no_errors("#[0,1]", 0);
-	assert_no_errors("#[0,1]", 1);
-	assert_has_errors("#(0,1]", 0);
-	assert_has_errors("#[0,1)", 1);
-	assert_has_errors("#(0,1)", 0);
-	assert_has_errors("#(0,1)", 1);
-	assert_no_errors("#[0,0]", 0);
-	assert_has_errors("#(0,0)", 0);
-
-	assert_no_errors("#[0,~]", 0);
-	assert_no_errors("#[0,~]", 1);
-	assert_no_errors("#[0,~]", LLONG_MAX);
-	assert_no_errors("#[0,~)", 0);
-	assert_no_errors("#[0,~)", 1);
-	assert_has_errors("#[0,~)", LLONG_MAX);
-
-	assert_has_errors("#[~,0]", 1);
-	assert_no_errors("#[~,0]", 0);
-	assert_no_errors("#[~,0]", -1);
-	assert_no_errors("#[~,0]", -134543);
-	assert_no_errors("#[~,0]", LLONG_MIN);
-	assert_no_errors("#(~,0]", 0);
-	assert_no_errors("#(~,0]", -1);
-	assert_has_errors("#(~,0]", LLONG_MIN);
-
-	// decimal
-	assert_no_errors("%", 123);
-	assert_has_errors("%", Data());
-	assert_has_errors("%", "hello");
-
-	assert_no_errors("%?", 123);
-	assert_no_errors("%?", Data());
-	assert_has_errors("%?", "hello");
-
-	assert_no_errors("%[0.0,1.0]", 0.0);
-	assert_no_errors("%[12,56]", 12.0);
-	assert_has_errors("%(0,1]", 0);
-	assert_has_errors("%[0,1)", 1);
-	assert_has_errors("%(0,1)", 0);
-	assert_has_errors("%(0,1)", 1);
-	assert_no_errors("%[0,0]", 0);
-	assert_has_errors("%(0,0)", 0);
-
-	assert_no_errors("%[0,~]", 0.0);
-	assert_no_errors("%[0,~]", 1.0);
-	assert_no_errors("%[0,~]", DBL_MAX);
-	assert_no_errors("%[0,~)", 0.0);
-	assert_no_errors("%[0,~)", 1.0);
-	assert_has_errors("%[0,~)", DBL_MAX);
-
-	assert_has_errors("%[~,0]", 1.0);
-	assert_no_errors("%[~,0]", 0.0);
-	assert_no_errors("%[~,0]", -1.0);
-	assert_no_errors("%[~,0]", -134543.0);
-	assert_no_errors("%[~,0]", -DBL_MAX);
-	assert_no_errors("%(~,0]", 0.0);
-	assert_no_errors("%(~,0]", -1.0);
-	assert_has_errors("%(~,0]", DBL_MAX);
-
-	// array
-	assert_no_errors("[]", Data::Array());
-	assert_has_errors("[]", Data::Array({ 1 }));
-	assert_has_errors("[]", Data());
-	assert_has_errors("[]", 1);
-
-	assert_no_errors("[]?", Data::Array());
-	assert_no_errors("[]?", Data());
-	assert_has_errors("[]?", Data::Array({ 1 }));
-	assert_has_errors("[]?", 1);
-
-	assert_no_errors("[#]", Data::Array({ 1 }));
-	assert_has_errors("[#]", Data::Array({ 1, 2 }));
-	assert_has_errors("[#]", Data::Array({ "hello" }));
-	assert_has_errors("[#]", Data::Array({ Data() }));
-
-	assert_no_errors("[#]?", Data::Array({ 1 }));
-	assert_has_errors("[#]?", Data::Array({ 1, 2 }));
-	assert_has_errors("[#]?", Data::Array({ "hello" }));
-	assert_has_errors("[#]?", Data::Array({ Data() }));
-
-	assert_no_errors("[#?]", Data::Array({ Data() }));
-	assert_has_errors("[#?]", Data::Array({ "hello" }));
-	assert_no_errors("[#?]", Data::Array({ }));
-	assert_no_errors("[#?, #?]", Data::Array({ }));
-
-	assert_no_errors("[#?]?", Data::Array({ Data() }));
-	assert_has_errors("[#?]?", Data::Array({ "hello" }));
-	assert_no_errors("[#?]?", Data::Array({ }));
-	assert_no_errors("[#?, #?]?", Data::Array({ }));
-
-	// table
-	assert_no_errors("{}", Data::Table());
-	assert_has_errors("{}", Data());
-	assert_has_errors("{}", 1);
-	assert_no_errors("{}", Data::Table({{ "key", 4 }}));
-
-	assert_no_errors("{}?", Data());
-	assert_no_errors("{}?", Data::Table());
-	assert_has_errors("{}?", 1);
-
-	assert_no_errors("{key:#}", Data::Table({ { "key", 47 } }));
-	assert_has_errors("{key:#}", Data::Table({ { "key", Data() } }));
-	assert_has_errors("{key:#}", Data::Table({ }));
-
-	assert_no_errors("{key:#?}", Data::Table({{ "key", Data() }}));
-	assert_no_errors("{key:#?}", Data::Table({{ "key", 1 }}));
-	assert_has_errors("{key:#?}", Data::Table({{ "key", "hello" }}));
-
-	assert_no_errors("{key:#,name:$}", Data::Table({ { "key", 47 }, { "name", "Ike" } }));
-	assert_has_errors("{key:#,name:$}", Data::Table({ { "key", Data() } }));
-	assert_has_errors("{key:#,name:$}", Data::Table({ { "key", Data() }, { "name", Data() } }));
-	assert_has_errors("{key:#,name:$}", Data::Table({ }));
-
-	// string
-	assert_no_errors("$", "hello");
-	assert_has_errors("$", 1);
-	assert_has_errors("$", Data());
-
-	assert_no_errors("$?", Data());
-	assert_no_errors("$?", "hello");
-	assert_has_errors("$?", 1);
-
-	// boolean
-	assert_no_errors("&", true);
-	assert_has_errors("&", 1);
-	assert_has_errors("&", Data());
-
-	assert_no_errors("&?", Data());
-	assert_no_errors("&?", false);
-	assert_has_errors("&?", 1);
-
-	auto format = "{first_name:$,middle_name:$?,last_name:$,age:#[0,150],minor:&,patience:%[0,1],friends:[$, $, $]}";
-	auto data = Data::Table({
-		{ "first_name", "Ike" },
-		{ "last_name", "Hirzel" },
-		{ "age", 22 },
-		{ "minor", false },
-		{ "patience", 0.6 },
-		{ "friends", Data::Array({ "Alex", "Jacob", "Memo" }) }
-	});
-	assert_no_errors(format, data);
+	
 }
 
 #define TEST(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
 
 int main()
 {
+	std::cout
+		<< "\n"
+		<< "##################################################################\n"
+		<< "Testing Data\n"
+		<< "##################################################################\n"
+		<< "\n";
+
 	TEST(null);
 	TEST(int);
 	TEST(float);
@@ -715,21 +282,7 @@ int main()
 	TEST(string);
 	TEST(array);
 	TEST(table);
-
 	TEST(json);
-	TEST(validation);
 
 	return 0;
 }
-
-/*
-	Single interface, multiple implementation of data
-	Validator
-		operator()
-
-	DataValidator
-		no constructor
-		virtual std::vector<std::string> validate(const Data&) = 0;
-
-	
-*/

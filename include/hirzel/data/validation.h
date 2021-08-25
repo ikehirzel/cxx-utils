@@ -156,6 +156,7 @@ namespace hirzel::data
 	private:
 
 		bool _is_nullable = false;
+		bool _is_last_variadic = false;
 		std::vector<DataValidator*> _validators;
 
 	public:
@@ -335,6 +336,9 @@ namespace hirzel::data
 
 			out.max = details::parse_range_integer(iter, false);
 			
+			if (out.min > out.max)
+				throw FormatException("lower-bound must be less than or equal to upper-bound in range");
+
 			switch (*iter)
 			{
 				case ']':
@@ -428,6 +432,9 @@ namespace hirzel::data
 
 			out.max = parse_range_decimal(iter, false);
 
+			if (out.min > out.max)
+				throw FormatException("lower-bound must be less than or equal to upper-bound in range");
+
 			switch (*iter)
 			{
 				case ')':
@@ -463,6 +470,18 @@ namespace hirzel::data
 			iter += 1;
 
 			return key;
+		}
+
+		inline void parse_elipsis(const char *&iter)
+		{
+			iter += 1;
+
+			for (unsigned i = 0; i < 2; ++i)
+			{
+				if (*iter != '.')
+					throw unexpected_token_error("elipsis", *iter);
+				iter += 1;
+			}
 		}
 	}
 
@@ -582,6 +601,13 @@ namespace hirzel::data
 						continue;
 					case ']':
 						break;
+					case '.':
+						if (_is_last_variadic)
+							throw FormatException("only the last element in an array may be variadic");
+
+						_is_last_variadic = true;
+						details::parse_elipsis(iter);
+						break;
 					default:
 						throw details::unexpected_token_error("array", *iter);
 				}
@@ -614,12 +640,18 @@ namespace hirzel::data
 		{
 			if (validator_index >= _validators.size())
 			{
-				out.push_back("expected "
-					+  std::to_string(_validators.size())
-					+ " elements but got "
-					+ std::to_string(data.size()));
-
-				break;
+				if (_is_last_variadic)
+				{
+					validator_index = _validators.size() - 1;
+				}
+				else
+				{
+					out.push_back("expected "
+						+  std::to_string(_validators.size())
+						+ " element(s) but got "
+						+ std::to_string(data.size()));
+					break;
+				}
 			}
 
 			auto validation_errors = _validators[validator_index]->validate(element);
