@@ -1,8 +1,8 @@
-#define HIRZEL_IMPLEMENT
 #include <hirzel/data/json.h>
 
 #include <iostream>
-#include <cassert>
+
+#include "assert.h"
 
 using namespace hirzel::data;
 
@@ -225,7 +225,7 @@ int main()
 
 	assert_parse_not_throws("false");
 	v = parse_json("false");
-	assert(v.is_bool());
+	assert(v.is_boolean());
 	assert(v.as_bool() == false);
 
 	assert_parse_not_throws("null");

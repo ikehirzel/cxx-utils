@@ -1,4 +1,3 @@
-#define HIRZEL_IMPLEMENT
 #include <hirzel/data/validation.h>
 
 #include <iostream>
@@ -16,50 +15,23 @@ using namespace hirzel::data;
 
 #define assert_no_errors(fmt, arg) {\
 	auto errors = Validator(fmt)(arg);\
-	if (errors.size())\
-	{\
-		std::cout << ASSERT_FAIL "'" #arg "' produces " << errors.size() << " error(s) with format " #fmt " \n the following errors were returned:\n";\
+	if (errors.size()) {\
+		std::string errors_glob;\
 		for (auto s : errors)\
-			std::cout << '\t' << s << std::endl;\
-		std::abort();\
+			errors_glob += "\n\t" + s;\
+		std::string error_msg = "format " #fmt " produces " + std::to_string(errors.size()) + " error(s) with format " #fmt ":\n" + errors_glob;\
+		hirzel::assertion_failure(error_msg.c_str());\
 	}\
 }
 
 #define assert_has_errors(fmt, arg) {\
 	if (Validator(fmt)(arg).empty()) {\
-		std::cout << ASSERT_FAIL #arg " produces no errors with format " #fmt << std::endl;\
-		std::abort();\
+		hirzel::assertion_failure("Assertion failed! Expected format " #fmt " to produce errors with " #arg);\
 	}\
 }
 
-#define assert_fmt_throws(fmt) {\
-	try {\
-		Validator(fmt);\
-		hirzel::assertion_failure("Expected " #fmt " to FormatException but no exception was thrown.\n");\
-	} catch (const FormatException& e) {\
-	} catch (const std::exception& e) {\
-		std::cout << ASSERT_FAIL "Expected no exceptions but caught unhandled exception:\n\t" << e.what() << std::endl;\
-		std::abort();\
-	} catch (...) {\
-		std::cout << ASSERT_FAIL "Expected to catch FormatException but got unknown error." << std::endl;\
-		std::abort();\
-	}\
-}
-
-#define assert_fmt_not_throws(fmt) {\
-	try {\
-		Validator(fmt);\
-	} catch (const FormatException& e) {\
-		std::cout << ASSERT_FAIL "Expected no exceptions but caught FormatException:\n\t" << e.what() << std::endl;\
-		std::abort();\
-	} catch (const std::exception& e) {\
-		std::cout << ASSERT_FAIL "Expected no exceptions but caught unhandled exception:\n\t" << e.what() << std::endl;\
-		std::abort();\
-	} catch (...) {\
-		std::cout << ASSERT_FAIL "Expected no exceptions but caught unknown error\n";\
-		std::abort();\
-	}\
-}
+#define assert_fmt_throws(fmt) assert_throws(Validator(fmt), FormatException)
+#define assert_fmt_no_throw(fmt) assert_no_throw(Validator(fmt), FormatException)
 
 void test_integer()
 {
@@ -261,13 +233,6 @@ void test_form()
 
 int main()
 {
-	std::cout
-		<< "\n"
-		<< "##################################################################\n"
-		<< "Testing validation\n"
-		<< "##################################################################\n"
-		<< "\n";
-
 	TEST(integer);
 	TEST(decimal);
 	TEST(boolean);
