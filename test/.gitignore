@@ -1,8 +1,11 @@
-# everything except for testing files
 *
 */
 !.gitignore
-!test.sh
-!test.ps1
-!main.cpp
-!impl.cpp
+
+# keep build scripts
+!*.ps1
+!*.sh
+
+# keep source files
+!*.h
+!*.cpp
