@@ -5,48 +5,45 @@
 #define STR(x) STRI(x)
 
 #include <iostream>
+#include <string>
 
 namespace hirzel
 {
-	inline void assertion_failure(const char *msg)
+	void _assertion_failure(const char *file, const char *line, const char *expr, const std::string& msg)
 	{
-		std::cerr << __FILE__ " @ " STR(__LINE__) ": " << msg << std::endl;
+		std::cerr << file << " @ " << line << ": Assertion '" << expr << "' failed! " << msg << std::endl;
 		std::abort();
 	}
 
-	#define assert_true(expr) {\
-		if (!(expr))\
-			hirzel::assertion_failure("Assertion '" #expr "' == true failed!");\
+	template <typename T>
+	void _assert_throws(void (*function)(), const char *file, const char *line, const char *type, const char *expr)
+	{
+		try {
+			function();
+			_assertion_failure(file, line, expr, "Expected to catch " + std::string(type) + " but nothing was thrown");
+		} catch (const T& e) {
+			return;
+		} catch (const std::exception& e) {
+			_assertion_failure(file, line, expr, "Expected to catch " + std::string(type) + " but caught unhandled exception: " + e.what());
+		} catch (...) {
+			_assertion_failure(file, line, expr, "Expected to catch " + std::string(type) + " but caught unknown error");
+		}
 	}
 
-	#define assert_false(expr) {\
-		if (expr)\
-			hirzel::assertion_failure("Assertion '" #expr "' == false failed!");\
-	}
-
-	#define assert_throws(expr, type) {\
-		try {\
-			expr;\
-			hirzel::assertion_failure("Assertion '" #expr "' failed! Expected to catch " #type " but nothing was thrown");\
-		} catch (const type& e) {\
+	void _assert_no_throw(void (*function)(), const char *file, const char *line, const char *expr)
+	{
+		try {
+			function();
 		} catch (const std::exception& e) {\
-			hirzel::assertion_failure("Assertion '" #expr "' failed! Expected " #type " but caught unhandled exception");\
+			_assertion_failure(file, line, expr, "Expected no errors but caught unhandled exception: " + std::string(e.what()));\
 		} catch (...) {\
-			hirzel::assertion_failure("Assertion '" #expr "' failed! Expected " #type " but caught unknown error");\
-		}\
+			_assertion_failure(file, line, expr, "Expected no errors but caught unknown error");
+		}
 	}
 
-	#define assert_no_throw(expr, type)\
-		try {\
-			expr;\
-		} catch (const type& e) {\
-			hirzel::assertion_failure("Assertion '" #expr "' failed! Expected not to catch, but caught " #type);\
-		} catch (const std::exception& e) {\
-			hirzel::assertion_failure("Assertion '" #expr "' failed! Expected not to catch, but caught unhandled exception");\
-		} catch (...) {\
-			hirzel::assertion_failure("Assertion '" #expr "' failed! Expected not to catch, but caught unknown error");\
-		}\
-	}
+	#define assert_throws(expr, type) hirzel::_assert_throws<type>([](){ expr; }, __FILE__, STR(__LINE__), #type, #expr)
+	#define assert_no_throw(expr) hirzel::_assert_no_throw([](){expr;}, __FILE__, STR(__LINE__), #expr)
+	#define assert_true(expr, msg) if (!(expr)) hirzel::_assertion_failure(__FILE__, STR(__LINE__), #expr, msg)
 }
 
 #endif

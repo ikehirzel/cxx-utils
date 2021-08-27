@@ -1,35 +1,13 @@
 #include <hirzel/data/validation.h>
 
 #include <iostream>
-#include <cassert>
 
 #include "assert.h"
 
 using namespace hirzel::data;
 
-#define STRI(x) #x
-#define STR(x) STRI(x)
-#define LINE STR(__LINE__)
-#define LOC __FILE__ " @ " LINE ": "
-#define ASSERT_FAIL LOC "Assertion failed! "
-
-#define assert_no_errors(fmt, arg) {\
-	auto errors = Validator(fmt)(arg);\
-	if (errors.size()) {\
-		std::string errors_glob;\
-		for (auto s : errors)\
-			errors_glob += "\n\t" + s;\
-		std::string error_msg = "format " #fmt " produces " + std::to_string(errors.size()) + " error(s) with format " #fmt ":\n" + errors_glob;\
-		hirzel::assertion_failure(error_msg.c_str());\
-	}\
-}
-
-#define assert_has_errors(fmt, arg) {\
-	if (Validator(fmt)(arg).empty()) {\
-		hirzel::assertion_failure("Assertion failed! Expected format " #fmt " to produce errors with " #arg);\
-	}\
-}
-
+#define assert_no_errors(fmt, arg) assert_true(Validator(fmt)(arg).empty(), "Format " #fmt " produces error(s) with argument: " #arg)
+#define assert_has_errors(fmt, arg) assert_true(Validator(fmt)(arg).size(), "Format " #fmt " produces no errors with argument: " #arg)
 #define assert_fmt_throws(fmt) assert_throws(Validator(fmt), FormatException)
 #define assert_fmt_no_throw(fmt) assert_no_throw(Validator(fmt), FormatException)
 
@@ -77,7 +55,7 @@ void test_decimal()
 	assert_fmt_throws("%[1,");
 	assert_fmt_throws("%[1,]");
 
-	assert_fmt_throws("%[1,0]")
+	assert_fmt_throws("%[1,0]");
 
 	assert_no_errors("%", 123);
 	assert_has_errors("%", Data());
