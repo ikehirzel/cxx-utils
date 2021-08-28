@@ -1,22 +1,20 @@
 #ifndef HIRZEL_ASSERT_H
 #define HIRZEL_ASSERT_H
 
-#define STRI(x) #x
-#define STR(x) STRI(x)
-
 #include <iostream>
 #include <string>
 
 namespace hirzel
 {
-	void _assertion_failure(const char *file, const char *line, const char *expr, const std::string& msg)
+
+	void _assertion_failure(const char *file, unsigned line, const char *expr, const std::string& msg)
 	{
 		std::cerr << file << " @ " << line << ": Assertion '" << expr << "' failed! " << msg << std::endl;
 		std::abort();
 	}
 
 	template <typename T>
-	void _assert_throws(void (*function)(), const char *file, const char *line, const char *type, const char *expr)
+	void _assert_throws(void (*function)(), const char *file, unsigned line, const char *type, const char *expr)
 	{
 		try {
 			function();
@@ -30,7 +28,7 @@ namespace hirzel
 		}
 	}
 
-	void _assert_no_throw(void (*function)(), const char *file, const char *line, const char *expr)
+	void _assert_no_throw(void (*function)(), const char *file, unsigned line, const char *expr)
 	{
 		try {
 			function();
@@ -41,9 +39,10 @@ namespace hirzel
 		}
 	}
 
-	#define assert_throws(expr, type) hirzel::_assert_throws<type>([](){ expr; }, __FILE__, STR(__LINE__), #type, #expr)
-	#define assert_no_throw(expr) hirzel::_assert_no_throw([](){expr;}, __FILE__, STR(__LINE__), #expr)
-	#define assert_true(expr, msg) if (!(expr)) hirzel::_assertion_failure(__FILE__, STR(__LINE__), #expr, msg)
+	#define assert_throws(expr, type) hirzel::_assert_throws<type>([](){ expr; }, __FILE__, __LINE__, #type, #expr)
+	#define assert_no_throw(expr) hirzel::_assert_no_throw([](){expr;}, __FILE__, __LINE__, #expr)
+	#define assert_true(expr, msg) if (!(expr)) hirzel::_assertion_failure(__FILE__, __LINE__, #expr, msg)
+	#define test(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
 }
 
 #endif

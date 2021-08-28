@@ -197,6 +197,8 @@ namespace hirzel::data
 #if !defined(HIRZEL_DATA_VALIDATION_I) && defined(HIRZEL_IMPLEMENT)
 #define HIRZEL_DATA_VALIDATION_I
 
+#include <iostream>
+
 namespace hirzel::data
 {
 	namespace details
@@ -591,6 +593,9 @@ namespace hirzel::data
 		{
 			while (true)
 			{
+				if (_is_last_variadic)
+					throw FormatException("only the last element in an array may be variadic");
+
 				auto validator = details::parse_data_validator(iter);
 				_validators.push_back(validator);
 
@@ -602,11 +607,13 @@ namespace hirzel::data
 					case ']':
 						break;
 					case '.':
-						if (_is_last_variadic)
-							throw FormatException("only the last element in an array may be variadic");
-
 						_is_last_variadic = true;
 						details::parse_elipsis(iter);
+						if (*iter == ',')
+						{
+							iter += 1;
+							continue;
+						}
 						break;
 					default:
 						throw details::unexpected_token_error("array", *iter);
@@ -615,7 +622,8 @@ namespace hirzel::data
 				break;
 			}
 		}
-
+		if (*iter != ']')
+			throw details::unexpected_token_error("end of array", *iter);
 		iter += 1;
 		_is_nullable = details::parse_is_nullable(iter);
 	}
@@ -631,36 +639,42 @@ namespace hirzel::data
 		if (data.is_null())
 			return {};
 
+		const auto& array = data.array();
+
+		if (_validators.empty() && !array.empty())
+			return { "expected no array elements but got " + std::to_string(data.size()) };
+
+		if ((array.size() > _validators.size() && !_is_last_variadic) || array.size() < _validators.size())
+			return { "expected " + std::to_string(_validators.size()) +
+				" array element(s) but got " + std::to_string(array.size()) };
+
 		std::vector<std::string> out;
 
-		size_t validator_index = 0;
-		auto array = data.array();
+		size_t element_index = 0;
 
-		for (auto element : array)
+		for (const auto& validator : _validators)
 		{
-			if (validator_index >= _validators.size())
-			{
-				if (_is_last_variadic)
-				{
-					validator_index = _validators.size() - 1;
-				}
-				else
-				{
-					out.push_back("expected "
-						+  std::to_string(_validators.size())
-						+ " element(s) but got "
-						+ std::to_string(data.size()));
-					break;
-				}
-			}
-
-			auto validation_errors = _validators[validator_index]->validate(element);
+			auto validation_errors = validator->validate(array[element_index]);
 
 			out.insert(out.end(),
 				std::make_move_iterator(validation_errors.begin()),
 				std::make_move_iterator(validation_errors.end()));
 
-			validator_index += 1;
+			element_index += 1;
+		}
+
+		if (_is_last_variadic)
+		{
+			auto validator = _validators.back();
+
+			for (size_t i = element_index; i < array.size(); ++i)
+			{
+				auto validation_errors = validator->validate(array[i]);
+
+				out.insert(out.end(),
+					std::make_move_iterator(validation_errors.begin()),
+					std::make_move_iterator(validation_errors.end()));
+			}
 		}
 
 		return out;

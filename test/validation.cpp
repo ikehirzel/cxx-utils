@@ -1,3 +1,4 @@
+#define HIRZEL_IMPLEMENT
 #include <hirzel/data/validation.h>
 
 #include <iostream>
@@ -173,13 +174,11 @@ void test_array()
 
 	assert_no_errors("[#?]", Array({ Data() }));
 	assert_has_errors("[#?]", Array({ "hello" }));
-	assert_no_errors("[#?]", Array({ }));
-	assert_no_errors("[#?, #?]", Array({ }));
+	assert_no_errors("[#?, #?, #]", Array({ Data(), Data(), 3}));
 
 	assert_no_errors("[#?]?", Array({ Data() }));
 	assert_has_errors("[#?]?", Array({ "hello" }));
-	assert_no_errors("[#?]?", Array({ }));
-	assert_no_errors("[#?, #?]?", Array({ }));
+	assert_no_errors("[#?]?", Data());
 
 	assert_no_errors("[#...]", Array());
 	assert_no_errors("[#...]", Array({ 1 }));
@@ -207,17 +206,15 @@ void test_form()
 	assert_no_errors(format, data);
 }
 
-#define TEST(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
-
 int main()
 {
-	TEST(integer);
-	TEST(decimal);
-	TEST(boolean);
-	TEST(string);
-	TEST(array);
-	TEST(table);
-	TEST(form);
+	test(integer);
+	test(decimal);
+	test(boolean);
+	test(string);
+	test(array);
+	test(table);
+	test(form);
 
 	return 0;
 }
