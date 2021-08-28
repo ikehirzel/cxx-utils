@@ -190,6 +190,16 @@ void test_array()
 	assert_no_errors("[#, #...]", Array({ 1, 2 }));
 	assert_no_errors("[#, #...]", Array({ 1, 2, 234, 109 }));
 	assert_has_errors("[#, #...]", Array({ }));	
+
+	// nullable variadic
+	assert_no_errors("[#?...]", Array({ }));
+	assert_no_errors("[#?...]", Array({ Data() }));
+	assert_no_errors("[#?...]", Array({ 1 }));
+	assert_no_errors("[#?...]", Array({ 1, Data(), 2, Data() }));
+	assert_no_errors("[#?...]", Array({ Data(), Data(), Data() }));
+	assert_has_errors("[#?...]", Array({ "hello" }));
+	assert_has_errors("[#?...]", Array({ 1, "hello" }));
+	assert_has_errors("[#?...]", Array({ Data(), "hello" }));
 }
 
 void test_form()

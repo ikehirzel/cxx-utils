@@ -641,20 +641,35 @@ namespace hirzel::data
 
 		const auto& array = data.array();
 
-		if (_validators.empty() && !array.empty())
-			return { "expected no array elements but got " + std::to_string(data.size()) };
+		if (_validators.empty())
+		{
+			if (!array.empty())
+				return { "expected no array elements but got " + std::to_string(data.size()) };
 
-		if ((array.size() > _validators.size() && !_is_last_variadic) || array.size() < _validators.size())
-			return { "expected " + std::to_string(_validators.size()) +
+			return {};
+		}
+
+		if (_is_last_variadic)
+		{
+			if (array.size() < _validators.size() - 1)
+				return { "expected at least " + std::to_string(_validators.size() - 1)
+					+ "array element(s) but got " + std::to_string(array.size()) };
+					
+			if (array.empty())
+				return {};
+		}
+		else if (array.size() != _validators.size())
+			return { "expected "  + std::to_string(_validators.size()) +
 				" array element(s) but got " + std::to_string(array.size()) };
 
 		std::vector<std::string> out;
-
 		size_t element_index = 0;
 
-		for (const auto& validator : _validators)
+		auto validator_count = _validators.size() - (size_t)_is_last_variadic;
+
+		for (size_t i = 0; i < validator_count; ++i)
 		{
-			auto validation_errors = validator->validate(array[element_index]);
+			auto validation_errors = _validators[i]->validate(array[element_index]);
 
 			out.insert(out.end(),
 				std::make_move_iterator(validation_errors.begin()),
