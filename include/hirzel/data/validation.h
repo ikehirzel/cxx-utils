@@ -609,6 +609,7 @@ namespace hirzel::data
 					case '.':
 						_is_last_variadic = true;
 						details::parse_elipsis(iter);
+
 						if (*iter == ',')
 						{
 							iter += 1;
@@ -654,7 +655,7 @@ namespace hirzel::data
 			if (array.size() < _validators.size() - 1)
 				return { "expected at least " + std::to_string(_validators.size() - 1)
 					+ "array element(s) but got " + std::to_string(array.size()) };
-					
+
 			if (array.empty())
 				return {};
 		}

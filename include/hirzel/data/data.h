@@ -153,10 +153,10 @@ namespace hirzel::data
 
 		inline long long get_integer() const
 		{
-			if (_type != BOOLEAN_TYPE)
+			if (_type != INTEGER_TYPE)
 				throw TypeException::cast_exception(type_name(), "integer");
 				
-			return _boolean;
+			return _integer;
 		}
 
 		inline double get_decimal() const 
@@ -190,8 +190,6 @@ namespace hirzel::data
 			
 			return *_table;
 		}
-		
-		std::string as_json() const;
 
 		inline bool contains(const std::string& key) const
 		{
@@ -412,58 +410,6 @@ namespace hirzel::data
 				return !_string->empty();
 			default:
 				return false;
-		}
-	}
-
-	std::string Data::as_json() const
-	{
-		switch(_type)
-		{
-			case INTEGER_TYPE:
-				return std::to_string(_integer);
-			case BOOLEAN_TYPE:
-				return (_boolean ? "true" : "false");
-			case DECIMAL_TYPE:
-				return std::to_string(_decimal);
-			case STRING_TYPE:
-				return "\"" + *_string + "\"";
-			case ARRAY_TYPE:
-			{
-				std::string out;
-
-				out = "[";
-				for (auto iter = _array->begin(); iter != _array->end(); iter++)
-				{
-					if (iter != _array->begin()) out += ',';
-					out += iter->as_json();
-				}
-				out += ']';
-
-				return out;
-			}
-			case TABLE_TYPE:
-			{
-				std::string out;
-
-				std::vector<std::string> str_reps(_table->size());
-				int i = 0;
-				for (auto iter = _table->begin(); iter != _table->end(); iter++)
-				{
-					str_reps[i++] = "\"" + iter->first + "\":" + iter->second.as_json();
-				}
-
-				out = "{";
-				for (i = i - 1; i >= 0; i--)
-				{
-					out += str_reps[i];
-					if (i > 0) out += ',';
-				}
-				out += '}';
-
-				return out;
-			}
-			default:
-				return "null";
 		}
 	}
 

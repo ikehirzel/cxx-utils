@@ -54,49 +54,55 @@ namespace hirzel::data
 {
 	std::string preprocess_json(const std::string& src)
 	{
-		std::string out = src;
-		auto out_iter = out.begin();
+		const char *iter = src.c_str();
+		std::string out(src.size(), '\0');
+		size_t oi = 0;
 
-		for (auto src_iter = src.begin(); src_iter != src.end(); ++src_iter)
+		while (*iter)
 		{
-			if (*src_iter < 33)
-				continue;
-			
-			if (*src_iter == '\"')
+			if (*iter <= ' ')
 			{
-				while (1)
-				{
-					*out_iter = *src_iter;
-
-					if (*src_iter == '\"')
-					{
-						out_iter += 1;
-						break;
-					}
-
-					if (src_iter == src.end())
-						throw JsonException("unterminated string at position: "
-							+ std::to_string(src_iter - src.end()));
-
-					out_iter += 1;
-					src_iter += 1;
-				}
-
+				iter += 1;
 				continue;
 			}
+		
+			if (*iter == '\"')
+			{
+				const char *start_of_string = iter;
 
-			*out_iter = *src_iter;
-			out_iter += 1;
+				out[oi++] = *iter;
+				iter += 1;
+
+				while (true)
+				{
+					if (*iter == '\0')
+					{
+						size_t size_of_preview = (iter - start_of_string > 15 ? 15 : iter - start_of_string);
+						throw JsonException("unterminated string starting with: "
+							+ std::string(start_of_string, size_of_preview));
+					}
+
+					if (*iter == '\"' && iter[-1] != '\\')
+						break;
+
+					out[oi++] = *iter;
+					iter += 1;
+				}
+			}
+
+			out[oi++] = *iter;
+			iter += 1;
 		}
 
-		out.resize(out_iter - out.begin());
+		out.resize(oi);
 		
 		return out;
 	}
 
-	std::pair<const char *, bool> parse_json_number_literal(const char * iter)
+	bool parse_json_number_literal(const char *& iter)
 	{
 		bool is_decimal = false;
+		bool expecting_digit = true;
 		
 		if (*iter == '-' || *iter == '+')
 			iter += 1;
@@ -115,6 +121,7 @@ namespace hirzel::data
 				case '7':
 				case '8':
 				case '9':
+					expecting_digit = false;
 					iter += 1;
 					break;
 
@@ -124,10 +131,14 @@ namespace hirzel::data
 
 					iter += 1;
 					is_decimal = true;
+					expecting_digit = true;
 					break;
 
 				default:
-					return { iter, is_decimal };
+					if (expecting_digit)
+						throw JsonException("number literals must end in a digit");
+
+					return is_decimal;
 			}
 		}
 	}
@@ -135,25 +146,32 @@ namespace hirzel::data
 	Data parse_json_number(const char *& iter)
 	{
 		const char * const start_of_number = iter;
-		auto res = parse_json_number_literal(iter);
 
-		iter = res.first;
-
-		if (*iter == 'e' || *iter == 'E')
+		try
 		{
-			auto exponent = parse_json_number_literal(iter);
+			bool is_base_decimal = parse_json_number_literal(iter);
 
-			if (exponent.second)
-				throw JsonException("stray '.' in exponent literal");
+			if (*iter == 'e' || *iter == 'E')
+			{
+				iter += 1;
 
-			iter = exponent.first;
+				if (parse_json_number_literal(iter))
+					throw JsonException("exponents must be integers");
+			}
+
+			std::string number_literal(start_of_number, iter - start_of_number);
+
+			return is_base_decimal
+				? Data(std::stod(number_literal))
+				: Data(std::stoll(number_literal));
 		}
-
-		std::string number_literal(start_of_number, iter - start_of_number);
-
-		return res.second
-			? Data(std::stod(number_literal))
-			: Data(std::stoll(number_literal));
+		catch (const std::exception& e)
+		{
+			throw JsonException("failed to parse number '"
+				+ std::string(start_of_number, iter - start_of_number)
+				+ "': "
+				+ std::string(e.what()));
+		}
 	}
 
 	Data parse_json_string(const char *& iter)
@@ -355,7 +373,12 @@ namespace hirzel::data
 
 		const char *iter = preprocessed_src.c_str();
 
-		return parse_json_value(iter);
+		auto out = parse_json_value(iter);
+
+		if (*iter != '\0')
+			throw JsonException("unexpected characters at end of JSON: '" + std::string(iter) + "'");
+
+		return out;
 	}
 }
 

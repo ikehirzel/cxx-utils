@@ -1,3 +1,4 @@
+#define HIRZEL_IMPLEMENT
 #include <hirzel/data/json.h>
 
 #include <iostream>
@@ -6,44 +7,17 @@
 
 using namespace hirzel::data;
 
-#define STRI(x) #x
-#define STR(x) STRI(x)
-#define LINE STR(__LINE__)
-#define LOC __FILE__ " @ " LINE ": "
-#define ASSERT_FAIL LOC "Assertion failed! "
-
-#define assert_parse_throws(json) {\
-	try {\
-		parse_json(json);\
-		std::cout << ASSERT_FAIL "Expected to catch JsonException but no exception was thrown.\n";\
-		std::abort();\
-	} catch (const JsonException& e) {\
-	} catch (const std::exception& e) {\
-		std::cout << ASSERT_FAIL "Expected no exceptions but caught unhandled exception:\n\t" << e.what() << std::endl;\
-		std::abort();\
-	} catch (...) {\
-		std::cout << ASSERT_FAIL "Expected to catch JsonException but got unknown error." << std::endl;\
-		std::abort();\
-	}\
-}
-
-#define assert_parse_not_throws(json) {\
-	try {\
-		parse_json(json);\
-	} catch (const JsonException& e) {\
-		std::cout << ASSERT_FAIL "Expected no exceptions but caught JsonException:\n\t" << e.what() << std::endl;\
-		std::abort();\
-	} catch (const std::exception& e) {\
-		std::cout << ASSERT_FAIL "Expected no exceptions but caught unhandled exception:\n\t" << e.what() << std::endl;\
-		std::abort();\
-	} catch (...) {\
-		std::cout << ASSERT_FAIL "Expected no exceptions but caught unknown error\n";\
-		std::abort();\
-	}\
-}
+#define assert_parse_throws(json) assert_throws(parse_json(json), JsonException)
+#define assert_parse_not_throws(json) assert_no_throw(parse_json(json))
 
 #define assert_type(var, type) assert_true(var.is_##type(), "Expected type '" #type "' but got '" + std::string(var.type_name()) + "'")
 #define assert_value(var, func, value) assert_true(var.as_##func() == value, "Expected value of " #value " but got " + var.as_string())
+
+#define assert_json(json, func, value) {\
+	assert_parse_not_throws(json);\
+	auto data = parse_json(json);\
+	assert_true(data.get_##func() == value, "Expected value '" #value "' but got '" + data.as_string() + "'");\
+}
 
 std::string colors_json =
 R"=====({
@@ -196,38 +170,78 @@ std::string pokemon_json= R"====(
 
 void test_null()
 {
+	// valid
+	assert_parse_not_throws("null");
+	assert_true(parse_json("null") == Data(), "Expected data of type 'null' but got " + parse_json("null").as_string());
 
+	// invalid
+	assert_parse_throws("nub");
+	assert_parse_throws("nul");
+	assert_parse_throws("nulll");
+	assert_parse_throws("nll");
 }
 
 void test_integer()
 {
+	// valid
+	assert_json("1", integer, 1);
+	assert_json("-1", integer, -1);
+	assert_json("1526227", integer, 1526227);
+	assert_json("-254", integer, -254);
+	assert_json("-0", integer, 0);
+	assert_json("0", integer, 0);
+
+	// invalid
+	assert_parse_throws("1526a");
+	assert_parse_throws("15a26");
+	assert_parse_not_throws("1e1");
+	assert_parse_not_throws("2e7");
+	assert_parse_not_throws("214e7");
 }
 
 void test_decimal()
 {
+	// valid
+	assert_json("1.234", decimal, 1.234);
+	assert_json("185.22334", decimal, 185.22334);
+	assert_json("1.2e1", decimal, 1.2e1);
+	assert_json("1.2e3", decimal, 1.2e3);
+	assert_json("23.1e12", decimal, 23.1e12);
+
+	// invalid
+	assert_parse_throws(".234");
+	assert_parse_throws("1.");
+	assert_parse_throws("1.2.3");
+	assert_parse_throws(".123e1");
+	assert_parse_throws("23.e1");
+	assert_parse_throws("23.1e1.2");
 }
 
 void test_boolean()
 {
-	Data v;
-	assert_parse_not_throws("true");
-	v = parse_json("true");
-	assert_type(v, boolean);
-	assert_value(v, bool, true);
+	// valid
+	assert_json("true", boolean, true);
+	assert_json("false", boolean, false);
 
-	assert_parse_not_throws("false");
-	v = parse_json("false");
-	assert_type(v, boolean);
-	assert_value(v, bool, false);
+	// invalid
+	assert_parse_throws("falsey");
+	assert_parse_throws("truey");
+	assert_parse_throws("tabc");
+	assert_parse_throws("fabdc");
 }
 
 void test_string()
 {
-	assert_parse_not_throws("\"hello\"");
-	auto v = parse_json("\"hello\"");
-	assert_type(v, string);
-	assert_value(v, string, "hello");
-}
+	// valid
+	assert_json("\"\"", string, "");
+	assert_json("\"hello\"", string, "hello");
+
+	// invalid
+	assert_parse_throws("\"");
+	assert_parse_throws("\"hello");
+	assert_parse_throws("\"hello\"\"");
+	assert_parse_throws("this is a string\"");
+} 
 
 void test_array()
 {
@@ -241,6 +255,7 @@ int main()
 {
 	test(null);
 	test(integer);
+	test(decimal);
 	test(boolean);
 	test(string);
 	test(array);
