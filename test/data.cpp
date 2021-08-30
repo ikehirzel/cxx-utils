@@ -1,7 +1,6 @@
+#define HIRZEL_IMPLEMENT
 #include <hirzel/data/data.h>
-#include <hirzel/data/json.h>
-#include <hirzel/data/validation.h>
-#include <cassert>
+
 #include <iostream>
 #include <fstream>
 
@@ -10,41 +9,44 @@
 using namespace hirzel::data;
 
 #define assert_cast_values(data, int_val, float_val, bool_val, string_val)\
-	assert(data.as_int() == int_val);\
-	assert(data.as_double() == float_val);\
-	assert(data.as_bool() == bool_val);\
-	assert(data.as_string() == string_val);\
-	assert_throws(data.get_array(), Data::TypeException);\
-	assert_throws(data.get_table(), Data::TypeException)
+	assert_true(data.as_int() == int_val);\
+	assert_true(data.as_double() == float_val);\
+	assert_true(data.as_bool() == bool_val);\
+	assert_true(data.as_string() == string_val);
 
 #define assert_primitive(data, typename, funcname, value)\
-	assert(data.type() == typename);\
-	assert(data.is_##funcname());\
-	assert(data.size() == 1)
+	assert_true(data.type() == typename);\
+	assert_true(data.is_##funcname());\
+	assert_true(data.size() == 1)
 
 #define assert_not_primitive(data, typename, funcname)\
-	assert(data.type() != typename);\
-	assert(!data.is_##funcname())
+	assert_true(data.type() != typename);\
+	assert_true(!data.is_##funcname())
 
-#define assert_not_null(data)		assert(data.type() != Data::NULL_TYPE); assert(!data.is_null());
+#define assert_not_null(data)		assert_true(data.type() != Data::NULL_TYPE); assert_true(!data.is_null());
 #define assert_not_bool(data)		assert_not_primitive(data, Data::BOOLEAN_TYPE, boolean)
 #define assert_not_int(data)		assert_not_primitive(data, Data::INTEGER_TYPE, integer)
 #define assert_not_float(data)		assert_not_primitive(data, Data::DECIMAL_TYPE, decimal)
 #define assert_not_string(data)		assert_not_primitive(data, Data::STRING_TYPE, string)
-#define assert_not_array(data)		assert(data.type() != Data::ARRAY_TYPE); assert(!data.is_array())
-#define assert_not_table(data)		assert(data.type() != Data::TABLE_TYPE); assert(!data.is_table())
+#define assert_not_array(data)		assert_true(data.type() != Data::ARRAY_TYPE); assert_true(!data.is_array())
+#define assert_not_table(data)		assert_true(data.type() != Data::TABLE_TYPE); assert_true(!data.is_table())
 
-#define assert_null(data)\
-	assert(data.type() == Data::NULL_TYPE); assert(data.is_null()); assert(data.size() == 0);\
+
+#define assert_null(data) {\
+	assert_true(data.type() == Data::NULL_TYPE);\
+	assert_true(data.is_null());\
+	assert_true(data.size() == 0);\
 	assert_cast_values(data, 0, 0.0, false, "null");\
 	assert_not_int(data);\
 	assert_not_float(data);\
 	assert_not_bool(data);\
 	assert_not_string(data);\
 	assert_not_array(data);\
-	assert_not_table(data)
+	assert_not_table(data);\
+}
 
-#define assert_bool(data, value)\
+#define assert_boolean(arg, value) {\
+	Data data = arg;\
 	assert_primitive(data, Data::BOOLEAN_TYPE, boolean, value);\
 	assert_cast_values(data, (int)value, (double)value, value, (value ? "true" : "false"));\
 	assert_not_null(data);\
@@ -52,200 +54,226 @@ using namespace hirzel::data;
 	assert_not_float(data);\
 	assert_not_string(data);\
 	assert_not_array(data);\
-	assert_not_table(data)
+	assert_not_table(data);\
+	assert_no_throw(Data(value).get_boolean());\
+}
 
-#define assert_int(data, value)\
+
+#define assert_integer(arg, value) {\
+	Data data = arg;\
 	assert_primitive(data, Data::INTEGER_TYPE, integer, value);\
 	assert_cast_values(data, value, (double)value, (bool)value, std::to_string(value));\
-	assert(data.is_number());\
+	assert_true(data.is_number());\
 	assert_not_null(data);\
 	assert_not_bool(data);\
 	assert_not_float(data);\
 	assert_not_string(data);\
 	assert_not_array(data);\
-	assert_not_table(data)
+	assert_not_table(data);\
+}
 
-#define assert_float(data, value)\
+#define assert_decimal(arg, value) {\
+	Data data = arg;\
 	assert_primitive(data, Data::DECIMAL_TYPE, decimal, value);\
 	assert_cast_values(data, (int)value, (double)value, (bool)value, std::to_string(value));\
-	assert(data.is_number());\
+	assert_true(data.is_number());\
 	assert_not_null(data);\
 	assert_not_int(data);\
 	assert_not_bool(data);\
 	assert_not_string(data);\
 	assert_not_array(data);\
-	assert_not_table(data)
+	assert_not_table(data);\
+}
 
-#define assert_string(data, int_value, float_value, bool_value, string_value)\
-	assert(data.type() == Data::STRING_TYPE); assert(data.is_string()); assert(data.size() == data.as_string().size());\
+#define assert_string(arg, int_value, float_value, bool_value, string_value) {\
+	Data data = arg;\
+	assert_true(data.type() == Data::STRING_TYPE);\
+	assert_true(std::string(data.type_name()) == "string");\
+	assert_true(data.is_string());\
+	assert_true(data.size() == data.as_string().size());\
 	assert_cast_values(data, int_value, float_value, bool_value, string_value);\
 	assert_not_null(data);\
 	assert_not_int(data);\
 	assert_not_float(data);\
 	assert_not_bool(data);\
 	assert_not_array(data);\
-	assert_not_table(data)
+	assert_not_table(data);\
+}
 
-#define assert_array(data)\
-	assert(data.type() == Data::ARRAY_TYPE); assert(data.is_array());\
+#define assert_array(arg) {\
+	Data data = arg;\
+	assert_true(data.type() == Data::ARRAY_TYPE);\
+	assert_true(data.is_array());\
 	assert_not_null(data);\
 	assert_not_int(data);\
 	assert_not_float(data);\
 	assert_not_bool(data);\
 	assert_not_string(data);\
-	assert_not_table(data)
+	assert_not_table(data);\
+}
 
-#define assert_table(data)\
-	assert(data.type() == Data::TABLE_TYPE); assert(data.is_table());\
+#define assert_table(arg) {\
+	Data data = arg;\
+	assert_true(data.type() == Data::TABLE_TYPE);\
+	assert_true(data.is_table());\
 	assert_not_null(data);\
 	assert_not_bool(data);\
 	assert_not_int(data);\
 	assert_not_float(data);\
 	assert_not_string(data);\
-	assert_not_array(data)
+	assert_not_array(data);\
+}
 
 void test_null()
 {
-	Data data;
-	assert_null(data);
+	assert_null(Data());
 
-	data = Data();
-	assert_null(data);
+	Data basic;
+
+	assert_null(basic);
+
+	Data init = Data();
+
+	assert_null(init);
+
+	Data init1 = Data(Data::Type::NULL_TYPE);
+
+	assert_null(init1);
+
+	Data copy = 1;
+	copy = Data();
+
+	assert_null(copy);
+
+	Data copy1 = true;
+	copy1 = copy;
+
+	assert_null(copy1);
+
+	Data move = "hello";
+	move = std::move(Data());
+
+	assert_null(move);
+
+	Data move1 = Data::Array { 1, 2, 3};
+	Data to_be_moved;
+	move1 = std::move(to_be_moved);
+
+	assert_null(move1);
 }
 
-void test_int()
+void test_integer()
 {
-	Data assign;
-	assert_null(assign);
-	assign = 0;
-	assert_int(assign, 0);
-	assign = 4L;
-	assert_int(assign, 4);
-	assign = -1023LL;
-	assert_int(assign, -1023);
+	assert_integer(0, 0);
+	assert_integer(-0, -0);
+	assert_integer(1, 1);
+	assert_integer(-1, -1);
+	assert_integer(4L, 4L);
+	assert_integer(4U, 4U);
+	assert_integer(-1023, -1023);
+	assert_integer(62, 62);
 
-	Data init0 = 62;
-	assert_int(init0, 62);
-	Data init1 = 0;
-	assert_int(init1, 0);
-	Data init2 = -54;
-	assert_int(init2, -54);
+	Data init = 234;
+
+	assert_integer(init, 234);
+
+	Data copy = "hello";
+	copy = 258;
+
+	assert_copy(copy, 258);
+
+	assign = 958;
+	Data assign1 = 
+
 }
 
-void test_float()
+void test_decimal()
 {
-	Data assign;
-	assert_null(assign);
-	assign = 1.34;
-	assert_float(assign, 1.34);
-	assign = 0.0f;
-	assert_float(assign, 0.0f);
-	assign = -123592.235;
-	assert_float(assign, -123592.235);
-
-	Data init0 = 2.0f;
-	assert_float(init0, 2.0f);
-	Data init1 = 0.0;
-	assert_float(init1, 0.0);
-	Data init2 = -124.0f;
-	assert_float(init2, -124.0f);
+	assert_decimal(1.34, 1.34);
+	assert_decimal(0.0f, 0.0f);
+	assert_decimal(-0.0, -0.0);
+	assert_decimal(-123592.235, -123592.235);
+	assert_decimal(2.0f, 2.0f);
 }
 
-void test_bool()
+void test_boolean()
 {
-	Data assign;
-	assign = true;
-	assert_bool(assign, true);
-	assign = false;
-	assert_bool(assign, false);
-	bool truth = false;
-	assign = truth;
-	assert_bool(assign, false);
-	truth = true;
-	assign = truth;
-	assert_bool(assign, true);
-
-	Data init0 = true;
-	assert_bool(init0, true);
-	Data init1 = false;
-	assert_bool(init1, false);
+	assert_boolean(true, true);
+	assert_boolean(false, false);
 }
 
 void test_string()
 {
-	Data assign;
-	assert_null(assign);
-	assign = "";
-	assert_string(assign, 0, 0.0, false, "");
-	assign = "hello";
-	assert_string(assign, 0, 0.0, true, "hello");
-	assign = "1.2";
-	assert_string(assign, 1, 1.2, true, "1.2");
-	assign = "123";
-	assert_string(assign, 123, 123.0, true, "123");
-	assign = "0";
-	assert_string(assign, 0, 0.0, true, "0");
-	assign = "0000";
-	assert_string(assign, 0, 0.0, true, "0000");
-
-	Data init0 = "hello";
-	assert_string(init0, 0, 0.0, true, "hello");
+	assert_string("", 0, 0.0, false, "");
+	assert_string("hello", 0, 0.0, true, "hello");
+	assert_string("1.2", 1, 1.2, true, "1.2");
+	assert_string("123", 123, 123.0, true, "123");
+	assert_string("0", 0, 0.0, true, "0");
+	assert_string("0000", 0, 0.0, true, "0000");
 }
 
 void test_array()
 {
-	Data assign;
-	assert_null(assign);
-	assign = Data::Array({ 1, false, -23.4, "hello" });;
-	assert_array(assign);
-	assert(assign.size() == 4);
-	assert_int(assign[0], 1);
-	assert_bool(assign[1], false);
-	assert_float(assign[2], -23.4);
-	assert_string(assign[3], 0, 0.0, true, "hello");
+	using Array = Data::Array;
+
+	Data empty = Array {};
+
+	assert_array(empty);
+	assert_true(empty.size() == 0);
+	assert_true(empty.is_empty());
+
+	Data array = Array { "hello", 1, true, 0.4 };
+
+	assert_true(array.is_array());
+	assert_true(array.size() == 4);
+	assert_true(!array.is_empty());
+
+	assert_string(array[0], 0, 0.0, true, "hello");
+	assert_integer(array[1], 1);
+	assert_boolean(array[2], true);
+	assert_decimal(array[3], 0.4);
 }
 
 void test_table()
 {
-	Data assign;
-	assert_null(assign);
-	assign = Data::Table();
-	assert_table(assign);
-	assert(assign.size() == 0);
-	assign["key"] = false;
-	assert_bool(assign["key"], false);
-	assign["arr"] = Data::Array();
-	assert_array(assign["arr"]);
-	assert(assign["arr"].size() == 0);
+	// Data assign;
 
-	Data init0 = Data::Table({
-		{"key", "value"},
-		{"number", 17.5}
-	});
-	assert_table(init0);
-	assert_string(init0["key"], 0, 0.0, true, "value");
-	assert_float(init0["number"], 17.5);
-	assert(init0.size() == 2);
+	using Table = Data::Table;
 
+	Data empty = Table {};
+
+	assert_table(empty);
+	assert_true(empty.size() == 0);
+	assert_true(empty.is_empty());
+
+	Data table = Table {
+		{ "boolean", true },
+		{ "integer", 1362 },
+		{ "decimal", 235.125 },
+		{ "string", "this is text" },
+		{ "null", Data() }
+	};
+
+	assert_table(table);
+	assert_true(table.size() == 5);
+	assert_true(!table.is_empty());
+
+	assert_boolean(table["boolean"], true);
+	assert_integer(table["integer"], 1362);
+	assert_decimal(table["decimal"], 235.125);
+	assert_string(table["string"], 0, 0.0, true, "this is text");
+	assert_null(table["null"]);
 }
-
-void test_json()
-{
-	
-}
-
-#define TEST(name) std::cout << "Testing " #name "...\n"; test_##name(); std::cout << "\t\tAll tests passed\n";
 
 int main()
 {
-	TEST(null);
-	TEST(int);
-	TEST(float);
-	TEST(bool);
-	TEST(string);
-	TEST(array);
-	TEST(table);
-	TEST(json);
+	test(null);
+	test(integer);
+	test(decimal);
+	test(boolean);
+	test(string);
+	test(array);
+	test(table);
 
 	return 0;
 }

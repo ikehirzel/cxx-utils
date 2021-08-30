@@ -243,12 +243,25 @@ void test_string()
 	assert_parse_throws("this is a string\"");
 } 
 
+#define assert_array(fmt, value, expected_size) {\
+	assert_parse_not_throws(fmt);\
+	auto data = parse_json(fmt);\
+	assert_true(data == value, "Expected array to be equivalent to " fmt " but was " + data.as_string());\
+	assert_true(data.size() == expected_size, "Expected array size to be " #expected_size " but got " + std::to_string(data.size()));\
+}
+
 void test_array()
 {
+	using Array = Data::Array;
+
+	assert_array("[]", Array(), 0);
+	assert_array("[1]", Array({ 1 }), 1);
+	assert_array("[null, null, null]", Array({ Data(), Data(), Data() }), 3);
 }
 
 void test_table()
 {
+	using Table = Data::Table;
 }
 
 int main()

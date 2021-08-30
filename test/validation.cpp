@@ -7,8 +7,8 @@
 
 using namespace hirzel::data;
 
-#define assert_no_errors(fmt, arg) assert_true(Validator(fmt)(arg).empty(), "Format " #fmt " produces error(s) with argument: " #arg)
-#define assert_has_errors(fmt, arg) assert_true(Validator(fmt)(arg).size(), "Format " #fmt " produces no errors with argument: " #arg)
+#define assert_no_errors(fmt, arg) assert_true_msg(Validator(fmt)(arg).empty(), "Format " #fmt " produces error(s) with argument: " #arg)
+#define assert_has_errors(fmt, arg) assert_true_msg(Validator(fmt)(arg).size(), "Format " #fmt " produces no errors with argument: " #arg)
 #define assert_fmt_throws(fmt) assert_throws(Validator(fmt), FormatException)
 #define assert_fmt_no_throw(fmt) assert_no_throw(Validator(fmt), FormatException)
 
