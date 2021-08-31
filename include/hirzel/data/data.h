@@ -40,13 +40,13 @@ namespace hirzel::data
 
 		enum Type
 		{
-			NULL_TYPE,
-			INTEGER_TYPE,
-			DECIMAL_TYPE,
-			BOOLEAN_TYPE,
-			STRING_TYPE,
-			ARRAY_TYPE,
-			TABLE_TYPE
+			NONE,
+			INTEGER,
+			DECIMAL,
+			BOOLEAN,
+			STRING,
+			ARRAY,
+			TABLE
 		};
 
 		class ParseException : public std::exception
@@ -84,7 +84,7 @@ namespace hirzel::data
 
 	private: // data members
 
-		Type _type = NULL_TYPE;
+		Type _type = Type::NONE;
 		union
 		{
 			long long _integer = 0;
@@ -97,32 +97,32 @@ namespace hirzel::data
 
 	public:
 
-		Data() : _type(NULL_TYPE), _integer(0) {}
+		Data() : _type(Type::NONE), _integer(0) {}
 		Data(const Data& other) { *this = other; }
 		Data(Data&& other) { *this = other; }
 		Data(Type t);
 
-		inline Data(short i) : _type(INTEGER_TYPE), _integer(i) {}
-		inline Data(int i) : _type(INTEGER_TYPE), _integer(i) {}
-		inline Data(long i) : _type(INTEGER_TYPE), _integer(i) {}
-		inline Data(long long i) : _type(INTEGER_TYPE), _integer(i) {}
+		inline Data(short i) : _type(Type::INTEGER), _integer(i) {}
+		inline Data(int i) : _type(Type::INTEGER), _integer(i) {}
+		inline Data(long i) : _type(Type::INTEGER), _integer(i) {}
+		inline Data(long long i) : _type(Type::INTEGER), _integer(i) {}
 
-		inline Data(unsigned short i) : _type(INTEGER_TYPE), _integer(i) {}
-		inline Data(unsigned int i) : _type(INTEGER_TYPE), _integer(i) {}
-		inline Data(unsigned long i) : _type(INTEGER_TYPE), _integer(i) {}
-		inline Data(unsigned long long i) : _type(INTEGER_TYPE), _integer(i) {}
+		inline Data(unsigned short i) : _type(Type::INTEGER), _integer(i) {}
+		inline Data(unsigned int i) : _type(Type::INTEGER), _integer(i) {}
+		inline Data(unsigned long i) : _type(Type::INTEGER), _integer(i) {}
+		inline Data(unsigned long long i) : _type(Type::INTEGER), _integer(i) {}
 		
-		inline Data(float d) : _type(DECIMAL_TYPE), _decimal(d) {}
-		inline Data(double d) : _type(DECIMAL_TYPE), _decimal(d) {}
+		inline Data(float d) : _type(Type::DECIMAL), _decimal(d) {}
+		inline Data(double d) : _type(Type::DECIMAL), _decimal(d) {}
 
-		inline Data(bool b) : _type(BOOLEAN_TYPE), _boolean(b) {}
+		inline Data(bool b) : _type(Type::BOOLEAN), _boolean(b) {}
 
-		inline Data(const std::string& s) : _type(STRING_TYPE), _string(new std::string(s)) {}
-		inline Data(char* s) : _type(STRING_TYPE), _string(new std::string(s)) {}
-		inline Data(const char* s) : _type(STRING_TYPE), _string(new std::string(s)) {}
+		inline Data(const std::string& s) : _type(Type::STRING), _string(new std::string(s)) {}
+		inline Data(char* s) : _type(Type::STRING), _string(new std::string(s)) {}
+		inline Data(const char* s) : _type(Type::STRING), _string(new std::string(s)) {}
 
-		inline Data(const Array& array) : _type(ARRAY_TYPE), _array(new Array(array)) {}
-		inline Data(const Table& table) : _type(TABLE_TYPE), _table(new Table(table)) {}
+		inline Data(const Array& array) : _type(Type::ARRAY), _array(new Array(array)) {}
+		inline Data(const Table& table) : _type(Type::TABLE), _table(new Table(table)) {}
 
 		~Data();
 
@@ -145,7 +145,7 @@ namespace hirzel::data
 
 		inline bool get_boolean() const
 		{
-			if (_type != BOOLEAN_TYPE)
+			if (_type != Type::BOOLEAN)
 				throw TypeException::cast_exception(type_name(), "boolean");
 
 			return _boolean;
@@ -153,7 +153,7 @@ namespace hirzel::data
 
 		inline long long get_integer() const
 		{
-			if (_type != INTEGER_TYPE)
+			if (_type != Type::INTEGER)
 				throw TypeException::cast_exception(type_name(), "integer");
 				
 			return _integer;
@@ -161,7 +161,7 @@ namespace hirzel::data
 
 		inline double get_decimal() const 
 		{
-			if (_type != DECIMAL_TYPE)
+			if (_type != Type::DECIMAL)
 				throw TypeException::cast_exception(type_name(), "decimal");
 				
 			return _decimal;
@@ -169,7 +169,7 @@ namespace hirzel::data
 
 		inline const std::string& get_string() const
 		{
-			if (_type != STRING_TYPE)
+			if (_type != Type::STRING)
 				throw TypeException::cast_exception(type_name(), "string");
 
 			return *_string;
@@ -177,7 +177,7 @@ namespace hirzel::data
 
 		inline const Array& get_array() const
 		{
-			if (_type != ARRAY_TYPE)
+			if (_type != Type::ARRAY)
 				throw TypeException::cast_exception(type_name(), "array");
 
 			return *_array;
@@ -185,7 +185,7 @@ namespace hirzel::data
 
 		inline const Table& get_table() const
 		{
-			if (_type != TABLE_TYPE)
+			if (_type != Type::TABLE)
 				throw TypeException::cast_exception(type_name(), "rable");
 			
 			return *_table;
@@ -193,7 +193,7 @@ namespace hirzel::data
 
 		inline bool contains(const std::string& key) const
 		{
-			return _type == TABLE_TYPE ?
+			return _type == Type::TABLE ?
 				_table->find(key) != _table->end() :
 				false;
 		}
@@ -201,14 +201,14 @@ namespace hirzel::data
 		bool is_empty() const;
 		size_t size() const;
 
-		inline bool is_null() const noexcept { return _type == NULL_TYPE; }
-		inline bool is_integer() const noexcept { return _type == INTEGER_TYPE; }
-		inline bool is_decimal() const noexcept { return _type == DECIMAL_TYPE; }
-		inline bool is_number() const noexcept { return _type == INTEGER_TYPE || _type == DECIMAL_TYPE; }
-		inline bool is_boolean() const noexcept { return _type == BOOLEAN_TYPE; }
-		inline bool is_string() const noexcept { return _type == STRING_TYPE; }
-		inline bool is_array() const noexcept { return _type == ARRAY_TYPE; }
-		inline bool is_table() const noexcept { return _type == TABLE_TYPE; }
+		inline bool is_null() const noexcept { return _type == Type::NONE; }
+		inline bool is_integer() const noexcept { return _type == Type::INTEGER; }
+		inline bool is_decimal() const noexcept { return _type == Type::DECIMAL; }
+		inline bool is_number() const noexcept { return _type == Type::INTEGER || _type == Type::DECIMAL; }
+		inline bool is_boolean() const noexcept { return _type == Type::BOOLEAN; }
+		inline bool is_string() const noexcept { return _type == Type::STRING; }
+		inline bool is_array() const noexcept { return _type == Type::ARRAY; }
+		inline bool is_table() const noexcept { return _type == Type::TABLE; }
 
 		inline Type type() const { return _type; }
 		const char *type_name() const noexcept;
@@ -218,7 +218,7 @@ namespace hirzel::data
 
 		inline Data& at(size_t i)
 		{
-			if (_type != ARRAY_TYPE)
+			if (_type != Type::ARRAY)
 				throw TypeException("data must be array for integer indexing");
 
 			if (i >= _array->size())
@@ -231,7 +231,7 @@ namespace hirzel::data
 
 		inline const Data& at(size_t i) const
 		{
-			if (_type != ARRAY_TYPE)
+			if (_type != Type::ARRAY)
 				throw TypeException("data must be array for integer indexing");
 
 			if (i >= _array->size())
@@ -255,7 +255,7 @@ namespace hirzel::data
 
 		inline Data& at(const std::string& key)
 		{
-			if (_type != TABLE_TYPE)
+			if (_type != Type::TABLE)
 				throw TypeException("data must be a table for string indexing");
 			
 			return (*_table)[key];
@@ -263,7 +263,7 @@ namespace hirzel::data
 
 		inline const Data& at(const std::string& key) const
 		{
-			if (_type != TABLE_TYPE)
+			if (_type != Type::TABLE)
 				throw TypeException("data must be a table for string indexing");
 
 			if (_table->find(key) == _table->end())
@@ -301,30 +301,30 @@ namespace hirzel::data
 
 		switch (t)
 		{
-		case NULL_TYPE:
+		case Type::NONE:
 			break;
 
-		case INTEGER_TYPE:
+		case Type::INTEGER:
 			_integer = 0;
 			break;
 
-		case DECIMAL_TYPE:
+		case Type::DECIMAL:
 			_decimal = 0.0;
 			break;
 
-		case BOOLEAN_TYPE:
+		case Type::BOOLEAN:
 			_boolean = false;
 			break;
 
-		case STRING_TYPE:
+		case Type::STRING:
 			_string = new std::string();
 			break;
 			
-		case ARRAY_TYPE:
+		case Type::ARRAY:
 			_array = new Array();
 			break;
 
-		case TABLE_TYPE:
+		case Type::TABLE:
 			_table = new Table();
 			break;
 		}
@@ -334,13 +334,13 @@ namespace hirzel::data
 	{
 		switch (_type)
 		{
-			case STRING_TYPE:
+			case Type::STRING:
 				delete _string;
 				break;
-			case ARRAY_TYPE:
+			case Type::ARRAY:
 				delete _array;
 				break;
-			case TABLE_TYPE:
+			case Type::TABLE:
 				delete _table;
 				break;
 			default:
@@ -352,13 +352,13 @@ namespace hirzel::data
 	{
 		switch(_type)
 		{
-			case INTEGER_TYPE:
+			case Type::INTEGER:
 				return _integer;
-			case BOOLEAN_TYPE:
+			case Type::BOOLEAN:
 				return (long long)_boolean;
-			case DECIMAL_TYPE:
+			case Type::DECIMAL:
 				return (long long)_decimal;
-			case STRING_TYPE:
+			case Type::STRING:
 				try
 				{
 					return std::stoll(*_string);
@@ -376,13 +376,13 @@ namespace hirzel::data
 	{
 		switch(_type)
 		{
-			case INTEGER_TYPE:
+			case Type::INTEGER:
 				return (double)_integer;
-			case BOOLEAN_TYPE:
+			case Type::BOOLEAN:
 				return (double)_boolean;
-			case DECIMAL_TYPE:
+			case Type::DECIMAL:
 				return _decimal;
-			case STRING_TYPE:
+			case Type::STRING:
 				try
 				{
 					return std::stod(*_string);
@@ -400,13 +400,13 @@ namespace hirzel::data
 	{
 		switch(_type)
 		{
-			case INTEGER_TYPE:
+			case Type::INTEGER:
 				return (bool)_integer;
-			case BOOLEAN_TYPE:
+			case Type::BOOLEAN:
 				return _boolean;
-			case DECIMAL_TYPE:
+			case Type::DECIMAL:
 				return (bool)_decimal;
-			case STRING_TYPE:
+			case Type::STRING:
 				return !_string->empty();
 			default:
 				return false;
@@ -432,22 +432,22 @@ namespace hirzel::data
 	{
 		switch(_type)
 		{
-			case NULL_TYPE:
+			case Type::NONE:
 				return "null";
 
-			case INTEGER_TYPE:
+			case Type::INTEGER:
 				return std::to_string(_integer);
 
-			case BOOLEAN_TYPE:
+			case Type::BOOLEAN:
 				return (_boolean ? "true" : "false");
 
-			case DECIMAL_TYPE:
+			case Type::DECIMAL:
 				return std::to_string(_decimal);
 
-			case STRING_TYPE:
+			case Type::STRING:
 				return *_string;
 
-			case ARRAY_TYPE:
+			case Type::ARRAY:
 			{
 				std::string out;
 				std::vector<std::string> str_reps(_array->size());
@@ -493,7 +493,7 @@ namespace hirzel::data
 
 				return out;
 			}
-			case TABLE_TYPE:
+			case Type::TABLE:
 			{
 				std::string out;
 				std::vector<std::string> str_reps;
@@ -533,13 +533,13 @@ namespace hirzel::data
 	{
 		switch (_type)
 		{
-		case STRING_TYPE:
+		case Type::STRING:
 			return _string->empty();
-		case ARRAY_TYPE:
+		case Type::ARRAY:
 			return _array->empty();
-		case TABLE_TYPE:
+		case Type::TABLE:
 			return _table->empty();
-		case NULL_TYPE:
+		case Type::NONE:
 			return true;
 		default:
 			return false;
@@ -550,13 +550,13 @@ namespace hirzel::data
 	{
 		switch (_type)
 		{
-		case NULL_TYPE:
+		case Type::NONE:
 			return 0;
-		case STRING_TYPE:
+		case Type::STRING:
 			return _string->size();
-		case ARRAY_TYPE:
+		case Type::ARRAY:
 			return _array->size();
-		case TABLE_TYPE:
+		case Type::TABLE:
 			return _table->size();
 		default:
 			return 1;
@@ -569,25 +569,25 @@ namespace hirzel::data
 		
 		switch (_type)
 		{
-			case NULL_TYPE:
+			case Type::NONE:
 				_integer = 0;
 				break;
-			case INTEGER_TYPE:
+			case Type::INTEGER:
 				_integer = other.integer();
 				break;
-			case DECIMAL_TYPE:
+			case Type::DECIMAL:
 				_decimal = other.decimal();
 				break;
-			case BOOLEAN_TYPE:
+			case Type::BOOLEAN:
 				_boolean = other.boolean();
 				break;
-			case STRING_TYPE:
+			case Type::STRING:
 				_string = new std::string(other.string());
 				break;
-			case ARRAY_TYPE:
+			case Type::ARRAY:
 				_array = new Array(other.array());
 				break;
-			case TABLE_TYPE:
+			case Type::TABLE:
 				_table = new Table(other.table());
 				break;
 			default:
@@ -599,30 +599,30 @@ namespace hirzel::data
 	Data& Data::operator=(Data&& other)
 	{
 		_type = other._type;
-		other._type = NULL_TYPE;
+		other._type = Type::NONE;
 
 		switch (_type)
 		{
-			case NULL_TYPE:
+			case Type::NONE:
 				break;
-			case INTEGER_TYPE:
+			case Type::INTEGER:
 				_integer = other._integer;
 				break;
-			case DECIMAL_TYPE:
+			case Type::DECIMAL:
 				_decimal = other._decimal;
 				break;
-			case BOOLEAN_TYPE:
+			case Type::BOOLEAN:
 				_boolean = other._boolean;
 				break;
-			case STRING_TYPE:
+			case Type::STRING:
 				_string = other._string;
 				other._string = nullptr;
 				break;
-			case ARRAY_TYPE:
+			case Type::ARRAY:
 				_array = other._array;
 				other._array = nullptr;
 				break;
-			case TABLE_TYPE:
+			case Type::TABLE:
 				_table = other._table;
 				other._table = nullptr;
 				break;
@@ -639,42 +639,50 @@ namespace hirzel::data
 
 		switch (_type)
 		{
-			case NULL_TYPE:
+			case Type::NONE:
 				return true;
-			case INTEGER_TYPE:
+			case Type::INTEGER:
 				return _integer == other.integer();
-			case DECIMAL_TYPE:
+			case Type::DECIMAL:
 				return _decimal == other.decimal();
-			case BOOLEAN_TYPE:
+			case Type::BOOLEAN:
 				return _boolean == other.boolean();
-			case STRING_TYPE:
+			case Type::STRING:
 				return *_string == other.string();
-			case ARRAY_TYPE:
+			case Type::ARRAY:
 			{
 				// for every child element
 				const auto& arr = *_array;
 				const auto& oarr = other.array();
 
+				if (arr.size() != oarr.size())
+					return false;
+
 				for (size_t i = 0; i < arr.size(); ++i)
 				{
-					if (arr[i] != oarr[i]) return false;
+					if (arr[i] != oarr[i])
+						return false;
 				}
 
 				return true;
 			}
 
-			case TABLE_TYPE:
+			case Type::TABLE:
 			{
 				const auto& table = *_table;
 				const auto& otable = other.table();
 
+				if (table.size() != otable.size())
+					return false;
+
 				for (auto p : table)
 				{
 					auto iter = otable.find(p.first);
-					if (iter == otable.end()) return false;
+					if (iter == otable.end())
+						return false;
 					auto op = *iter;
-					if (p.first != op.first) return false;
-					if (p.second != op.second) return false;
+					if (p.first != op.first || p.second != op.second)
+						return false;
 				}
 				return true;
 			}
@@ -687,19 +695,19 @@ namespace hirzel::data
 	{
 		switch (_type)
 		{
-			case NULL_TYPE:
+			case Type::NONE:
 				return "null";
-			case INTEGER_TYPE:
+			case Type::INTEGER:
 				return "integer";
-			case DECIMAL_TYPE:
+			case Type::DECIMAL:
 				return "floating-point";
-			case BOOLEAN_TYPE:
+			case Type::BOOLEAN:
 				return "boolean";
-			case STRING_TYPE:
+			case Type::STRING:
 				return "string";
-			case ARRAY_TYPE:
+			case Type::ARRAY:
 				return "array";
-			case TABLE_TYPE:
+			case Type::TABLE:
 				return "table";
 			default:
 				return "invalid-type";
