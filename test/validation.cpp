@@ -5,10 +5,10 @@
 
 #include "assert.h"
 
-using namespace hirzel::data;
+using namespace hirzel;
 
-#define assert_no_errors(fmt, arg) assert_true_msg(Validator(fmt)(arg).empty(), "Format " #fmt " produces error(s) with argument: " #arg)
-#define assert_has_errors(fmt, arg) assert_true_msg(Validator(fmt)(arg).size(), "Format " #fmt " produces no errors with argument: " #arg)
+#define assert_no_errors(fmt, ...) assert_true_msg(Validator(fmt)(__VA_ARGS__).empty(), "Format " #fmt " produces error(s) with argument: " #__VA_ARGS__)
+#define assert_has_errors(fmt, ...) assert_true_msg(Validator(fmt)(__VA_ARGS__).size(), "Format " #fmt " produces no errors with argument: " #__VA_ARGS__)
 #define assert_fmt_throws(fmt) assert_throws(Validator(fmt), FormatException)
 #define assert_fmt_no_throw(fmt) assert_no_throw(Validator(fmt), FormatException)
 
@@ -153,53 +153,53 @@ void test_array()
 
 	// validation
 	assert_no_errors("[]", Array());
-	assert_has_errors("[]", Array({ 1 }));
+	assert_has_errors("[]", Array { 1 });
 	assert_has_errors("[]", Data());
 	assert_has_errors("[]", 1);
 
 	assert_no_errors("[]?", Array());
 	assert_no_errors("[]?", Data());
-	assert_has_errors("[]?", Array({ 1 }));
+	assert_has_errors("[]?", Array{ 1 });
 	assert_has_errors("[]?", 1);
 
-	assert_no_errors("[#]", Array({ 1 }));
-	assert_has_errors("[#]", Array({ 1, 2 }));
-	assert_has_errors("[#]", Array({ "hello" }));
-	assert_has_errors("[#]", Array({ Data() }));
+	assert_no_errors("[#]", Array { 1 });
+	assert_has_errors("[#]", Array { 1, 2 });
+	assert_has_errors("[#]", Array { "hello" });
+	assert_has_errors("[#]", Array { Data() });
 
-	assert_no_errors("[#]?", Array({ 1 }));
-	assert_has_errors("[#]?", Array({ 1, 2 }));
-	assert_has_errors("[#]?", Array({ "hello" }));
-	assert_has_errors("[#]?", Array({ Data() }));
+	assert_no_errors("[#]?", Array { 1 });
+	assert_has_errors("[#]?", Array { 1, 2 });
+	assert_has_errors("[#]?", Array { "hello" });
+	assert_has_errors("[#]?", Array { Data() });
 
-	assert_no_errors("[#?]", Array({ Data() }));
-	assert_has_errors("[#?]", Array({ "hello" }));
-	assert_no_errors("[#?, #?, #]", Array({ Data(), Data(), 3}));
+	assert_no_errors("[#?]", Array { Data() });
+	assert_has_errors("[#?]", Array { "hello" });
+	assert_no_errors("[#?, #?, #]", Array { Data(), Data(), 3});
 
-	assert_no_errors("[#?]?", Array({ Data() }));
-	assert_has_errors("[#?]?", Array({ "hello" }));
+	assert_no_errors("[#?]?", Array { Data() });
+	assert_has_errors("[#?]?", Array { "hello" });
 	assert_no_errors("[#?]?", Data());
 
 	assert_no_errors("[#...]", Array());
-	assert_no_errors("[#...]", Array({ 1 }));
-	assert_no_errors("[#...]", Array({ 1, 2, 3 }));
-	assert_has_errors("[#...]", Array({ "hello" }));
-	assert_has_errors("[#...]", Array({ 1, 2, "hello" }));
+	assert_no_errors("[#...]", Array { 1 });
+	assert_no_errors("[#...]", Array { 1, 2, 3 });
+	assert_has_errors("[#...]", Array { "hello" });
+	assert_has_errors("[#...]", Array { 1, 2, "hello" });
 	
-	assert_no_errors("[#, #...]", Array({ 1 }));
-	assert_no_errors("[#, #...]", Array({ 1, 2 }));
-	assert_no_errors("[#, #...]", Array({ 1, 2, 234, 109 }));
-	assert_has_errors("[#, #...]", Array({ }));	
+	assert_no_errors("[#, #...]", Array { 1 });
+	assert_no_errors("[#, #...]", Array { 1, 2 });
+	assert_no_errors("[#, #...]", Array { 1, 2, 234, 109 });
+	assert_has_errors("[#, #...]", Array());	
 
 	// nullable variadic
-	assert_no_errors("[#?...]", Array({ }));
-	assert_no_errors("[#?...]", Array({ Data() }));
-	assert_no_errors("[#?...]", Array({ 1 }));
-	assert_no_errors("[#?...]", Array({ 1, Data(), 2, Data() }));
-	assert_no_errors("[#?...]", Array({ Data(), Data(), Data() }));
-	assert_has_errors("[#?...]", Array({ "hello" }));
-	assert_has_errors("[#?...]", Array({ 1, "hello" }));
-	assert_has_errors("[#?...]", Array({ Data(), "hello" }));
+	assert_no_errors("[#?...]", Array{ });
+	assert_no_errors("[#?...]", Array{ Data() });
+	assert_no_errors("[#?...]", Array{ 1 });
+	assert_no_errors("[#?...]", Array{ 1, Data(), 2, Data() });
+	assert_no_errors("[#?...]", Array{ Data(), Data(), Data() });
+	assert_has_errors("[#?...]", Array { "hello" });
+	assert_has_errors("[#?...]", Array { 1, "hello" });
+	assert_has_errors("[#?...]", Array { Data(), "hello" });
 }
 
 void test_form()

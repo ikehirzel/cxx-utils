@@ -5,7 +5,7 @@
 
 #include "assert.h"
 
-using namespace hirzel::data;
+using namespace hirzel;
 
 #define assert_equals(a, b) {\
 	assert_true(a == b);\

@@ -6,7 +6,7 @@
 
 #include "assert.h"
 
-using namespace hirzel::data;
+using namespace hirzel;
 
 #define assert_cast_values(data, int_val, float_val, bool_val, string_val)\
 	assert_true(data.as_int() == int_val);\
