@@ -467,6 +467,13 @@ void test_json()
 	};
 
 	assert_json(pokemon_json, pokemon_data);
+
+	// testing serialization
+	auto from_json = parse_json(pokemon_json);
+	auto pokemon_expected = Data(pokemon_data);
+
+	auto generated_pokemon_json = pokemon_
+	auto pokemon_clone = Data(serialize_json(pokemon_expected
 }
 
 int main()
