@@ -7,16 +7,24 @@
 
 using namespace hirzel::data;
 
+#define assert_equals(a, b) {\
+	assert_true(a == b);\
+	assert_true(b == a);\
+	assert_false(a != b);\
+	assert_false(b != a);\
+}
+
 #define assert_parse_throws(json) assert_throws(parse_json(json), JsonException)
 #define assert_parse_not_throws(json) assert_no_throw(parse_json(json))
 
-#define assert_type(var, type) assert_true(var.is_##type(), "Expected type '" #type "' but got '" + std::string(var.type_name()) + "'")
-#define assert_value(var, func, value) assert_true(var.as_##func() == value, "Expected value of " #value " but got " + var.as_string())
+#define assert_type(var, type) assert_true_msg(var.is_##type(), "Expected type '" #type "' but got '" + std::string(var.type_name()) + "'")
+#define assert_value(var, func, value) assert_true_msg(var.as_##func() == value, "Expected value of " #value " but got " + var.as_string())
 
-#define assert_json(json, func, value) {\
+#define assert_json(json, value) {\
 	assert_parse_not_throws(json);\
 	auto data = parse_json(json);\
-	assert_true(data.get_##func() == value, "Expected value '" #value "' but got '" + data.as_string() + "'");\
+	auto expected = Data(value);\
+	assert_true(data == expected);\
 }
 
 std::string colors_json =
@@ -172,7 +180,10 @@ void test_null()
 {
 	// valid
 	assert_parse_not_throws("null");
-	assert_true(parse_json("null") == Data(), "Expected data of type 'null' but got " + parse_json("null").as_string());
+
+	Data null = parse_json("null");
+	assert_type(null, null);
+	assert_true(null == Data());
 
 	// invalid
 	assert_parse_throws("nub");
@@ -184,12 +195,12 @@ void test_null()
 void test_integer()
 {
 	// valid
-	assert_json("1", integer, 1);
-	assert_json("-1", integer, -1);
-	assert_json("1526227", integer, 1526227);
-	assert_json("-254", integer, -254);
-	assert_json("-0", integer, 0);
-	assert_json("0", integer, 0);
+	assert_json("1", 1);
+	assert_json("-1", -1);
+	assert_json("1526227", 1526227);
+	assert_json("-254", -254);
+	assert_json("-0", 0);
+	assert_json("0", 0);
 
 	// invalid
 	assert_parse_throws("1526a");
@@ -202,11 +213,12 @@ void test_integer()
 void test_decimal()
 {
 	// valid
-	assert_json("1.234", decimal, 1.234);
-	assert_json("185.22334", decimal, 185.22334);
-	assert_json("1.2e1", decimal, 1.2e1);
-	assert_json("1.2e3", decimal, 1.2e3);
-	assert_json("23.1e12", decimal, 23.1e12);
+	assert_json("1.234", 1.234);
+	assert_json("-11.234", -11.234);
+	assert_json("185.22334", 185.22334);
+	assert_json("-1.2e1", -1.2e1);
+	assert_json("1.2e3", 1.2e3);
+	assert_json("23.1e12", 23.1e12);
 
 	// invalid
 	assert_parse_throws(".234");
@@ -220,8 +232,8 @@ void test_decimal()
 void test_boolean()
 {
 	// valid
-	assert_json("true", boolean, true);
-	assert_json("false", boolean, false);
+	assert_json("true", true);
+	assert_json("false", false);
 
 	// invalid
 	assert_parse_throws("falsey");
@@ -233,8 +245,10 @@ void test_boolean()
 void test_string()
 {
 	// valid
-	assert_json("\"\"", string, "");
-	assert_json("\"hello\"", string, "hello");
+	assert_json("\"\"", "");
+	assert_json("\"hello\"", "hello");
+	assert_json("\"123\"", "123");
+	assert_json("\"   \"", "   ");
 
 	// invalid
 	assert_parse_throws("\"");
@@ -243,25 +257,216 @@ void test_string()
 	assert_parse_throws("this is a string\"");
 } 
 
-#define assert_array(fmt, value, expected_size) {\
-	assert_parse_not_throws(fmt);\
-	auto data = parse_json(fmt);\
-	assert_true(data == value, "Expected array to be equivalent to " fmt " but was " + data.as_string());\
-	assert_true(data.size() == expected_size, "Expected array size to be " #expected_size " but got " + std::to_string(data.size()));\
-}
-
 void test_array()
 {
 	using Array = Data::Array;
 
-	assert_array("[]", Array(), 0);
-	assert_array("[1]", Array({ 1 }), 1);
-	assert_array("[null, null, null]", Array({ Data(), Data(), Data() }), 3);
+	assert_json("[]", Array());
+	assert_json("[1,2,3]", Array({ 1, 2, 3 }));
+	assert_json("[234, \"hello\", null, true, {}]", Array({ 234, "hello", Data(), true, Data::Table() }));
+	assert_json("[[{}]]", Array({ Array({ Data::Table() }) }) );
+	assert_json("[[[]]]", Array({ Array({ Array() }) }) );
+	assert_json("[[1,2,3], [2,3,4], {\"key\":true}]", Array({ Array({ 1, 2, 3 }), Array({ 2, 3, 4 }), Data::Table({ { "key", true } }) }));
+
+	assert_parse_throws("[");
+	assert_parse_throws("]");
+	assert_parse_throws("[1");
+	assert_parse_throws("[h");
+	assert_parse_throws("1]");
+	assert_parse_throws("[1,]");
+	assert_parse_throws("[1,h]");
+	assert_parse_throws("[1,true");
+	assert_parse_throws("[1,true,");
 }
 
 void test_table()
 {
 	using Table = Data::Table;
+
+	assert_json("{}", Table());
+	assert_json("{\"key\":1}", Table({ {"key", 1} }));
+	assert_json("{\"abc\":[true, false]}", Table({ { "abc", Data::Array({ true, false }) } }));
+	assert_json("{\"key\":\"value\",\"number\":298}", Table({ { "key", "value" }, { "number", 298 } }));
+	assert_json("{\"table\":{\"subtable\":567}}", Table({ { "table", Table({ { "subtable", 567 } }) } }));
+
+	assert_parse_throws("{");
+	assert_parse_throws("}");
+	assert_parse_throws("{a}");
+	assert_parse_throws("{\"a\"}");
+	assert_parse_throws("{\"a\":}");
+	assert_parse_throws("{\"a\":1,}");
+	assert_parse_throws("{a");
+	assert_parse_throws("a}");
+	assert_parse_throws("{\"a\"");
+	assert_parse_throws("{\"a\":");
+	assert_parse_throws("{\"a\":1");
+	assert_parse_throws("{\"a\":1,");
+	assert_parse_throws("{\"a\":1,}");
+}
+
+void test_json()
+{
+	using Table = Data::Table;
+	using Array = Data::Array;
+
+	assert_parse_not_throws(colors_json);
+	auto colors_data = Table{
+		{ "colors", Array{
+				Table {
+					{ "color", "black" },
+					{ "category", "hue" },
+					{ "type", "primary" },
+					{ "code", Table {
+							{ "rgba", Array{ 255, 255, 255, 1} },
+							{ "hex", "#000" }
+						}
+					}
+				},
+				Table {
+					{ "color", "white" },
+					{ "category", "value" },
+					{ "code", Table {
+							{ "rgba", Array { 0,0,0,1} },
+							{ "hex", "#FFF" }
+						}
+					}
+				},
+				Table {
+					{ "color", "red" },
+					{ "category", "hue" },
+					{ "type", "primary" },
+					{ "code", Table {
+							{ "rgba", Array { 255,0,0,1 } },
+							{ "hex", "#FF0" }
+						}
+					}
+				},
+				Table {
+					{ "color", "blue" },
+					{ "category", "hue" },
+					{ "type", "primary" },
+					{ "code", Table {
+							{ "rgba", Array { 0,0,255,1} },
+							{ "hex", "#00F" }
+						}
+					}
+				},
+				Table {
+					{ "color", "yellow" },
+					{ "category", "hue" },
+					{ "type", "primary" },
+					{ "code", Table {
+							{ "rgba", Array { 255,255,0,1 } },
+							{ "hex", "#FF0" }
+						}
+					}
+				},
+				Table {
+					{ "color", "green" },
+					{ "category", "hue" },
+					{ "type", "secondary" },
+					{ "code", Table {
+							{ "rgba", Array { 0,255,0,1 } },
+							{ "hex", "#0F0" }
+						}
+					}
+				}
+			}
+		}
+	};
+	assert_json(colors_json, colors_data);
+
+	assert_parse_not_throws(pokemon_json);
+	auto pokemon_data = Table {
+		{ "count", 1118 },
+		{ "next", "https://pokeapi.co/api/v2/pokemon?offset=20&limit=20"},
+		{ "previous", Data() },
+		{ "results", Array {
+				Table {
+					{ "name", "bulbasaur"},
+					{ "url", "https://pokeapi.co/api/v2/pokemon/1/"}
+				},
+				Table {
+					{ "name", "ivysaur" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/2/" }
+				},
+				Table {
+					{ "name", "venusaur" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/3/" }
+				},
+				Table {
+					{ "name", "charmander" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/4/" }
+				},
+				Table {
+					{ "name", "charmeleon" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/5/" }
+				},
+				Table {
+					{ "name", "charizard" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/6/" }
+				},
+				Table {
+					{ "name", "squirtle" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/7/" }
+				},
+				Table {
+					{ "name", "wartortle" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/8/" }
+				},
+				Table {
+					{ "name", "blastoise" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/9/" }
+				},
+				Table {
+					{ "name", "caterpie" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/10/" }
+				},
+				Table {
+					{ "name", "metapod" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/11/" }
+				},
+				Table {
+					{ "name", "butterfree" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/12/" }
+				},
+				Table {
+					{ "name", "weedle" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/13/" }
+				},
+				Table {
+					{ "name", "kakuna" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/14/" }
+				},
+				Table {
+					{ "name", "beedrill" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/15/" }
+				},
+				Table {
+					{ "name", "pidgey" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/16/" }
+				},
+				Table {
+					{ "name", "pidgeotto" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/17/" }
+				},
+				Table {
+					{ "name", "pidgeot" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/18/" }
+				},
+				Table {
+					{ "name", "rattata" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/19/" }
+				},
+				Table {
+					{ "name", "raticate" },
+					{ "url", "https://pokeapi.co/api/v2/pokemon/20/" }
+				}
+			}
+		}
+	};
+
+	assert_json(pokemon_json, pokemon_data);
 }
 
 int main()
@@ -273,93 +478,7 @@ int main()
 	test(string);
 	test(array);
 	test(table);
-	
-	// Data v;
-	// assert_parse_not_throws("null");
-	// v = parse_json("null");
-	// assert_true(v.is_null(), "");
-
-	// assert_parse_not_throws("3");
-	// assert_true(v.is_int(), "");
-	
-	// assert_parse_not_throws("-5");
-	// assert_int(v, -5);
-	// assert_parse_not_throws("-876.02");
-	// assert_float(v, -876.02);
-	// assert_parse_not_throws("5.342");
-	// assert_float(v, 5.342);
-	// assert_parse_throws("5.4.");
-
-	
-
-	// assert_parse_not_throws(R"([3,-5,"hello"])");
-	// assert_int(v[0], 3);
-	// assert_int(v[1], -5);
-	// assert_string(v[2], 0, 0.0, true, "hello");
-
-	// std::string ex_json = R"({"num":3,"str":"abcdef","":-4})";
-	// Data second;
-	// assert_parse_not_throws(ex_json);
-	// assert(v != second);
-	// assert(second != v);
-	// assert_parse_not_throws(ex_json);
-	// assert(v == second);
-	// assert(second == v);
-	// assert_parse_not_throws(v.as_json());
-	// assert(second == v);
-	// assert(v == second);
-	// assert_parse_not_throws(second.as_json()));
-	// assert(second == v);
-	// assert(v == second);
-	// assert_table(v);
-	// assert_int(v["num"], 3);
-	// assert_string(v["str"], 0, 0.0, true, "abcdef");
-	// assert_int(v[""], -4);
-
-	// ex_json = R"({"scooby":{"snacks":{"flavor":"spicy","size":3}},"num":3,"arr":[3,-5,2]})";
-	// assert_parse_not_throws(ex_json));
-	// assert_true(v != second, "V should not be equivalent to second);
-	// assert_true(second != v, "Second should not be equivalent to v");
-	// assert_parse_not_throws(second = parse_json(ex_json));
-	// assert_true(v == second, "");
-	// assert_true(second == v, "");
-	// assert_parse_not_throws(second = parse_json(v.as_json()));
-	// assert(second == v);
-	// assert(v == second);
-	// assert_parse_not_throws(second.as_json()));
-	// assert(second == v);
-	// assert(v == second);
-	// assert(!v["scooby"].is_null());
-	// assert(v["scooby"].is_table());
-
-	// assert_parse_not_throws("[]"));
-	// assert_array(v);
-	// assert(v.size() == 0);
-	// assert(!v.as_bool());
-
-	// assert_parse_not_throws("{}"));
-	// assert_table(v);
-	// assert(v.size() == 0);
-
-	// std::string serial = v.as_json();
-	// assert_parse_not_throws(pokemon_json));
-	// assert(v.contains("previous"));
-	// assert_null(v["previous"]);
-	// assert(v.contains("results"));
-	// assert_array(v["results"]);
-	// assert_table(v["results"][0]);
-	// assert(v["results"][0].contains("name"));
-	// assert_string(v["results"][0]["name"], 0, 0.0, true, "bulbasaur");
-	// assert(v["results"][0].contains("url"));
-	// assert_string(v["results"][0]["url"], 0, 0.0, true, "https://pokeapi.co/api/v2/pokemon/1/");
-
-	// assert_parse_not_throws(colors_json));
-	// assert(v.contains("colors"));
-	// assert_array(v["colors"]);
-	// assert(v["colors"].size() == 6);
-	// assert_table(v["colors"][0]);
-	// assert(v["colors"][0].contains("color"));
-	// assert_string(v["colors"][0]["color"], 0, 0.0, true, "black");
+	test(json);
 
 	return 0;
 }

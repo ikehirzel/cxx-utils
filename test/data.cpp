@@ -31,6 +31,19 @@ using namespace hirzel::data;
 #define assert_not_array(data)		assert_true(data.type() != Data::Type::ARRAY); assert_true(!data.is_array())
 #define assert_not_table(data)		assert_true(data.type() != Data::Type::TABLE); assert_true(!data.is_table())
 
+#define assert_equals(a, b) {\
+	assert_true(a == b);\
+	assert_true(b == a);\
+	assert_false(a != b);\
+	assert_false(b != a);\
+}
+
+#define assert_not_equals(a, b) {\
+	assert_false(a == b);\
+	assert_false(b == a);\
+	assert_true(a != b);\
+	assert_true(b != a);\
+}
 
 #define assert_null(data) {\
 	assert_true(data.type() == Data::Type::NONE);\
@@ -43,6 +56,8 @@ using namespace hirzel::data;
 	assert_not_string(data);\
 	assert_not_array(data);\
 	assert_not_table(data);\
+	assert_equals(data, Data());\
+	assert_equals(data, Data(Data::Type::NONE));\
 }
 
 #define assert_boolean(data, value) {\
@@ -55,6 +70,7 @@ using namespace hirzel::data;
 	assert_not_array(data);\
 	assert_not_table(data);\
 	assert_no_throw(Data(value).get_boolean());\
+	assert_equals(data, Data(value));\
 }
 
 
@@ -68,6 +84,7 @@ using namespace hirzel::data;
 	assert_not_string(data);\
 	assert_not_array(data);\
 	assert_not_table(data);\
+	assert_equals(data, Data(value));\
 }
 
 #define assert_decimal(data, value) {\
@@ -80,6 +97,7 @@ using namespace hirzel::data;
 	assert_not_string(data);\
 	assert_not_array(data);\
 	assert_not_table(data);\
+	assert_equals(data, Data(value));\
 }
 
 #define assert_string(data, int_value, float_value, bool_value, string_value) {\
@@ -94,9 +112,10 @@ using namespace hirzel::data;
 	assert_not_bool(data);\
 	assert_not_array(data);\
 	assert_not_table(data);\
+	assert_equals(data, Data(string_value));\
 }
 
-#define assert_array(data) {\
+#define assert_array(data, value) {\
 	assert_true(data.type() == Data::Type::ARRAY);\
 	assert_true(data.is_array());\
 	assert_not_null(data);\
@@ -105,9 +124,10 @@ using namespace hirzel::data;
 	assert_not_bool(data);\
 	assert_not_string(data);\
 	assert_not_table(data);\
+	assert_equals(data, Data(value));\
 }
 
-#define assert_table(data) {\
+#define assert_table(data, value) {\
 	assert_true(data.type() == Data::Type::TABLE);\
 	assert_true(data.is_table());\
 	assert_not_null(data);\
@@ -116,20 +136,7 @@ using namespace hirzel::data;
 	assert_not_float(data);\
 	assert_not_string(data);\
 	assert_not_array(data);\
-}
-
-#define assert_equals(a, b) {\
-	assert_true(a == b);\
-	assert_true(b == a);\
-	assert_false(a != b);\
-	assert_false(b != a);\
-}
-
-#define assert_not_equals(a, b) {\
-	assert_false(a == b);\
-	assert_false(b == a);\
-	assert_true(a != b);\
-	assert_true(b != a);\
+	assert_equals(data, Data(value));\
 }
 
 void test_null()
@@ -314,29 +321,29 @@ void test_array()
 
 	{
 		Data empty = Array {};
-		assert_array(empty);
+		assert_array(empty, Array());
 		assert_true(empty.size() == 0);
 		assert_true(empty.is_empty());
 
 		Data copy(empty);
-		assert_array(copy);
+		assert_array(copy, Array());
 		assert_true(copy.size() == 0);
 		assert_true(copy.is_empty());
 		assert_equals(copy, empty);
 		copy = empty;
-		assert_array(copy);
+		assert_array(copy, Array());
 		assert_true(copy.size() == 0);
 		assert_true(copy.is_empty());
 		assert_equals(copy, empty);
 
 		Data move(std::move(empty));
-		assert_array(move);
+		assert_array(move, Array());
 		assert_true(move.size() == 0);
 		assert_true(move.is_empty());
 		assert_equals(move, copy);
 		Data clone = copy;
 		move = std::move(copy);
-		assert_array(move);
+		assert_array(move, Array());
 		assert_true(move.size() == 0);
 		assert_true(move.is_empty());
 		assert_equals(move, clone);
@@ -354,7 +361,7 @@ void test_array()
 
 	{
 		Data init = Array { "hello", 1, true, 0.4 };
-		assert_array(init);
+		assert_array(init, Array({ "hello", 1, true, 0.4 }));
 		assert_true(init.size() == 4);
 		assert_true(!init.is_empty());
 		assert_string(init[0], 0, 0.0, true, "hello");
@@ -363,7 +370,7 @@ void test_array()
 		assert_decimal(init[3], 0.4);
 
 		Data copy(init);
-		assert_array(copy);
+		assert_array(copy, Array({ "hello", 1, true, 0.4 }));
 		assert_true(copy.size() == 4);
 		assert_true(!copy.is_empty());
 		assert_string(copy[0], 0, 0.0, true, "hello");
@@ -372,7 +379,7 @@ void test_array()
 		assert_decimal(copy[3], 0.4);
 		assert_equals(copy, init);
 		copy = init;
-		assert_array(copy);
+		assert_array(copy, Array({ "hello", 1, true, 0.4 }));
 		assert_true(copy.size() == 4);
 		assert_true(!copy.is_empty());
 		assert_string(copy[0], 0, 0.0, true, "hello");
@@ -382,7 +389,7 @@ void test_array()
 		assert_equals(copy, init);
 
 		Data move(std::move(init));
-		assert_array(move);
+		assert_array(move, Array({ "hello", 1, true, 0.4 }));
 		assert_true(move.size() == 4);
 		assert_true(!move.is_empty());
 		assert_string(move[0], 0, 0.0, true, "hello");
@@ -392,7 +399,7 @@ void test_array()
 		assert_equals(move, copy);
 		Data clone = copy;
 		move = std::move(copy);
-		assert_array(move);
+		assert_array(move, Array({ "hello", 1, true, 0.4 }));
 		assert_true(move.size() == 4);
 		assert_true(!move.is_empty());
 		assert_string(move[0], 0, 0.0, true, "hello");
@@ -412,7 +419,7 @@ void test_array()
 	}
 
 	Data array = Array { 1, 2.0f, "3", false, Data() };
-	assert_array(array);
+	assert_array(array, Array({ 1, 2.0f, "3", false, Data() }));
 	assert_true(array.size() == 5);
 	assert_true(!array.is_empty());
 	assert_integer(array[0], 1);
@@ -428,29 +435,29 @@ void test_table()
 
 	{
 		Data empty = Table {};
-		assert_table(empty);
+		assert_table(empty, Table());
 		assert_true(empty.size() == 0);
 		assert_true(empty.is_empty());
 
 		Data copy(empty);
-		assert_table(copy);
+		assert_table(copy, Table());
 		assert_true(copy.size() == 0);
 		assert_true(copy.is_empty());
 		assert_equals(copy, empty);
 		copy = empty;
-		assert_table(copy);
+		assert_table(copy, Table());
 		assert_true(copy.size() == 0);
 		assert_true(copy.is_empty());
 		assert_equals(copy, empty);
 
 		Data move(std::move(empty));
-		assert_table(move);
+		assert_table(move, Table());
 		assert_true(move.size() == 0);
 		assert_true(move.is_empty());
 		assert_equals(move, copy);
 		Data clone = copy;
 		move = std::move(copy);
-		assert_table(move);
+		assert_table(move, Table());
 		assert_true(move.size() == 0);
 		assert_true(move.is_empty());
 		assert_equals(move, clone);
@@ -466,14 +473,15 @@ void test_table()
 		assert_not_equals(move, Data(Table { { "key", "value" } }));
 	}
 	{
-		Data init = Table {
+		auto table = Table {
 			{ "boolean", true },
 			{ "integer", 1362 },
 			{ "decimal", 235.125 },
 			{ "string", "this is text" },
 			{ "null", Data() }
-		};
-		assert_table(init);
+		}; 
+		Data init = table;
+		assert_table(init, table);
 		assert_true(init.size() == 5);
 		assert_true(!init.is_empty());
 		assert_boolean(init["boolean"], true);
@@ -483,24 +491,24 @@ void test_table()
 		assert_null(init["null"]);
 
 		Data copy(init);
-		assert_table(copy);
+		assert_table(copy, table);
 		assert_true(copy.size() == 5);
 		assert_false(copy.is_empty());
 		assert_equals(copy, init);
 		copy = init;
-		assert_table(copy);
+		assert_table(copy, table);
 		assert_true(copy.size() == 5);
 		assert_false(copy.is_empty());
 		assert_equals(copy, init);
 
 		Data move(std::move(init));
-		assert_table(move);
+		assert_table(move, table);
 		assert_true(move.size() == 5);
 		assert_false(move.is_empty());
 		assert_equals(move, copy);
 		Data clone = copy;
 		move = std::move(copy);
-		assert_table(move);
+		assert_table(move, table);
 		assert_true(move.size() == 5);
 		assert_false(move.is_empty());
 		assert_equals(move, clone);
