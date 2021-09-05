@@ -56,10 +56,6 @@ namespace hirzel
 		static Data parse_object(const char *& iter);
 		static Data parse_value(const char *& iter);
 
-		static std::string serialize_number(const Data& data);
-		static std::string serialize_string(const Data& data);
-		static std::string serialize_null(const Data& data);
-		static std::string serialize_bool(const Data& data);
 		static std::string serialize_array(const Data& data);
 		static std::string serialize_object(const Data& data);
 		static std::string serialize_value(const Data& data);
@@ -67,12 +63,10 @@ namespace hirzel
 	public:
 
 		static Data deserialize(const std::string& json);
-		static std::string serialize(const Data& data, bool no_whitespace = true);
-		static Data read(const std::string& filepath)
+		static inline std::string serialize(const Data& data)
 		{
-			throw std::runtime_error("this function is not implemented yet");
+			return serialize_value(data);
 		}
-
 	};
 }
 
@@ -412,45 +406,65 @@ namespace hirzel
 		return out;
 	}
 
-	std::string serialize_number(const Data& data)
+	std::string Json::serialize_array(const Data& data)
 	{
-		throw std::runtime_error(std::string(__func__) + " is not implemented yet");
+		std::string out = "[";
+
+		const auto& array = data.array();
+
+		bool is_first_element = true;
+		for (const auto& element : array)
+		{
+			if (!is_first_element)
+				out += ',';
+
+			out += serialize_value(element);
+			is_first_element = false;
+		}
+
+		return out + "]";
 	}
 
-	std::string serialize_string(const Data& data)
+	std::string Json::serialize_object(const Data& data)
 	{
-		throw std::runtime_error(std::string(__func__) + " is not implemented yet");
+		std::string out = "{";
+		
+		const auto& table = data.table();
+
+		bool is_first_element = true;
+		for (const auto& pair : table)
+		{
+			if (!is_first_element)
+				out += ',';
+
+			out += "\"" + pair.first + "\":" + serialize_value(pair.second);
+			is_first_element = false;
+		}
+
+		return out + "}";
 	}
 
-	std::string serialize_null(const Data& data)
+	std::string Json::serialize_value(const Data& data)
 	{
-		throw std::runtime_error(std::string(__func__) + " is not implemented yet");
-	}
-
-	std::string serialize_bool(const Data& data)
-	{
-		throw std::runtime_error(std::string(__func__) + " is not implemented yet");
-	}
-
-	std::string serialize_array(const Data& data)
-	{
-		throw std::runtime_error(std::string(__func__) + " is not implemented yet");
-	}
-
-	std::string serialize_object(const Data& data)
-	{
-		throw std::runtime_error(std::string(__func__) + " is not implemented yet");
-	}
-
-	std::string serialize_value(const Data& data)
-	{
-		throw std::runtime_error(std::string(__func__) + " is not implemented yet");
-	}
-
-
-	std::string Json::serialize(const Data& data, bool no_whitespace = true)
-	{
-		return serialize_value(data);
+		switch (data.type())
+		{
+			case Data::Type::NONE:
+				return "null";
+			case Data::Type::INTEGER:
+				return std::to_string(data.integer());
+			case Data::Type::DECIMAL:
+				return std::to_string(data.decimal());
+			case Data::Type::BOOLEAN:
+				return data.boolean() ? "true" : "false";
+			case Data::Type::STRING:
+				return "\"" + data.string() + "\"";
+			case Data::Type::ARRAY:
+				return serialize_array(data);
+			case Data::Type::TABLE:
+				return serialize_object(data);
+			default:
+				throw std::runtime_error("Invalid type!");
+		}
 	}
 }
 

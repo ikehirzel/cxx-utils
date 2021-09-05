@@ -14,15 +14,15 @@ using namespace hirzel;
 	assert_false(b != a);\
 }
 
-#define assert_parse_throws(json) assert_throws(parse_json(json), JsonException)
-#define assert_parse_not_throws(json) assert_no_throw(parse_json(json))
+#define assert_parse_throws(json) assert_throws(Json::deserialize(json), Json::SyntaxError)
+#define assert_parse_not_throws(json) assert_no_throw(Json::deserialize(json))
 
 #define assert_type(var, type) assert_true_msg(var.is_##type(), "Expected type '" #type "' but got '" + std::string(var.type_name()) + "'")
 #define assert_value(var, func, value) assert_true_msg(var.as_##func() == value, "Expected value of " #value " but got " + var.as_string())
 
 #define assert_json(json, value) {\
 	assert_parse_not_throws(json);\
-	auto data = parse_json(json);\
+	auto data = Json::deserialize(json);\
 	auto expected = Data(value);\
 	assert_true(data == expected);\
 }
@@ -181,7 +181,7 @@ void test_null()
 	// valid
 	assert_parse_not_throws("null");
 
-	Data null = parse_json("null");
+	Data null = Json::deserialize("null");
 	assert_type(null, null);
 	assert_true(null == Data());
 
@@ -469,11 +469,15 @@ void test_json()
 	assert_json(pokemon_json, pokemon_data);
 
 	// testing serialization
-	auto from_json = parse_json(pokemon_json);
 	auto pokemon_expected = Data(pokemon_data);
+	auto from_json = Json::deserialize(pokemon_json);
+	auto serialized_json = Json::serialize(pokemon_expected);
+	auto from_json_clone = Json::deserialize(serialized_json);
 
-	auto generated_pokemon_json = pokemon_
-	auto pokemon_clone = Data(serialize_json(pokemon_expected
+	assert_true(from_json == pokemon_expected);
+	assert_true(from_json_clone == from_json);
+	assert_true(from_json_clone == pokemon_expected);
+
 }
 
 int main()

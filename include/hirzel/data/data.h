@@ -50,18 +50,6 @@ namespace hirzel
 			TABLE
 		};
 
-		class ParseException : public std::exception
-		{
-		private:
-			std::string _msg;
-		public:
-			ParseException(const std::string& msg) : _msg(msg) {}
-			const char *what() const noexcept override
-			{
-				return _msg.c_str();
-			}
-		};
-
 		class TypeException : public std::exception
 		{
 		private:
