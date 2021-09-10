@@ -5,6 +5,7 @@
 #include <iostream>
 
 // external libraries
+#define HIRZEL_IMPLEMENT
 #include <hirzel/plugin.h>
 
 #if OS_IS_WINDOWS
@@ -43,22 +44,21 @@ int main()
 {
 	using hirzel::Plugin;
 
-	Plugin p;
-
 	// assure empty string gives error
-	assert_throws(p = Plugin(""));
-	assert_throws(p = Plugin(DNE_OBJ));
-	assert(p.filepath().empty());
+	assert_throws(Plugin(""));
+	assert_throws(Plugin(DNE_OBJ));
+
+	auto p = Plugin(OBJ);
+
+	// assert throw when double binding
+	assert(p.count() == 0);
+
 	assert(!p.contains(GET_FUNC));
 	assert(!p.contains(ADD_FUNC));
 	assert(!p.contains(MSG_VAR));
 	assert(!p.contains(I_VAR));
 	assert(!p.contains(DNE_SYM));
 
-	// assert no throw when binding
-	p = Plugin(OBJ);
-	// assert throw when double binding
-	assert(p.count() == 0);
 
 	// testing non-existent variable
 	assert_throws(p = Plugin(OBJ, { }, { DNE_SYM }));
@@ -90,7 +90,7 @@ int main()
 	p.call_function<int>(GET_FUNC);
 	assert(p.call_function<int>(GET_FUNC) == 88);
 	
-	p = Plugin(OBJ, { GET_FUNC, ADD_FUNC });
+	p = Plugin(OBJ, { ADD_FUNC });
 	assert(p.count() == 2);
 	assert(p.contains(ADD_FUNC));
 	assert(p.contains_function(ADD_FUNC));
@@ -102,7 +102,7 @@ int main()
 	assert(p.call_function<int>(GET_FUNC) == 89);
 	
 	// testing existing global variable
-	p = Plugin(OBJ, { GET_FUNC, ADD_FUNC }, { MSG_VAR });
+	p = Plugin(OBJ, { }, { MSG_VAR });
 	assert(p.count() == 3);
 	assert(p.contains(MSG_VAR));
 	assert(p.contains_variable(MSG_VAR));
@@ -145,7 +145,7 @@ int main()
 	}
 
 	p = Plugin(OBJ, {}, VAR_LIST);
-	assert(p.count() == 3);
+	assert(p.count() == 7);
 
 	double val = 0.0;
 	for (const std::string& label : VAR_LIST)
@@ -180,10 +180,6 @@ int main()
 		assert(p.get_function_ptr(label));
 		assert_throws(p.get_variable_ptr(label));
 	}
-
-	p = Plugin();
-
-	assert(p.count() == 0);
 
 	puts("All tests passed");
 	return 0;

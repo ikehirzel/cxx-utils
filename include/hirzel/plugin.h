@@ -31,6 +31,7 @@
 #include <unordered_map>
 #include <vector>
 #include <stdexcept>
+#include <memory>
 
 #if defined(_WIN32) || defined(_WIN64)
 #define OS_IS_WINDOWS true
@@ -44,10 +45,12 @@ namespace hirzel
 {
 	class Plugin
 	{
-	public:
+	public: // sub-definitions
 
 		typedef void(*Function)();
 		typedef void *Variable;
+
+	private: // sub-definitions
 
 		struct Symbol
 		{
@@ -71,197 +74,85 @@ namespace hirzel
 			{}
 		};
 
-	private:
-
-		void* _handle = nullptr;
-		std::string _filepath;
-		std::unordered_map<std::string, Symbol> _symbols;
-
-	private: // private functions
-
-		inline void bind_handle(const std::string& filepath)
+		struct Data
 		{
-			if (filepath.empty())
-				throw std::invalid_argument("failed to bind to plugin: filepath was empty");
+			void *handle = nullptr;
+			std::string filepath;
+			std::unordered_map<std::string, Symbol> symbols;
 
-			#if OS_IS_WINDOWS
-			_handle = (void*)LoadLibrary(filepath.c_str());
-			if (!_handle)
-				throw std::invalid_argument("failed to bind to plugin '"
-					+ filepath
-					+ "': ERROR "
-					+ std::to_string(GetLastError()));
-			#else
-			_handle = dlopen(filepath.c_str(), RTLD_NOW);
-			if(!_handle)
-				throw std::invalid_argument("failed to bind to plugin '"
-					+ filepath
-					+ "': "
-					+ std::string(dlerror()));
-			#endif
+			Data(void *handle, std::string filepath) :
+			handle(handle),
+			filepath(filepath)
+			{}
 
-
-			_filepath = filepath;
-		}
-
-		
-
-		inline void free()
-		{
-			if (_handle)
+			~Data()
 			{
-				#if OS_IS_WINDOWS
-				FreeLibrary((HINSTANCE)_handle);
-				#else
-				dlclose(_handle);
-				#endif
+				if (handle)
+				{
+					#if OS_IS_WINDOWS
+					FreeLibrary((HINSTANCE)_handle);
+					#else
+					dlclose(handle);
+					#endif
+				}
 			}
-		}
+		};
 
-	public:
+	private: // members
 
-		Plugin() = default;
+		static std::unordered_map<std::string, std::shared_ptr<Data>> _cache;
+
+		std::shared_ptr<Data> _data;
+
+	private: // methods
+
+		std::shared_ptr<Data> get_data(const std::string& filepath);	
+
+	public: // methods
 
 		Plugin(const std::string& filepath, const std::vector<std::string>& functions = {},
-			const std::vector<std::string>& variables = {})
+			const std::vector<std::string>& variables = {}) :
+		_data(get_data(filepath))
 		{
-			bind_handle(filepath);
+			for (const auto& label : functions)
+				bind_function(label);
 
-			try
-			{
-				for (const auto& label : functions)
-					bind_function(label);
-
-				for (const auto& label : variables)
-					bind_variable(label);
-			}
-			catch (const std::exception&)
-			{
-				free();
-				throw;
-			}
+			for (const auto& label : variables)
+				bind_variable(label);
 		}
 
-		Plugin(Plugin&& other)
-		{
-			*this = std::move(other);
-		}
+		Plugin(Plugin&& other) :
+		_data(std::move(other._data))
+		{}
 
-		Plugin(const Plugin&) = delete;
+		Plugin(const Plugin& other) :
+		_data(_cache[other.filepath()])
+		{}
 
-		~Plugin()
-		{
-			free();
-		}
-
-		inline void bind_function(const std::string& label)
-		{
-			if (_symbols.find(label) != _symbols.end())
-				throw std::invalid_argument("failed to bind variable '"
-					+ label
-					+ "': symbol is already bound");
-
-			#if OS_IS_WINDOWS
-			Function ptr = (Function)GetProcAddress((HMODULE)_handle, label.c_str());
-			if (!ptr)
-				throw std::invalid_argument("failed to bind variable '"
-					+ label
-					+ "': ERROR "
-					+ std::to_string(GetLastError()));
-			#else
-			Function ptr = (Function)dlsym(_handle, label.c_str());
-			if (!ptr)
-				throw std::invalid_argument("failed to bind function '"
-					+ label
-					+ "': "
-					+ std::string(dlerror()));
-			#endif
-
-			if (!ptr)
-				throw std::invalid_argument("failed to bind function '"
-					+ label
-					+ "': symbol could not be found");
-
-			_symbols[label] = Symbol(ptr);
-		}
-
-		inline void bind_variable(const std::string& label)
-		{
-			if (_symbols.find(label) != _symbols.end())
-				throw std::invalid_argument("failed to bind variable '"
-					+ label
-					+ "': symbol is already bound");
-
-			#if OS_IS_WINDOWS
-			Variable ptr = (Variable)GetProcAddress((HMODULE)_handle, label.c_str());
-			if (!ptr)
-				throw std::invalid_argument("failed to bind variable '"
-					+ label
-					+ "': ERROR "
-					+ std::to_string(GetLastError()));
-			#else
-			Variable ptr = (Variable)dlsym(_handle, label.c_str());
-			if (!ptr)
-				throw std::invalid_argument("failed to bind variable '"
-					+ label
-					+ "': "
-					+ std::string(dlerror()));
-			#endif
-
-
-			_symbols[label] = Symbol(ptr);
-		}
-
+		void bind_function(const std::string& label);
+		void bind_variable(const std::string& label);
+		
 		inline bool contains(const std::string& label) const
 		{
-			return _symbols.find(label) != _symbols.end();
+			return _data->symbols.find(label) != _data->symbols.end();
 		}
 
 		inline bool contains_function(const std::string& label) const
 		{
-			auto iter = _symbols.find(label);
-			return iter != _symbols.end() && iter->second.is_func;
+			auto iter = _data->symbols.find(label);
+
+			return iter != _data->symbols.end() && iter->second.is_func;
 		}
 
 		inline bool contains_variable(const std::string& label) const
 		{
-			auto iter = _symbols.find(label);
-			return iter != _symbols.end() && !iter->second.is_func;
+			auto iter = _data->symbols.find(label);
+
+			return iter != _data->symbols.end() && !iter->second.is_func;
 		}
 
-		inline Function get_function_ptr(const std::string& label) const
-		{
-			auto iter = _symbols.find(label);
-
-			if (iter == _symbols.end())
-				throw std::invalid_argument("failed to get function '"
-					+ label
-					+ "': symbol is not bound");
-
-			if (!iter->second.is_func)
-				throw std::invalid_argument("symbol '"
-					+ label
-					+ "' does not reference a function");
-
-			return iter->second.func;
-		}
-
-		inline Variable get_variable_ptr(const std::string& label) const
-		{
-			auto iter = _symbols.find(label);
-
-			if (iter == _symbols.end())
-				throw std::invalid_argument("failed to get variable pointer '"
-					+ label
-					+ "': symbol is not bound");
-
-			if (iter->second.is_func)
-				throw std::invalid_argument("failed to get variable pointer '"
-					+ label
-					+ "': symbol does not reference a variable");
-
-			return iter->second.var;
-		}
+		Function get_function_ptr(const std::string& label) const;
+		Variable get_variable_ptr(const std::string& label) const;	
 
 		template <typename T>
 		inline T get_variable(const std::string& label) const 
@@ -276,29 +167,168 @@ namespace hirzel
 			return func(args...);
 		}		
 
-		inline Plugin& operator=(const Plugin&) = delete;
-
-		inline Plugin& operator=(Plugin&& other)
+		inline Plugin& operator=(const Plugin& other)
 		{
-			_handle = other._handle;
-			_filepath = std::move(other._filepath);
-			_symbols = std::move(other._symbols);
-
-			other._handle = nullptr;
+			_data = _cache[other.filepath()];
 
 			return *this;
 		}
 
+		inline Plugin& operator=(Plugin&& other)
+		{
+			_data = std::move(other._data);
+
+			return *this;
+		}
+
+		inline std::shared_ptr<Plugin::Data> data() const
+		{
+			return _data;
+		}
+
 		inline size_t count() const
 		{
-			return _symbols.size();
+			return _data->symbols.size();
 		}
 
 		inline const std::string& filepath() const
 		{
-			return _filepath;
+			return _data->filepath;
 		}
 	};
 }
 
 #endif // HIRZEL_PLUGIN_H
+
+#if !defined(HIRZEL_PLUGIN_I) && defined(HIRZEL_IMPLEMENT)
+#define HIRZEL_PLUGIN_I
+
+namespace hirzel
+{
+	std::unordered_map<std::string, std::shared_ptr<Plugin::Data>> Plugin::_cache;
+
+	std::shared_ptr<Plugin::Data> Plugin::get_data(const std::string& filepath)
+	{
+		if (filepath.empty())
+			throw std::invalid_argument("failed to bind to plugin: filepath was empty");
+
+		auto iter = _cache.find(filepath);
+
+		if (iter != _cache.end())
+			return iter->second;
+
+		#if OS_IS_WINDOWS
+		auto handle = (void*)LoadLibrary(filepath.c_str());
+
+		if (!handle)
+			throw std::invalid_argument("failed to bind to plugin '"
+				+ filepath
+				+ "': ERROR "
+				+ std::to_string(GetLastError()));
+		#else
+		auto handle = dlopen(filepath.c_str(), RTLD_NOW);
+
+		if(!handle)
+			throw std::invalid_argument("failed to bind to plugin '"
+				+ filepath
+				+ "': "
+				+ std::string(dlerror()));
+		#endif
+
+		auto data = std::make_shared<Data>(handle, filepath);
+
+		_cache[filepath] = data;
+
+		return data;
+	}
+
+	void Plugin::bind_function(const std::string& label)
+	{
+		if (_data->symbols.find(label) != _data->symbols.end())
+			return;
+
+		#if OS_IS_WINDOWS
+		Function ptr = (Function)GetProcAddress((HMODULE)_handle, label.c_str());
+		if (!ptr)
+			throw std::invalid_argument("failed to bind variable '"
+				+ label
+				+ "': ERROR "
+				+ std::to_string(GetLastError()));
+		#else
+		Function ptr = (Function)dlsym(_data->handle, label.c_str());
+		if (!ptr)
+			throw std::invalid_argument("failed to bind function '"
+				+ label
+				+ "': "
+				+ std::string(dlerror()));
+		#endif
+
+		if (!ptr)
+			throw std::invalid_argument("failed to bind function '"
+				+ label
+				+ "': symbol could not be found");
+
+		_data->symbols[label] = Symbol(ptr);
+	}
+
+	void Plugin::bind_variable(const std::string& label)
+	{
+		if (_data->symbols.find(label) != _data->symbols.end())
+			return;
+
+		#if OS_IS_WINDOWS
+		Variable ptr = (Variable)GetProcAddress((HMODULE)_handle, label.c_str());
+		if (!ptr)
+			throw std::invalid_argument("failed to bind variable '"
+				+ label
+				+ "': ERROR "
+				+ std::to_string(GetLastError()));
+		#else
+		Variable ptr = (Variable)dlsym(_data->handle, label.c_str());
+		if (!ptr)
+			throw std::invalid_argument("failed to bind variable '"
+				+ label
+				+ "': "
+				+ std::string(dlerror()));
+		#endif
+
+
+		_data->symbols[label] = Symbol(ptr);
+	}
+
+	Plugin::Variable Plugin::get_variable_ptr(const std::string& label) const
+	{
+		auto iter = _data->symbols.find(label);
+
+		if (iter == _data->symbols.end())
+			throw std::invalid_argument("failed to get variable pointer '"
+				+ label
+				+ "': symbol is not bound");
+
+		if (iter->second.is_func)
+			throw std::invalid_argument("failed to get variable pointer '"
+				+ label
+				+ "': symbol does not reference a variable");
+
+		return iter->second.var;
+	}
+
+	Plugin::Function Plugin::get_function_ptr(const std::string& label) const
+	{
+		auto iter = _data->symbols.find(label);
+
+		if (iter == _data->symbols.end())
+			throw std::invalid_argument("failed to get function '"
+				+ label
+				+ "': symbol is not bound");
+
+		if (!iter->second.is_func)
+			throw std::invalid_argument("symbol '"
+				+ label
+				+ "' does not reference a function");
+
+		return iter->second.func;
+	}
+}
+
+#endif
