@@ -113,6 +113,30 @@ namespace hirzel
 		inline Data(const Array& array) : _type(Type::ARRAY), _array(new Array(array)) {}
 		inline Data(const Table& table) : _type(Type::TABLE), _table(new Table(table)) {}
 
+		template <typename T>
+		inline static Data from(const std::vector<T> array)
+		{
+			Data::Array out;
+
+			out.resize(array.size());
+
+			for (size_t i = 0; i < array.size(); ++i)
+				out[i] = array[i];
+
+			return out;
+		}
+
+		template <typename T>
+		inline static Data from(const std::unordered_map<std::string, T> table)
+		{
+			Data::Table out;
+
+			for (const auto& pair : table)
+				out[pair.first] = pair.second;
+
+			return out;
+		}
+
 		~Data();
 
 		inline long long integer() const { return _integer; }

@@ -427,6 +427,20 @@ void test_array()
 	assert_string(array[2], 3, 3.0, true, "3");
 	assert_boolean(array[3], false);
 	assert_null(array[4]);
+
+	std::vector<std::string> array_of_strings = { "this", "is", "a", "sentence" };
+
+	array = Data::from(array_of_strings);
+
+	for (size_t i = 0; i < array_of_strings.size(); ++i)
+		assert_true_msg(array[i] == array_of_strings[i], "expected element " + array_of_strings[i] + " but got " + array[i].as_string());
+
+	std::vector<int> array_of_ints = { 6, 6345, 26, 34, -1231 };
+
+	array = Data::from(array_of_ints);
+
+	for (size_t i = 0; i < array_of_ints.size(); ++i)
+		assert_true_msg(array[i] == array_of_ints[i], "expected element " + std::to_string(array_of_ints[i]) + " but got " + array[i].as_string());
 }
 
 void test_table()
@@ -522,6 +536,29 @@ void test_table()
 		assert_not_equals(move, Data(Data::Type::ARRAY));
 		assert_not_equals(move, Data(Data::Type::TABLE));
 	}
+
+	std::unordered_map<std::string, std::string> table_of_strings = {
+		{ "abc", "def" },
+		{ "hij", "klm" },
+		{ "nop", "qrs" },
+		{ "tuv", "wxyz" }
+	};
+
+	Data table = Data::from(table_of_strings);
+
+	for (const auto& pair : table_of_strings)
+		assert_true_msg(table[pair.first] == pair.second, "expected table value " + pair.second + " but got " + table[pair.first].as_string());
+
+	std::unordered_map<std::string, double> table_of_doubles = {
+		{ "123", 123.0 },
+		{ "194.65", 194.65 },
+		{ "987.125", 987.125 }
+	};
+
+	table = Data::from(table_of_doubles);
+	
+	for (const auto& pair : table_of_doubles)
+		assert_true_msg(table[pair.first] == pair.second, "expected table value " + std::to_string(pair.second) + " but got " + table[pair.first].as_string());
 }
 
 int main()
