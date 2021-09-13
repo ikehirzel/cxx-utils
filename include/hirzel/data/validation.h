@@ -197,8 +197,6 @@ namespace hirzel
 #if !defined(HIRZEL_DATA_VALIDATION_I) && defined(HIRZEL_IMPLEMENT)
 #define HIRZEL_DATA_VALIDATION_I
 
-#include <iostream>
-
 namespace hirzel
 {
 	namespace details
@@ -705,19 +703,26 @@ namespace hirzel
 			while (true)
 			{
 				auto key = details::parse_table_key(iter);
-				auto validator = details::parse_data_validator(iter);
 
-				_validators.push_back({ key, validator });
-
-				switch (*iter)
+				try
 				{
-					case ',':
-						iter += 1;
-						continue;
-					case '}':
-						break;
-					default:
-						throw details::unexpected_token_error("table", *iter);
+					auto validator = details::parse_data_validator(iter);
+					_validators.push_back({ key, validator });
+
+					switch (*iter)
+					{
+						case ',':
+							iter += 1;
+							continue;
+						case '}':
+							break;
+						default:
+							throw details::unexpected_token_error("table", *iter);
+					}
+				}
+				catch (const FormatException& e)
+				{
+					throw FormatException("error in table entry '" + key + "': " + std::string(e.what()));
 				}
 
 				break;
