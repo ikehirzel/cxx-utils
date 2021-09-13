@@ -462,46 +462,45 @@ namespace hirzel
 
 			case Type::ARRAY:
 			{
-				std::string out;
-				std::vector<std::string> str_reps(_array->size());
+				std::vector<std::string> str_reps;
+
+				str_reps.reserve(_array->size());
 
 				bool vert = false;
 
-				for (size_t i = 0; i < _array->size(); i++)
+				for (const auto& elem : *_array)
 				{
-					const Data& v = (_array)[i];
-					std::string tmp = v.as_string();
-					if (v.is_string())
-					{
-						tmp.insert(0, 1, '\"');
-						tmp.push_back('\"');
-					}
-					else if (v.is_table())
-					{
+					std::string str = elem.is_string()
+						? "\"" + elem.string() + "\""
+						: elem.as_string();
+
+					if (elem.is_table() || elem.is_array())
 						vert = true;
-					}
-					str_reps[i] = tmp;
+
+					str_reps.push_back(str);
 				}
 
+				std::string out = "[";
 
-				out = "[";
+				auto is_first_elem = true;
 
-				for (size_t i = 0; i < str_reps.size(); ++i)
+				for (auto& str : str_reps)
 				{
-					if (vert)
-					{
-						out += "\n\t";
-					}
+					if (is_first_elem)
+						is_first_elem = false;
 					else
-					{
-						if (i > 0) out += ' ';
-					}
-					
-					details::indent(str_reps[i]);
-					out += str_reps[i];
-					if (i < str_reps.size() - 1) out += ',';
+						out += ", ";
+
+					if (vert)
+						out += "\n\t";
+
+					details::indent(str);
+					out += str; 
 				}
-				if (vert) out += '\n';
+
+				if (vert)
+					out += '\n';
+
 				out += ']';
 
 				return out;

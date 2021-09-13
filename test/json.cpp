@@ -264,8 +264,8 @@ void test_array()
 	assert_json("[]", Array());
 	assert_json("[1,2,3]", Array({ 1, 2, 3 }));
 	assert_json("[234, \"hello\", null, true, {}]", Array({ 234, "hello", Data(), true, Data::Table() }));
-	assert_json("[[{}]]", Array({ Array({ Data::Table() }) }) );
-	assert_json("[[[]]]", Array({ Array({ Array() }) }) );
+	assert_json("[[{}]]", Data(Array({ Data(Array({ Data(Data::Table()) })) })) );
+	assert_json("[[[]]]", Data(Array({ Data(Array({ Data(Array()) })) })) );
 	assert_json("[[1,2,3], [2,3,4], {\"key\":true}]", Array({ Array({ 1, 2, 3 }), Array({ 2, 3, 4 }), Data::Table({ { "key", true } }) }));
 
 	assert_parse_throws("[");
