@@ -216,6 +216,38 @@ void test_form()
 	assert_no_errors(format, data);
 }
 
+void test_misc()
+{
+	using Table = Data::Table;
+	using Array = Data::Array;
+
+	auto data = Table {
+		{ "array_key", Array({ 1, 2, 3, 4}) },
+		{ "bool", Data() },
+		{ "nullable_int", "hello" },
+		{ "sub_table", Table {
+				{ "a", true }
+			}
+		}
+	};
+
+	Validator is_valid(R"==(
+		{
+			array_key: [#[1, 3]...],
+			bool: &,
+			nullable_int: #?,
+			sub_table: {
+				a: #
+			}
+		}
+	)==");
+
+	auto errors = is_valid(data);
+
+	for (auto err : errors)
+		std::cout << err << std::endl;
+}
+
 int main()
 {
 	test(integer);
@@ -224,7 +256,8 @@ int main()
 	test(string);
 	test(array);
 	test(table);
-	test(form);	
+	test(form);
+	//test(misc);
 
 	return 0;
 }
