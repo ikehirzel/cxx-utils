@@ -197,8 +197,6 @@ namespace hirzel
 #if !defined(HIRZEL_DATA_VALIDATION_I) && defined(HIRZEL_IMPLEMENT)
 #define HIRZEL_DATA_VALIDATION_I
 
-#include <iostream>
-
 namespace hirzel
 {
 	namespace details
@@ -591,33 +589,45 @@ namespace hirzel
 
 		if (*iter != ']')
 		{
+			auto element_index = 0u;
+
 			while (true)
 			{
 				if (_is_last_variadic)
 					throw FormatException("only the last element in an array may be variadic");
-
-				auto validator = details::parse_data_validator(iter);
-				_validators.push_back(validator);
-
-				switch (*iter)
+				try
 				{
-					case ',':
-						iter += 1;
-						continue;
-					case ']':
-						break;
-					case '.':
-						_is_last_variadic = true;
-						details::parse_elipsis(iter);
+					auto validator = details::parse_data_validator(iter);
+					_validators.push_back(validator);
 
-						if (*iter == ',')
-						{
+					switch (*iter)
+					{
+						case ',':
 							iter += 1;
+							element_index += 1;
 							continue;
-						}
-						break;
-					default:
-						throw details::unexpected_token_error("array", *iter);
+						case ']':
+							break;
+						case '.':
+							_is_last_variadic = true;
+							details::parse_elipsis(iter);
+
+							if (*iter == ',')
+							{
+								iter += 1;
+								continue;
+							}
+							break;
+						default:
+							throw details::unexpected_token_error("array", *iter);
+					}
+				}
+				catch (const FormatException& e)
+				{
+					throw FormatException("error in array at element ("
+						+ std::to_string(element_index)
+						+ "): "
+						+ std::string(e.what()));
 				}
 
 				break;
@@ -711,19 +721,26 @@ namespace hirzel
 			while (true)
 			{
 				auto key = details::parse_table_key(iter);
-				auto validator = details::parse_data_validator(iter);
 
-				_validators.push_back({ key, validator });
-
-				switch (*iter)
+				try
 				{
-					case ',':
-						iter += 1;
-						continue;
-					case '}':
-						break;
-					default:
-						throw details::unexpected_token_error("table", *iter);
+					auto validator = details::parse_data_validator(iter);
+					_validators.push_back({ key, validator });
+
+					switch (*iter)
+					{
+						case ',':
+							iter += 1;
+							continue;
+						case '}':
+							break;
+						default:
+							throw details::unexpected_token_error("table", *iter);
+					}
+				}
+				catch (const FormatException& e)
+				{
+					throw FormatException("error in table entry '" + key + "': " + std::string(e.what()));
 				}
 
 				break;
