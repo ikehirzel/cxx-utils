@@ -222,23 +222,18 @@ void test_misc()
 	using Array = Data::Array;
 
 	auto data = Table {
-		{ "array_key", Array({ 1, 2, 3, 4}) },
-		{ "bool", Data() },
-		{ "nullable_int", "hello" },
-		{ "sub_table", Table {
-				{ "a", true }
-			}
-		}
+		{ "ticker", "EUR_USD" },
+		{ "portfolio", "Forex" }
 	};
 
 	Validator is_valid(R"==(
 		{
-			array_key: [#[1, 3]...],
-			bool: &,
-			nullable_int: #?,
-			sub_table: {
-				a: #
-			}
+			ticker: $,
+			portfolio: $,
+			interval: #(0, ~]?,
+			ranges: [#(0, ~]...]?,
+			strategy: $?,
+			indicators: $?
 		}
 	)==");
 

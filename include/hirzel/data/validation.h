@@ -512,6 +512,9 @@ namespace hirzel
 		if (!is_correct_type)
 			return { details::value_type_error("integer", data.type_name(), _is_nullable) };
 
+		if (data.is_null())
+			return {};
+
 		auto value = data.as_long_long();
 		auto is_out_of_range = value < _range.min
 			|| (value == _range.min && _range.min_exclusive)
@@ -538,6 +541,9 @@ namespace hirzel
 
 		if (!is_correct_type)
 			return { details::value_type_error("decimal", data.type_name(), _is_nullable) };
+
+		if (data.is_null())
+			return {};
 
 		auto value = data.as_double();
 		auto is_out_of_range = value < _range.min
@@ -757,6 +763,9 @@ namespace hirzel
 
 		if (!is_correct_type)
 			return { details::value_type_error("table", data.type_name(), _is_nullable) };
+
+		if (data.is_null())
+			return {};
 
 		std::vector<std::string> out;
 
