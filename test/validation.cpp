@@ -224,7 +224,7 @@ int main()
 	test(string);
 	test(array);
 	test(table);
-	test(form);
+	test(form);	
 
 	return 0;
 }

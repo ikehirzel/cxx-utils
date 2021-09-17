@@ -672,6 +672,9 @@ namespace hirzel
 		{
 			auto validation_errors = _validators[i]->validate(array[element_index]);
 
+			for (auto& err : validation_errors)
+				err.insert(0, std::to_string(i) + ": " + err);
+
 			out.insert(out.end(),
 				std::make_move_iterator(validation_errors.begin()),
 				std::make_move_iterator(validation_errors.end()));
@@ -686,6 +689,9 @@ namespace hirzel
 			for (size_t i = element_index; i < array.size(); ++i)
 			{
 				auto validation_errors = validator->validate(array[i]);
+
+				for (auto& err : validation_errors)
+					err.insert(0, std::to_string(i) + ": " + err);
 
 				out.insert(out.end(),
 					std::make_move_iterator(validation_errors.begin()),
@@ -744,6 +750,9 @@ namespace hirzel
 				: Data();
 
 			auto validation_errors = pair.second->validate(element);
+
+			for (auto& err : validation_errors)
+				err.insert(0, pair.first + ": ");
 
 			out.insert(out.end(),
 				std::make_move_iterator(validation_errors.begin()),
