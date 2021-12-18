@@ -1,5 +1,5 @@
-#ifndef HIRZEL_UTIL_FILE_H
-#define HIRZEL_UTIL_FILE_H
+#ifndef HIRZEL_FILE_H
+#define HIRZEL_FILE_H
 
 #include <vector>
 #include <string>
@@ -9,7 +9,7 @@ namespace hirzel
 	namespace file
 	{
 		std::vector<std::string> read_lines(const std::string& filepath,
-			 size_t first_line = 0, size_t n = -1);
+			 size_t first_line_index = 0, size_t n = 0);
 		std::string read(const std::string& filepath,
 			const std::string& line_ending = "\n");
 		bool write(const std::string& filepath, const std::string& buf);
@@ -18,8 +18,10 @@ namespace hirzel
 		class IoException : public std::exception
 		{
 		private:
+		
 			std::string _msg;
 			IoException(const std::string& msg) : _msg(msg) {}
+
 		public:
 			static IoException dne(const std::string& filename) noexcept
 			{
@@ -30,9 +32,10 @@ namespace hirzel
 	}
 }
 
-#endif // HIRZEL_UTIL_FILE_H
+#endif
 
-#ifdef HIRZEL_IMPLEMENT
+#if defined(HIRZEL_IMPLEMENT) && !defined(HIRZEL_FILE_I)
+#define HIRZEL_FILE_I
 
 #include <fstream>
 #include <iostream>
