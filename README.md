@@ -5,7 +5,7 @@ ready for production use
 
 # Brief
 
-A suite of single-header utilities with broad functionality for use in C++ Applications. 
+A suite of single-header, cross-platform utilities with broad functionality for use in C++ applications
 
 Included Utilities:
 
@@ -19,12 +19,14 @@ Included Utilities:
 	- Data validator intended to assure the data within config files or data received from an API
 	- Makes use of hirzel::Data as the primary target for validation
 	- Supports specifying expected datatypes, acceptable ranges for numeric values nullable, and nullability of fields
+- **plugin.h**
+	- Provides API for loading dynamic libraries and their associated global data and functions.
 - **file.h**
-	- Provides simple API for handling simple file operations such as reading and writing
+	- Provides API for handling simple file operations such as reading and writing
 - **string.h**
 	- Provides useful common funtions for manipulating strings, such as tokenizing, or getting different segments of a filepath
 - **system.h**
-	- Simple API for handling the underlying system, such as getting current OS name, unix timestamps, or making the current thread sleep.
+	- Provides API for handling the underlying system, such as getting current OS name, unix timestamps, or making the current thread sleep.
 
 # Current Status
 
@@ -50,6 +52,7 @@ The projects is currently still in active development
 # Dependencies
 
 * C++11 Standard Library
+* OS libraries (POSIX, Win32) depending on system
 
 # License
 
