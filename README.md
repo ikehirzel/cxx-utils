@@ -1,3 +1,4 @@
+
 # C++ Utils
 
 > NOTE: this project is still in active development, however it is not currently
@@ -21,6 +22,8 @@ Included Utilities:
 	- Supports specifying expected datatypes, acceptable ranges for numeric values nullable, and nullability of fields
 - **plugin.h**
 	- Provides API for loading dynamic libraries and their associated global data and functions.
+- **logger.h**
+	- Logger with urgency levels and consistent layout to allow for use with stream manipulator such as grep or select-string
 - **file.h**
 	- Provides API for handling simple file operations such as reading and writing
 - **string.h**
@@ -44,6 +47,10 @@ The projects is currently still in active development
 	- String regexes
 - **file.h**
 	- Implement functions for handling directories
+- **plugin.h**
+	- Find way to implement type safety
+- **logger.h**
+	- Code cleanup
 - **string.h**
 	- Reimplement tokenizing functions
 	- Make C++11 compliant
