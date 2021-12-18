@@ -46,8 +46,9 @@ The projects is currently still in active development
 	- Implement functions for handling directories
 - **string.h**
 	- Reimplement tokenizing functions
+	- Make C++11 compliant
 - **system.h**
-	- Stabilize API
+	- Make c++11 compliant
 
 # Dependencies
 
