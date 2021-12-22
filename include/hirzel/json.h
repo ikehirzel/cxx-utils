@@ -27,7 +27,7 @@
  */
 
 #include <string>
-#include <hirzel/data/data.h>
+#include <hirzel/data.h>
 
 namespace hirzel
 {

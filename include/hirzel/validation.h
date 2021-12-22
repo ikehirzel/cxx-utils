@@ -26,7 +26,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <hirzel/data/data.h>
+#include <hirzel/data.h>
 
 #include <climits>
 #include <cfloat>
