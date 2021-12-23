@@ -45,7 +45,7 @@ namespace hirzel
 			UNKNOWN
 		};
 
-		OsType current_os_type()
+		inline OsType current_os_type()
 		{
 			#if HIRZEL_OS == HIRZEL_WINDOWS
 				return OsType::WINDOWS;
