@@ -28,7 +28,7 @@ namespace hirzel
 
 			struct Array
 			{
-				Arg *data;
+				Arg *JsonValue;
 				size_t size;
 			};
 
@@ -76,25 +76,25 @@ namespace hirzel
 
 			Arg(const std::string& s) : Arg(s.c_str()) {}
 
-			Arg(const Arg *data, size_t size) : _type(ARG_ARRAY)
+			Arg(const Arg *JsonValue, size_t size) : _type(ARG_ARRAY)
 			{
 				_array.size = size;
-				_array.data = new Arg[size];
+				_array.JsonValue = new Arg[size];
 
 				for (size_t i = 0; i < _array.size; ++i)
-					_array.data[i] = data[i];
+					_array.JsonValue[i] = JsonValue[i];
 			}
 
-			Arg(const Array& a) : Arg(a.data, a.size) {}
+			Arg(const Array& a) : Arg(a.JsonValue, a.size) {}
 
 			Arg(const std::vector<Arg>& a) : _type(ARG_ARRAY)
 			{
 
 				_array.size = a.length();
-				_array.data = new Arg[a.length()];
+				_array.JsonValue = new Arg[a.length()];
 
 				for (size_t i = 0; i < a.length(); ++i)
-					_array.data[i] = a[i];
+					_array.JsonValue[i] = a[i];
 			}
 
 			Arg(Arg&& other) { *this = other; }
@@ -108,7 +108,7 @@ namespace hirzel
 						delete[] _string;
 						return;
 					case ARG_ARRAY:
-						delete[] _array.data;
+						delete[] _array.JsonValue;
 						return;
 				}
 			}
@@ -142,9 +142,9 @@ namespace hirzel
 						std::string out = "[";
 						if (_array.size)
 						{
-							out += _array.data[0].to_string();
+							out += _array.JsonValue[0].to_string();
 							for (size_t i = 1; i < _array.size; ++i)
-								out += ", " + _array.data[i].to_string();
+								out += ", " + _array.JsonValue[i].to_string();
 						}
 						return out + "]";
 					}
@@ -187,7 +187,7 @@ namespace hirzel
 
 					case ARG_ARRAY:
 						_array = other._array;
-						other._array.data = nullptr;
+						other._array.JsonValue = nullptr;
 						other._type = ARG_INTEGER;
 						return *this;
 

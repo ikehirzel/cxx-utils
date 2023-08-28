@@ -34,8 +34,8 @@ void test_get_filename()
 	test("/var/lib/file.txt", "file", false);
 	test("/var/lib/file.txt.bak", "file.txt.bak", true);
 	test("/var/lib/file.txt.bak", "file", false);
-	test("/data.json", "data.json", true);
-	test("/data.json", "data", false);
+	test("/JsonValue.json", "JsonValue.json", true);
+	test("/JsonValue.json", "JsonValue", false);
 
 	#undef test
 }

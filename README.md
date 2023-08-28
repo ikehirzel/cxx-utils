@@ -10,18 +10,18 @@ A suite of single-header, cross-platform utilities with broad functionality for 
 
 Included Utilities:
 
-- **data.hpp**
-	- A generic data container that is intended to be used in data file deserialization
+- **JsonValue.hpp**
+	- A generic JsonValue container that is intended to be used in JsonValue file deserialization
 	- Supports tables, arrays, boolean values, strings, integers, floating point numbers, and null values
 - **json.hpp**
 	- JSON de/serializer that follows JSON standard (keys with quotes, no comments, no trailing commas)
-	- Makes use of hirzel::Data as the primary container for deserialized data
+	- Makes use of hirzel::JsonValue as the primary container for deserialized JsonValue
 - **validation.hpp**
-	- Data validator intended to assure the data within config files or data received from an API
-	- Makes use of hirzel::Data as the primary target for validation
-	- Supports specifying expected datatypes, acceptable ranges for numeric values nullable, and nullability of fields
+	- JsonValue validator intended to assure the JsonValue within config files or JsonValue received from an API
+	- Makes use of hirzel::JsonValue as the primary target for validation
+	- Supports specifying expected ValueTypes, acceptable ranges for numeric values nullable, and nullability of fields
 - **plugin.hpp**
-	- Provides API for loading dynamic libraries and their associated global data and functions.
+	- Provides API for loading dynamic libraries and their associated global JsonValue and functions.
 - **logger.hpp**
 	- Logger with urgency levels and consistent layout to allow for use with stream manipulator such as grep or select-string
 - **file.hpp**
@@ -33,14 +33,14 @@ Included Utilities:
 
 # Current Status
 
-As of right now, the data container itself as well as json parsing are effective
+As of right now, the JsonValue container itself as well as json parsing are effective
 but still need further testing before being used in a production environment.
 The projects is currently still in active development
 
 # To Do
 
-- **data.hpp**
-	- Make use of safer system for different data types
+- **JsonValue.hpp**
+	- Make use of safer system for different JsonValue types
 - **json.hpp**
 	- Add pretty-printing for JSON output
 - **validation.hpp**

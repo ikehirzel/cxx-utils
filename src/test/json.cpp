@@ -1,11 +1,10 @@
 #define HIRZEL_IMPLEMENT
+
 #include <hirzel/json.hpp>
-
 #include <iostream>
-
 #include <cassert>
 
-using namespace hirzel;
+using namespace hirzel::json;
 
 #define assert_equals(a, b) {\
 	assert(a == b);\
@@ -14,17 +13,17 @@ using namespace hirzel;
 	assert_false(b != a);\
 }
 
-#define assert_parse_throws(json) true//assert_throws(Json::deserialize(json), Json::SyntaxError)
-#define assert_parse_not_throws(json) true//assert_no_throw(Json::deserialize(json))
+#define assert_parse_throws(json) true//assert_throws(json::deserialize(json), json::SyntaxError)
+#define assert_parse_not_throws(json) true//assert_no_throw(json::deserialize(json))
 
 #define assert_type(var, type) assert(var.is##type() && "Expected type '" #type "' but got '" #type "'")
 #define assert_value(var, func, value) assert(var.as_##func() == value && "Expected value of " #value)
 
 #define assert_json(json, value) {\
 	assert_parse_not_throws(json);\
-	auto data = Json::deserialize(json);\
-	auto expected = Data(value);\
-	assert(data == expected);\
+	auto jsonValue = deserialize(json);\
+	auto expected = JsonValue(value);\
+	assert(jsonValue == expected);\
 }
 
 std::string colors_json =
@@ -181,9 +180,9 @@ void test_null()
 	// valid
 	assert_parse_not_throws("null");
 
-	Data null = Json::deserialize("null");
+	JsonValue null = deserialize("null");
 	assert_type(null, Null);
-	assert(null == Data());
+	assert(null == JsonValue());
 
 	// invalid
 	assert_parse_throws("nub");
@@ -259,14 +258,14 @@ void test_string()
 
 void test_array()
 {
-	using Array = Data::Array;
+	using Array = JsonArray;
 
 	assert_json("[]", Array());
 	assert_json("[1,2,3]", Array({ 1, 2, 3 }));
-	assert_json("[234, \"hello\", null, true, {}]", Array({ 234, "hello", Data(), true, Data::Table() }));
-	assert_json("[[{}]]", Data(Array({ Data(Array({ Data(Data::Table()) })) })) );
-	assert_json("[[[]]]", Data(Array({ Data(Array({ Data(Array()) })) })) );
-	assert_json("[[1,2,3], [2,3,4], {\"key\":true}]", Array({ Array({ 1, 2, 3 }), Array({ 2, 3, 4 }), Data::Table({ { "key", true } }) }));
+	assert_json("[234, \"hello\", null, true, {}]", Array({ 234, "hello", JsonValue(), true, JsonObject() }));
+	assert_json("[[{}]]", JsonValue(Array({ JsonValue(Array({ JsonValue(JsonObject()) })) })) );
+	assert_json("[[[]]]", JsonValue(Array({ JsonValue(Array({ JsonValue(Array()) })) })) );
+	assert_json("[[1,2,3], [2,3,4], {\"key\":true}]", Array({ Array({ 1, 2, 3 }), Array({ 2, 3, 4 }), JsonObject({ { "key", true } }) }));
 
 	assert_parse_throws("[");
 	assert_parse_throws("]");
@@ -281,11 +280,11 @@ void test_array()
 
 void test_table()
 {
-	using Table = Data::Table;
+	using Table = JsonObject;
 
-	assert_json("{}", Table());
+	assert_json("{}", JsonObject());
 	assert_json("{\"key\":1}", Table({ {"key", 1} }));
-	assert_json("{\"abc\":[true, false]}", Table({ { "abc", Data::Array({ true, false }) } }));
+	assert_json("{\"abc\":[true, false]}", Table({ { "abc", JsonArray({ true, false }) } }));
 	assert_json("{\"key\":\"value\",\"number\":298}", Table({ { "key", "value" }, { "number", 298 } }));
 	assert_json("{\"table\":{\"subtable\":567}}", Table({ { "table", Table({ { "subtable", 567 } }) } }));
 
@@ -306,11 +305,11 @@ void test_table()
 
 void test_json()
 {
-	using Table = Data::Table;
-	using Array = Data::Array;
+	using Table = JsonObject;
+	using Array = JsonArray;
 
 	assert_parse_not_throws(colors_json);
-	auto colors_data = Table{
+	auto colors_Value = Table{
 		{ "colors", Array{
 				Table {
 					{ "color", "black" },
@@ -374,13 +373,13 @@ void test_json()
 			}
 		}
 	};
-	assert_json(colors_json, colors_data);
+	assert_json(colors_json, colors_Value);
 
 	assert_parse_not_throws(pokemon_json);
-	auto pokemon_data = Table {
+	auto pokemon_Value = Table {
 		{ "count", 1118 },
 		{ "next", "https://pokeapi.co/api/v2/pokemon?offset=20&limit=20"},
-		{ "previous", Data() },
+		{ "previous", JsonValue() },
 		{ "results", Array {
 				Table {
 					{ "name", "bulbasaur"},
@@ -466,13 +465,13 @@ void test_json()
 		}
 	};
 
-	assert_json(pokemon_json, pokemon_data);
+	assert_json(pokemon_json, pokemon_Value);
 
 	// testing serialization
-	auto pokemon_expected = Data(pokemon_data);
-	auto from_json = Json::deserialize(pokemon_json);
-	auto serialized_json = Json::serialize(pokemon_expected);
-	auto from_json_clone = Json::deserialize(serialized_json);
+	auto pokemon_expected = JsonValue(pokemon_Value);
+	auto from_json = deserialize(pokemon_json);
+	auto serialized_json = serialize(pokemon_expected);
+	auto from_json_clone = deserialize(serialized_json);
 
 	assert(from_json == pokemon_expected);
 	assert(from_json_clone == from_json);

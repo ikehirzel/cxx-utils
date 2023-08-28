@@ -1,0 +1,259 @@
+// #define HIRZEL_IMPLEMENT
+
+// #include <hirzel/validation.hpp>
+// #include <iostream>
+// #include <cassert>
+
+// using namespace hirzel;
+
+// #define assert_no_errors(fmt, ...) assert(Validator(fmt)(__VA_ARGS__).empty() && "Format " #fmt " produces error(s) with argument: " #__VA_ARGS__)
+// #define assert_has_errors(fmt, ...) assert(Validator(fmt)(__VA_ARGS__).size() && "Format " #fmt " produces no errors with argument: " #__VA_ARGS__)
+// #define assert_fmt_throws(fmt) true//assert_throws(Validator(fmt), FormatException)
+// #define assert_fmt_no_throw(fmt) true//assert_no_throw(Validator(fmt), FormatException)
+
+// void test_integer()
+// {
+// 	assert_no_errors("#", 123);
+// 	assert_has_errors("#", JsonValue());
+// 	assert_has_errors("#", "hello");
+
+// 	assert_no_errors("#?", 123);
+// 	assert_no_errors("#?", JsonValue());
+// 	assert_has_errors("#?", "hello");
+
+// 	assert_no_errors("#[0,1]", 0);
+// 	assert_no_errors("#[0,1]", 1);
+// 	assert_has_errors("#(0,1]", 0);
+// 	assert_has_errors("#[0,1)", 1);
+// 	assert_has_errors("#(0,1)", 0);
+// 	assert_has_errors("#(0,1)", 1);
+// 	assert_no_errors("#[0,0]", 0);
+// 	assert_has_errors("#(0,0)", 0);
+
+// 	assert_no_errors("#[0,~]", 0);
+// 	assert_no_errors("#[0,~]", 1);
+// 	assert_no_errors("#[0,~]", LLONG_MAX);
+// 	assert_no_errors("#[0,~)", 0);
+// 	assert_no_errors("#[0,~)", 1);
+// 	assert_has_errors("#[0,~)", LLONG_MAX);
+
+// 	assert_has_errors("#[~,0]", 1);
+// 	assert_no_errors("#[~,0]", 0);
+// 	assert_no_errors("#[~,0]", -1);
+// 	assert_no_errors("#[~,0]", -134543);
+// 	assert_no_errors("#[~,0]", LLONG_MIN);
+// 	assert_no_errors("#(~,0]", 0);
+// 	assert_no_errors("#(~,0]", -1);
+// 	assert_has_errors("#(~,0]", LLONG_MIN);
+// }
+
+// void test_decimal()
+// {
+// 	assert_fmt_throws("%[");
+// 	assert_fmt_throws("%[,");
+// 	assert_fmt_throws("%[1]");
+// 	assert_fmt_throws("%[1,");
+// 	assert_fmt_throws("%[1,]");
+
+// 	assert_fmt_throws("%[1,0]");
+
+// 	assert_no_errors("%", 123);
+// 	assert_has_errors("%", JsonValue());
+// 	assert_has_errors("%", "hello");
+
+// 	assert_no_errors("%?", 123);
+// 	assert_no_errors("%?", JsonValue());
+// 	assert_has_errors("%?", "hello");
+
+// 	assert_no_errors("%[0.0,1.0]", 0.0);
+// 	assert_no_errors("%[12,56]", 12.0);
+// 	assert_has_errors("%(0,1]", 0);
+// 	assert_has_errors("%[0,1)", 1);
+// 	assert_has_errors("%(0,1)", 0);
+// 	assert_has_errors("%(0,1)", 1);
+// 	assert_no_errors("%[0,0]", 0);
+// 	assert_has_errors("%(0,0)", 0);
+
+// 	assert_no_errors("%[0,~]", 0.0);
+// 	assert_no_errors("%[0,~]", 1.0);
+// 	assert_no_errors("%[0,~]", DBL_MAX);
+// 	assert_no_errors("%[0,~)", 0.0);
+// 	assert_no_errors("%[0,~)", 1.0);
+// 	assert_has_errors("%[0,~)", DBL_MAX);
+
+// 	assert_has_errors("%[~,0]", 1.0);
+// 	assert_no_errors("%[~,0]", 0.0);
+// 	assert_no_errors("%[~,0]", -1.0);
+// 	assert_no_errors("%[~,0]", -134543.0);
+// 	assert_no_errors("%[~,0]", -DBL_MAX);
+// 	assert_no_errors("%(~,0]", 0.0);
+// 	assert_no_errors("%(~,0]", -1.0);
+// 	assert_has_errors("%(~,0]", DBL_MAX);
+// }
+
+// void test_string()
+// {
+// 	assert_no_errors("$", "hello");
+// 	assert_has_errors("$", 1);
+// 	assert_has_errors("$", JsonValue());
+
+// 	assert_no_errors("$?", JsonValue());
+// 	assert_no_errors("$?", "hello");
+// 	assert_has_errors("$?", 1);
+// }
+
+// void test_boolean()
+// {
+// 	assert_no_errors("&", true);
+// 	assert_has_errors("&", 1);
+// 	assert_has_errors("&", JsonValue());
+
+// 	assert_no_errors("&?", JsonValue());
+// 	assert_no_errors("&?", false);
+// 	assert_has_errors("&?", 1);
+// }
+
+// void test_table()
+// {
+// 	using Table = JsonValue::Table;
+
+// 	// formatting
+
+// 	// validation
+// 	assert_no_errors("{}", Table());
+// 	assert_has_errors("{}", JsonValue());
+// 	assert_has_errors("{}", 1);
+// 	assert_no_errors("{}", Table({{ "key", 4 }}));
+
+// 	assert_no_errors("{}?", JsonValue());
+// 	assert_no_errors("{}?", Table());
+// 	assert_has_errors("{}?", 1);
+
+// 	assert_no_errors("{key:#}", Table({ { "key", 47 } }));
+// 	assert_has_errors("{key:#}", Table({ { "key", JsonValue() } }));
+// 	assert_has_errors("{key:#}", Table({ }));
+
+// 	assert_no_errors("{key:#?}", Table({{ "key", JsonValue() }}));
+// 	assert_no_errors("{key:#?}", Table({{ "key", 1 }}));
+// 	assert_has_errors("{key:#?}", Table({{ "key", "hello" }}));
+
+// 	assert_no_errors("{key:#,name:$}", Table({ { "key", 47 }, { "name", "Isaac" } }));
+// 	assert_has_errors("{key:#,name:$}", Table({ { "key", JsonValue() } }));
+// 	assert_has_errors("{key:#,name:$}", Table({ { "key", JsonValue() }, { "name", JsonValue() } }));
+// 	assert_has_errors("{key:#,name:$}", Table({ }));
+// }
+
+// void test_array()
+// {
+// 	using Array = JsonValue::Array;
+
+// 	// formatting
+// 	assert_fmt_throws("[#..., #...]");
+
+// 	// validation
+// 	assert_no_errors("[]", Array());
+// 	assert_has_errors("[]", Array { 1 });
+// 	assert_has_errors("[]", JsonValue());
+// 	assert_has_errors("[]", 1);
+
+// 	assert_no_errors("[]?", Array());
+// 	assert_no_errors("[]?", JsonValue());
+// 	assert_has_errors("[]?", Array{ 1 });
+// 	assert_has_errors("[]?", 1);
+
+// 	assert_no_errors("[#]", Array { 1 });
+// 	assert_has_errors("[#]", Array { 1, 2 });
+// 	assert_has_errors("[#]", Array { "hello" });
+// 	assert_has_errors("[#]", Array { JsonValue() });
+
+// 	assert_no_errors("[#]?", Array { 1 });
+// 	assert_has_errors("[#]?", Array { 1, 2 });
+// 	assert_has_errors("[#]?", Array { "hello" });
+// 	assert_has_errors("[#]?", Array { JsonValue() });
+
+// 	assert_no_errors("[#?]", Array { JsonValue() });
+// 	assert_has_errors("[#?]", Array { "hello" });
+// 	assert_no_errors("[#?, #?, #]", Array { JsonValue(), JsonValue(), 3});
+
+// 	assert_no_errors("[#?]?", Array { JsonValue() });
+// 	assert_has_errors("[#?]?", Array { "hello" });
+// 	assert_no_errors("[#?]?", JsonValue());
+
+// 	assert_no_errors("[#...]", Array());
+// 	assert_no_errors("[#...]", Array { 1 });
+// 	assert_no_errors("[#...]", Array { 1, 2, 3 });
+// 	assert_has_errors("[#...]", Array { "hello" });
+// 	assert_has_errors("[#...]", Array { 1, 2, "hello" });
+	
+// 	assert_no_errors("[#, #...]", Array { 1 });
+// 	assert_no_errors("[#, #...]", Array { 1, 2 });
+// 	assert_no_errors("[#, #...]", Array { 1, 2, 234, 109 });
+// 	assert_has_errors("[#, #...]", Array());	
+
+// 	// nullable variadic
+// 	assert_no_errors("[#?...]", Array{ });
+// 	assert_no_errors("[#?...]", Array{ JsonValue() });
+// 	assert_no_errors("[#?...]", Array{ 1 });
+// 	assert_no_errors("[#?...]", Array{ 1, JsonValue(), 2, JsonValue() });
+// 	assert_no_errors("[#?...]", Array{ JsonValue(), JsonValue(), JsonValue() });
+// 	assert_has_errors("[#?...]", Array { "hello" });
+// 	assert_has_errors("[#?...]", Array { 1, "hello" });
+// 	assert_has_errors("[#?...]", Array { JsonValue(), "hello" });
+// }
+
+// void test_form()
+// {
+// 	auto format = "{first_name:$,middle_name:$?,last_name:$,age:#[0,150],minor:&,patience:%[0,1],friends:[$, $, $]}";
+// 	auto JsonValue = JsonValue::Table({
+// 		{ "first_name", "Isaac" },
+// 		{ "last_name", "Hirzel" },
+// 		{ "age", 22 },
+// 		{ "minor", false },
+// 		{ "patience", 0.6 },
+// 		{ "friends", JsonValue::Array({ "Alex", "Jacob", "Memo" }) }
+// 	});
+// 	assert_no_errors(format, JsonValue);
+// }
+
+// void test_misc()
+// {
+// 	using Table = JsonValue::Table;
+// 	using Array = JsonValue::Array;
+
+// 	auto JsonValue = Table {
+// 		{ "ticker", "EUR_USD" },
+// 		{ "portfolio", "Forex" }
+// 	};
+
+// 	Validator is_valid(R"==(
+// 		{
+// 			ticker: $,
+// 			portfolio: $,
+// 			interval: #(0, ~]?,
+// 			ranges: [#(0, ~]...]?,
+// 			strategy: $?,
+// 			indicators: $?
+// 		}
+// 	)==");
+
+// 	auto errors = is_valid(JsonValue);
+
+// 	for (auto err : errors)
+// 		std::cout << err << std::endl;
+// }
+
+// #define test(func) test_##func()
+
+// int main()
+// {
+// 	test(integer);
+// 	test(decimal);
+// 	test(boolean);
+// 	test(string);
+// 	test(array);
+// 	test(table);
+// 	test(form);
+// 	//test(misc);
+
+// 	return 0;
+// }
