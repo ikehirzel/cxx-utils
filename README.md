@@ -10,25 +10,25 @@ A suite of single-header, cross-platform utilities with broad functionality for 
 
 Included Utilities:
 
-- **data.h**
+- **data.hpp**
 	- A generic data container that is intended to be used in data file deserialization
 	- Supports tables, arrays, boolean values, strings, integers, floating point numbers, and null values
-- **json.h**
+- **json.hpp**
 	- JSON de/serializer that follows JSON standard (keys with quotes, no comments, no trailing commas)
 	- Makes use of hirzel::Data as the primary container for deserialized data
-- **validation.h**
+- **validation.hpp**
 	- Data validator intended to assure the data within config files or data received from an API
 	- Makes use of hirzel::Data as the primary target for validation
 	- Supports specifying expected datatypes, acceptable ranges for numeric values nullable, and nullability of fields
-- **plugin.h**
+- **plugin.hpp**
 	- Provides API for loading dynamic libraries and their associated global data and functions.
-- **logger.h**
+- **logger.hpp**
 	- Logger with urgency levels and consistent layout to allow for use with stream manipulator such as grep or select-string
-- **file.h**
+- **file.hpp**
 	- Provides API for handling simple file operations such as reading and writing
-- **string.h**
+- **string.hpp**
 	- Provides useful common funtions for manipulating strings, such as tokenizing, or getting different segments of a filepath
-- **system.h**
+- **system.hpp**
 	- Provides API for handling the underlying system, such as getting current OS name, unix timestamps, or making the current thread sleep.
 
 # Current Status
@@ -39,22 +39,22 @@ The projects is currently still in active development
 
 # To Do
 
-- **data.h**
+- **data.hpp**
 	- Make use of safer system for different data types
-- **json.h**
+- **json.hpp**
 	- Add pretty-printing for JSON output
-- **validation.h**
+- **validation.hpp**
 	- String regexes
-- **file.h**
+- **file.hpp**
 	- Implement functions for handling directories
-- **plugin.h**
+- **plugin.hpp**
 	- Find way to implement type safety
-- **logger.h**
+- **logger.hpp**
 	- Code cleanup
-- **string.h**
+- **string.hpp**
 	- Reimplement tokenizing functions
 	- Make C++11 compliant
-- **system.h**
+- **system.hpp**
 	- Make c++11 compliant
 
 # Dependencies
@@ -64,7 +64,7 @@ The projects is currently still in active development
 
 # License
 
-Copyright 2021 Ike Hirzel
+Copyright 2023 Isaac Hirzel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

@@ -1,9 +1,9 @@
 /**
- * @file	plugin.h
+ * @file	plugin.hpp
  * @brief	Data structure that makes binding to dynamic objects easier
- * @author	Ike Hirzel
+ * @author	Isaac Hirzel
  * 
- * Copyright 2020 Ike Hirzel
+ * Copyright 2020 Isaac Hirzel
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in the
@@ -23,8 +23,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef HIRZEL_PLUGIN_H
-#define HIRZEL_PLUGIN_H
+#ifndef HIRZEL_PLUGIN_HPP
+#define HIRZEL_PLUGIN_HPP
 
 // standard library
 #include <string>
@@ -35,7 +35,7 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #define OS_IS_WINDOWS true
-#include <libloaderapi.h>
+#include <libloaderapi.hpp>
 #else
 #define OS_IS_WINDOWS false
 #include <dlfcn.h>
@@ -132,19 +132,19 @@ namespace hirzel
 		void bind_function(const std::string& label);
 		void bind_variable(const std::string& label);
 		
-		inline bool contains(const std::string& label) const
+		bool contains(const std::string& label) const
 		{
 			return _data->symbols.find(label) != _data->symbols.end();
 		}
 
-		inline bool contains_function(const std::string& label) const
+		bool contains_function(const std::string& label) const
 		{
 			auto iter = _data->symbols.find(label);
 
 			return iter != _data->symbols.end() && iter->second.is_func;
 		}
 
-		inline bool contains_variable(const std::string& label) const
+		bool contains_variable(const std::string& label) const
 		{
 			auto iter = _data->symbols.find(label);
 
@@ -155,50 +155,50 @@ namespace hirzel
 		Variable get_variable_ptr(const std::string& label) const;	
 
 		template <typename T>
-		inline T get_variable(const std::string& label) const 
+		T get_variable(const std::string& label) const 
 		{
 			return *(T*)get_variable_ptr(label);
 		}
 
 		template <typename T, typename... Args>
-		inline T call_function(const std::string& label, Args... args) const 
+		T call_function(const std::string& label, Args... args) const 
 		{
 			T(*func)(Args...) = (decltype(func))get_function_ptr(label);
 			return func(args...);
 		}		
 
-		inline Plugin& operator=(const Plugin& other)
+		Plugin& operator=(const Plugin& other)
 		{
 			_data = _cache[other.filepath()];
 
 			return *this;
 		}
 
-		inline Plugin& operator=(Plugin&& other)
+		Plugin& operator=(Plugin&& other)
 		{
 			_data = std::move(other._data);
 
 			return *this;
 		}
 
-		inline std::shared_ptr<Plugin::Data> data() const
+		std::shared_ptr<Plugin::Data> data() const
 		{
 			return _data;
 		}
 
-		inline size_t count() const
+		size_t count() const
 		{
 			return _data->symbols.size();
 		}
 
-		inline const std::string& filepath() const
+		const std::string& filepath() const
 		{
 			return _data->filepath;
 		}
 	};
 }
 
-#endif // HIRZEL_PLUGIN_H
+#endif // HIRZEL_PLUGIN_HPP
 
 #if !defined(HIRZEL_PLUGIN_I) && defined(HIRZEL_IMPLEMENT)
 #define HIRZEL_PLUGIN_I

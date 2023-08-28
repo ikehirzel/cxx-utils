@@ -1,8 +1,8 @@
 #define HIRZEL_IMPLEMENT
-#include <hirzel/string.h>
+#include <hirzel/string.hpp>
 
 #include <iostream>
-#include <assert.h>
+#include <cassert>
 
 using namespace hirzel::string;
 

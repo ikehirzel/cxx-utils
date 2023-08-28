@@ -1,12 +1,12 @@
-#ifndef HIRZEL_DATA_DATA_H
-#define HIRZEL_DATA_DATA_H
+#ifndef HIRZEL_DATA_HPP
+#define HIRZEL_DATA_HPP
 
 /**
- * @file data.h
+ * @file data.hpp
  * @brief A universal data type
- * @author Ike Hirzel
+ * @author Isaac Hirzel
  * 
- * Copyright 2021 Ike Hirzel
+ * Copyright 2023 Isaac Hirzel
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -30,25 +30,27 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <vector>
+#include <cstdint>
 
 namespace hirzel
 {
+	enum class DataType
+	{
+		Null,
+		Integer,
+		Float,
+		Boolean,
+		String,
+		Array,
+		Table
+	};
+
 	class Data
 	{
 	public:
 		typedef std::unordered_map<std::string, Data> Table;
 		typedef std::vector<Data> Array;
 
-		enum Type
-		{
-			NONE,
-			INTEGER,
-			DECIMAL,
-			BOOLEAN,
-			STRING,
-			ARRAY,
-			TABLE
-		};
 
 		class TypeException : public std::exception
 		{
@@ -57,7 +59,7 @@ namespace hirzel
 		public:
 			TypeException(const std::string& msg) : _msg(msg) {}
 
-			inline static TypeException cast_exception(const char *from, const char *to)
+			static TypeException cast_exception(const char *from, const char *to)
 			{
 				return TypeException("data of type '"
 					+ std::string(from)
@@ -71,12 +73,12 @@ namespace hirzel
 			}
 		};
 
-	private: // data members
+	private:
 
-		Type _type = Type::NONE;
+		DataType _type = DataType::Null;
 		union
 		{
-			long long _integer = 0;
+			int64_t _integer = 0;
 			bool _boolean;
 			double _decimal;
 			std::string *_string;
@@ -86,35 +88,35 @@ namespace hirzel
 
 	public:
 
-		Data() : _type(Type::NONE), _integer(0) {}
+		Data() : _type(DataType::Null), _integer(0) {}
 		Data(const Data& other) { *this = other; }
 		Data(Data&& other) { *this = other; }
-		Data(Type t);
+		Data(DataType t);
 
-		inline Data(short i) : _type(Type::INTEGER), _integer(i) {}
-		inline Data(int i) : _type(Type::INTEGER), _integer(i) {}
-		inline Data(long i) : _type(Type::INTEGER), _integer(i) {}
-		inline Data(long long i) : _type(Type::INTEGER), _integer(i) {}
+		Data(short i) : _type(DataType::Integer), _integer(i) {}
+		Data(int i) : _type(DataType::Integer), _integer(i) {}
+		Data(long i) : _type(DataType::Integer), _integer(i) {}
+		Data(long long i) : _type(DataType::Integer), _integer(i) {}
 
-		inline Data(unsigned short i) : _type(Type::INTEGER), _integer(i) {}
-		inline Data(unsigned int i) : _type(Type::INTEGER), _integer(i) {}
-		inline Data(unsigned long i) : _type(Type::INTEGER), _integer(i) {}
-		inline Data(unsigned long long i) : _type(Type::INTEGER), _integer(i) {}
+		Data(unsigned short i) : _type(DataType::Integer), _integer(i) {}
+		Data(unsigned int i) : _type(DataType::Integer), _integer(i) {}
+		Data(unsigned long i) : _type(DataType::Integer), _integer(i) {}
+		Data(unsigned long long i) : _type(DataType::Integer), _integer(i) {}
 		
-		inline Data(float d) : _type(Type::DECIMAL), _decimal(d) {}
-		inline Data(double d) : _type(Type::DECIMAL), _decimal(d) {}
+		Data(float d) : _type(DataType::Float), _decimal(d) {}
+		Data(double d) : _type(DataType::Float), _decimal(d) {}
 
-		inline Data(bool b) : _type(Type::BOOLEAN), _boolean(b) {}
+		Data(bool b) : _type(DataType::Boolean), _boolean(b) {}
 
-		inline Data(const std::string& s) : _type(Type::STRING), _string(new std::string(s)) {}
-		inline Data(char* s) : _type(Type::STRING), _string(new std::string(s)) {}
-		inline Data(const char* s) : _type(Type::STRING), _string(new std::string(s)) {}
+		Data(const std::string& s) : _type(DataType::String), _string(new std::string(s)) {}
+		Data(char* s) : _type(DataType::String), _string(new std::string(s)) {}
+		Data(const char* s) : _type(DataType::String), _string(new std::string(s)) {}
 
-		inline Data(const Array& array) : _type(Type::ARRAY), _array(new Array(array)) {}
-		inline Data(const Table& table) : _type(Type::TABLE), _table(new Table(table)) {}
+		Data(const Array& array) : _type(DataType::Array), _array(new Array(array)) {}
+		Data(const Table& table) : _type(DataType::Table), _table(new Table(table)) {}
 
 		template <typename T>
-		inline static Data from(const std::vector<T> array)
+		static Data from(const std::vector<T> array)
 		{
 			Data::Array out;
 
@@ -127,7 +129,7 @@ namespace hirzel
 		}
 
 		template <typename T>
-		inline static Data from(const std::unordered_map<std::string, T> table)
+		static Data from(const std::unordered_map<std::string, T> table)
 		{
 			Data::Table out;
 
@@ -139,99 +141,99 @@ namespace hirzel
 
 		~Data();
 
-		inline long long integer() const { return _integer; }
-		inline double decimal() const { return _decimal; }
-		inline bool boolean() const { return _boolean; }
-		inline const std::string& string() const { return *_string; }
-		inline const Array& array() const { return *_array; }
-		inline const Table& table() const { return *_table; }
+		long long integer() const { return _integer; }
+		double decimal() const { return _decimal; }
+		bool boolean() const { return _boolean; }
+		const std::string& string() const { return *_string; }
+		const Array& array() const { return *_array; }
+		const Table& table() const { return *_table; }
 
-		long long as_long_long() const;
-		inline long as_long() const { return (long)as_long_long(); }
-		inline int as_int() const { return (int)as_long_long(); }
-		inline short as_short() const { return (short)as_long_long(); }
+		int64_t asI64() const;
+		int32_t asI32() const { return (int32_t)asI64(); }
+		int16_t asI16() const { return (int16_t)asI64(); }
+		int8_t asI8() const { return (int8_t)asI64(); }
 
-		double as_double() const;
-		inline float as_float() const { return (float)as_double(); }
-		bool as_bool() const;
-		std::string	as_string() const;
+		double asF64() const;
+		float asF32() const { return (float)asF64(); }
+		bool asBool() const;
+		std::string	asString() const;
 
-		inline bool get_boolean() const
+		bool toBool() const
 		{
-			if (_type != Type::BOOLEAN)
-				throw TypeException::cast_exception(type_name(), "boolean");
+			if (_type != DataType::Boolean)
+				throw TypeException::cast_exception(typeName(), "boolean");
 
 			return _boolean;
 		}	
 
-		inline long long get_integer() const
+		long long toI64() const
 		{
-			if (_type != Type::INTEGER)
-				throw TypeException::cast_exception(type_name(), "integer");
+			if (_type != DataType::Integer)
+				throw TypeException::cast_exception(typeName(), "integer");
 				
 			return _integer;
 		}
 
-		inline double get_decimal() const 
+		double toF64() const 
 		{
-			if (_type != Type::DECIMAL)
-				throw TypeException::cast_exception(type_name(), "decimal");
+			if (_type != DataType::Float)
+				throw TypeException::cast_exception(typeName(), "decimal");
 				
 			return _decimal;
 		}
+		const std::string& toString() const
 
-		inline const std::string& get_string() const
 		{
-			if (_type != Type::STRING)
-				throw TypeException::cast_exception(type_name(), "string");
+			if (_type != DataType::String)
+				throw TypeException::cast_exception(typeName(), "string");
 
 			return *_string;
 		}
 
-		inline const Array& get_array() const
+		const Array& toArray() const
 		{
-			if (_type != Type::ARRAY)
-				throw TypeException::cast_exception(type_name(), "array");
+			if (_type != DataType::Array)
+				throw TypeException::cast_exception(typeName(), "array");
 
 			return *_array;
 		}
 
-		inline const Table& get_table() const
+		const Table& toTable() const
 		{
-			if (_type != Type::TABLE)
-				throw TypeException::cast_exception(type_name(), "rable");
+			if (_type != DataType::Table)
+				throw TypeException::cast_exception(typeName(), "rable");
 			
 			return *_table;
 		}
 
-		inline bool contains(const std::string& key) const
+		bool contains(const std::string& key) const
 		{
-			return _type == Type::TABLE ?
+			return _type == DataType::Table ?
 				_table->find(key) != _table->end() :
 				false;
 		}
 
-		bool is_empty() const;
-		size_t size() const;
+		bool isEmpty() const;
+		size_t length() const;
 
-		inline bool is_null() const noexcept { return _type == Type::NONE; }
-		inline bool is_integer() const noexcept { return _type == Type::INTEGER; }
-		inline bool is_decimal() const noexcept { return _type == Type::DECIMAL; }
-		inline bool is_number() const noexcept { return _type == Type::INTEGER || _type == Type::DECIMAL; }
-		inline bool is_boolean() const noexcept { return _type == Type::BOOLEAN; }
-		inline bool is_string() const noexcept { return _type == Type::STRING; }
-		inline bool is_array() const noexcept { return _type == Type::ARRAY; }
-		inline bool is_table() const noexcept { return _type == Type::TABLE; }
+		bool isNull() const noexcept { return _type == DataType::Null; }
+		bool isInteger() const noexcept { return _type == DataType::Integer; }
+		bool isFloat() const noexcept { return _type == DataType::Float; }
+		bool isNumber() const noexcept { return _type == DataType::Integer || _type == DataType::Float; }
+		bool isBoolean() const noexcept { return _type == DataType::Boolean; }
+		bool isString() const noexcept { return _type == DataType::String; }
+		bool isArray() const noexcept { return _type == DataType::Array; }
+		bool isTable() const noexcept { return _type == DataType::Table; }
 
-		inline Type type() const { return _type; }
-		const char *type_name() const noexcept;
+		DataType type() const { return _type; }
+		const char *typeName() const noexcept;
 
 		Data& operator=(const Data& other);
 		Data& operator=(Data&& other);
 
-		inline Data& at(size_t i)
+		Data& at(size_t i)
 		{
-			if (_type != Type::ARRAY)
+			if (_type != DataType::Array)
 				throw TypeException("data must be array for integer indexing");
 
 			if (i >= _array->size())
@@ -242,9 +244,9 @@ namespace hirzel
 			return (*_array)[i];
 		}
 
-		inline const Data& at(size_t i) const
+		const Data& at(size_t i) const
 		{
-			if (_type != Type::ARRAY)
+			if (_type != DataType::Array)
 				throw TypeException("data must be array for integer indexing");
 
 			if (i >= _array->size())
@@ -256,27 +258,27 @@ namespace hirzel
 			return (*_array)[i];
 		}
 
-		inline Data& operator[](size_t i)
+		Data& operator[](size_t i)
 		{
 			return at(i); 
 		}
 
-		inline const Data& operator[](size_t i) const
+		const Data& operator[](size_t i) const
 		{
 			return at(i); 
 		}
 
-		inline Data& at(const std::string& key)
+		Data& at(const std::string& key)
 		{
-			if (_type != Type::TABLE)
+			if (_type != DataType::Table)
 				throw TypeException("data must be a table for string indexing");
 			
 			return (*_table)[key];
 		}
 
-		inline const Data& at(const std::string& key) const
+		const Data& at(const std::string& key) const
 		{
-			if (_type != Type::TABLE)
+			if (_type != DataType::Table)
 				throw TypeException("data must be a table for string indexing");
 
 			if (_table->find(key) == _table->end())
@@ -286,58 +288,58 @@ namespace hirzel
 			return (*_table)[key];
 		}
 
-		inline Data& operator[](const std::string& key)
+		Data& operator[](const std::string& key)
 		{
 			return at(key); 
 		}
 
-		inline const Data& operator[](const std::string& key) const
+		const Data& operator[](const std::string& key) const
 		{ 
 			return at(key);
 		}
 
 		bool operator==(const Data& other) const;
-		inline bool operator!=(const Data& other) const { return !(*this == other); }
+		bool operator!=(const Data& other) const { return !(*this == other); }
 	};
 }
 
-#endif // HIRZEL_DATA_H
+#endif // HIRZEL_DATA_HPP
 
 #if !defined(HIRZEL_DATA_DATA_I) && defined(HIRZEL_IMPLEMENT)
 #define HIRZEL_DATA_DATA_I
 
 namespace hirzel
 {
-	Data::Data(Type t)
+	Data::Data(DataType t)
 	{
 		_type = t;
 
 		switch (t)
 		{
-		case Type::NONE:
+		case DataType::Null:
 			break;
 
-		case Type::INTEGER:
+		case DataType::Integer:
 			_integer = 0;
 			break;
 
-		case Type::DECIMAL:
+		case DataType::Float:
 			_decimal = 0.0;
 			break;
 
-		case Type::BOOLEAN:
+		case DataType::Boolean:
 			_boolean = false;
 			break;
 
-		case Type::STRING:
+		case DataType::String:
 			_string = new std::string();
 			break;
 			
-		case Type::ARRAY:
+		case DataType::Array:
 			_array = new Array();
 			break;
 
-		case Type::TABLE:
+		case DataType::Table:
 			_table = new Table();
 			break;
 		}
@@ -347,13 +349,13 @@ namespace hirzel
 	{
 		switch (_type)
 		{
-			case Type::STRING:
+			case DataType::String:
 				delete _string;
 				break;
-			case Type::ARRAY:
+			case DataType::Array:
 				delete _array;
 				break;
-			case Type::TABLE:
+			case DataType::Table:
 				delete _table;
 				break;
 			default:
@@ -361,17 +363,17 @@ namespace hirzel
 		}
 	}
 
-	long long Data::as_long_long() const
+	int64_t Data::asI64() const
 	{
 		switch(_type)
 		{
-			case Type::INTEGER:
+			case DataType::Integer:
 				return _integer;
-			case Type::BOOLEAN:
+			case DataType::Boolean:
 				return (long long)_boolean;
-			case Type::DECIMAL:
+			case DataType::Float:
 				return (long long)_decimal;
-			case Type::STRING:
+			case DataType::String:
 				try
 				{
 					return std::stoll(*_string);
@@ -385,17 +387,17 @@ namespace hirzel
 		}
 	}
 
-	double Data::as_double() const
+	double Data::asF64() const
 	{
 		switch(_type)
 		{
-			case Type::INTEGER:
+			case DataType::Integer:
 				return (double)_integer;
-			case Type::BOOLEAN:
+			case DataType::Boolean:
 				return (double)_boolean;
-			case Type::DECIMAL:
+			case DataType::Float:
 				return _decimal;
-			case Type::STRING:
+			case DataType::String:
 				try
 				{
 					return std::stod(*_string);
@@ -409,17 +411,17 @@ namespace hirzel
 		}
 	}
 
-	bool Data::as_bool() const
+	bool Data::asBool() const
 	{
 		switch(_type)
 		{
-			case Type::INTEGER:
+			case DataType::Integer:
 				return (bool)_integer;
-			case Type::BOOLEAN:
+			case DataType::Boolean:
 				return _boolean;
-			case Type::DECIMAL:
+			case DataType::Float:
 				return (bool)_decimal;
-			case Type::STRING:
+			case DataType::String:
 				return !_string->empty();
 			default:
 				return false;
@@ -430,7 +432,7 @@ namespace hirzel
 	{
 		void indent(std::string& s)
 		{
-			for (size_t i = 1; i < s.size(); i++)
+			for (size_t i = 1; i < s.length(); i++)
 			{
 				if (s[i] == '\n')
 				{
@@ -441,26 +443,26 @@ namespace hirzel
 		}
 	}
 
-	std::string Data::as_string() const
+	std::string Data::asString() const
 	{
 		switch(_type)
 		{
-			case Type::NONE:
+			case DataType::Null:
 				return "null";
 
-			case Type::INTEGER:
+			case DataType::Integer:
 				return std::to_string(_integer);
 
-			case Type::BOOLEAN:
+			case DataType::Boolean:
 				return (_boolean ? "true" : "false");
 
-			case Type::DECIMAL:
+			case DataType::Float:
 				return std::to_string(_decimal);
 
-			case Type::STRING:
+			case DataType::String:
 				return *_string;
 
-			case Type::ARRAY:
+			case DataType::Array:
 			{
 				std::vector<std::string> str_reps;
 
@@ -470,11 +472,11 @@ namespace hirzel
 
 				for (const auto& elem : *_array)
 				{
-					std::string str = elem.is_string()
+					std::string str = elem.isString()
 						? "\"" + elem.string() + "\""
-						: elem.as_string();
+						: elem.asString();
 
-					if (elem.is_table() || elem.is_array())
+					if (elem.isTable() || elem.isArray())
 						vert = true;
 
 					str_reps.push_back(str);
@@ -505,7 +507,7 @@ namespace hirzel
 
 				return out;
 			}
-			case Type::TABLE:
+			case DataType::Table:
 			{
 				std::string out;
 				std::vector<std::string> str_reps;
@@ -517,8 +519,8 @@ namespace hirzel
 				{
 					const Data& v = iter->second;
 					str_reps[i] = "\n\t" + iter->first + ":\t";
-					std::string tmp = v.as_string();
-					if (v.is_string())
+					std::string tmp = v.asString();
+					if (v.isString())
 					{
 						tmp.insert(0, 1, '\"');
 						tmp.push_back('\"');
@@ -541,34 +543,34 @@ namespace hirzel
 		}
 	}
 
-	bool Data::is_empty() const
+	bool Data::isEmpty() const
 	{
 		switch (_type)
 		{
-		case Type::STRING:
+		case DataType::String:
 			return _string->empty();
-		case Type::ARRAY:
+		case DataType::Array:
 			return _array->empty();
-		case Type::TABLE:
+		case DataType::Table:
 			return _table->empty();
-		case Type::NONE:
+		case DataType::Null:
 			return true;
 		default:
 			return false;
 		}
 	}
 
-	size_t Data::size() const
+	size_t Data::length() const
 	{
 		switch (_type)
 		{
-		case Type::NONE:
+		case DataType::Null:
 			return 0;
-		case Type::STRING:
-			return _string->size();
-		case Type::ARRAY:
+		case DataType::String:
+			return _string->length();
+		case DataType::Array:
 			return _array->size();
-		case Type::TABLE:
+		case DataType::Table:
 			return _table->size();
 		default:
 			return 1;
@@ -581,25 +583,25 @@ namespace hirzel
 		
 		switch (_type)
 		{
-			case Type::NONE:
+			case DataType::Null:
 				_integer = 0;
 				break;
-			case Type::INTEGER:
+			case DataType::Integer:
 				_integer = other.integer();
 				break;
-			case Type::DECIMAL:
+			case DataType::Float:
 				_decimal = other.decimal();
 				break;
-			case Type::BOOLEAN:
+			case DataType::Boolean:
 				_boolean = other.boolean();
 				break;
-			case Type::STRING:
+			case DataType::String:
 				_string = new std::string(other.string());
 				break;
-			case Type::ARRAY:
+			case DataType::Array:
 				_array = new Array(other.array());
 				break;
-			case Type::TABLE:
+			case DataType::Table:
 				_table = new Table(other.table());
 				break;
 			default:
@@ -611,30 +613,30 @@ namespace hirzel
 	Data& Data::operator=(Data&& other)
 	{
 		_type = other._type;
-		other._type = Type::NONE;
+		other._type = DataType::Null;
 
 		switch (_type)
 		{
-			case Type::NONE:
+			case DataType::Null:
 				break;
-			case Type::INTEGER:
+			case DataType::Integer:
 				_integer = other._integer;
 				break;
-			case Type::DECIMAL:
+			case DataType::Float:
 				_decimal = other._decimal;
 				break;
-			case Type::BOOLEAN:
+			case DataType::Boolean:
 				_boolean = other._boolean;
 				break;
-			case Type::STRING:
+			case DataType::String:
 				_string = other._string;
 				other._string = nullptr;
 				break;
-			case Type::ARRAY:
+			case DataType::Array:
 				_array = other._array;
 				other._array = nullptr;
 				break;
-			case Type::TABLE:
+			case DataType::Table:
 				_table = other._table;
 				other._table = nullptr;
 				break;
@@ -651,17 +653,17 @@ namespace hirzel
 
 		switch (_type)
 		{
-			case Type::NONE:
+			case DataType::Null:
 				return true;
-			case Type::INTEGER:
+			case DataType::Integer:
 				return _integer == other.integer();
-			case Type::DECIMAL:
+			case DataType::Float:
 				return _decimal == other.decimal();
-			case Type::BOOLEAN:
+			case DataType::Boolean:
 				return _boolean == other.boolean();
-			case Type::STRING:
+			case DataType::String:
 				return *_string == other.string();
-			case Type::ARRAY:
+			case DataType::Array:
 			{
 				// for every child element
 				const auto& arr = *_array;
@@ -679,7 +681,7 @@ namespace hirzel
 				return true;
 			}
 
-			case Type::TABLE:
+			case DataType::Table:
 			{
 				const auto& table = *_table;
 				const auto& otable = other.table();
@@ -703,23 +705,23 @@ namespace hirzel
 		return false;
 	}
 
-	const char * Data::type_name() const noexcept
+	const char * Data::typeName() const noexcept
 	{
 		switch (_type)
 		{
-			case Type::NONE:
+			case DataType::Null:
 				return "null";
-			case Type::INTEGER:
+			case DataType::Integer:
 				return "integer";
-			case Type::DECIMAL:
+			case DataType::Float:
 				return "floating-point";
-			case Type::BOOLEAN:
+			case DataType::Boolean:
 				return "boolean";
-			case Type::STRING:
+			case DataType::String:
 				return "string";
-			case Type::ARRAY:
+			case DataType::Array:
 				return "array";
-			case Type::TABLE:
+			case DataType::Table:
 				return "table";
 			default:
 				return "invalid-type";

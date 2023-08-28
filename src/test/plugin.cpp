@@ -1,12 +1,12 @@
 // standard library
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 #include <iostream>
 
 // external libraries
 #define HIRZEL_IMPLEMENT
-#include <hirzel/plugin.h>
+#include <hirzel/plugin.hpp>
 
 #if OS_IS_WINDOWS
 #define DNE_OBJ		"./dne.dll"

@@ -1,5 +1,5 @@
-#ifndef HIRZEL_STRING_H
-#define HIRZEL_STRING_H
+#ifndef HIRZEL_STRING_HPP
+#define HIRZEL_STRING_HPP
 
 #include <string>
 #include <string_view>
@@ -8,22 +8,22 @@ namespace hirzel
 {
 	namespace string
 	{
-		inline bool is_invisible(unsigned char c) noexcept
+		bool is_invisible(unsigned char c) noexcept
 		{
 			return c <= ' ';
 		}
 
-		inline bool is_alpha(unsigned char c) noexcept
+		bool is_alpha(unsigned char c) noexcept
 		{
 			return (c >= 'A'  && c <= 'Z') || (c >= 'a' && c <= 'z');
 		}
 
-		inline bool is_digit(unsigned char c) noexcept
+		bool is_digit(unsigned char c) noexcept
 		{
 			return c >= '0' && c <= '9';
 		}
 
-		inline bool is_special(unsigned char c) noexcept
+		bool is_special(unsigned char c) noexcept
 		{
 			return (c >= '!' && c <= '/') || (c >= ':' && c <= '@')
 				|| (c >= '[' && c <= '`') || (c >= '{' && c <= '~');

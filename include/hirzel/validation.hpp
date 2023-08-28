@@ -1,12 +1,13 @@
-#ifndef HIRZEL_DATA_VALIDATION_H
-#define HIRZEL_DATA_VALIDATION_H
+#define HIRZEL_IMPLEMENT
+#ifndef HIRZEL_DATA_VALIDATION_HPP
+#define HIRZEL_DATA_VALIDATION_HPP
 
 /**
- * @file validation.h
+ * @file validation.hpp
  * @brief Validation utilities for hirzel::data::Data
- * @author Ike Hirzel
+ * @author Isaac Hirzel
  * 
- * Copyright 2021 Ike Hirzel
+ * Copyright 2023 Isaac Hirzel
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -26,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <hirzel/data.h>
+#include <hirzel/data.hpp>
 
 #include <climits>
 #include <cfloat>
@@ -67,7 +68,7 @@ namespace hirzel
 
 	private:
 
-		bool _is_nullable = false;
+		bool _isNullable = false;
 		Range _range;
 
 	public:
@@ -82,7 +83,7 @@ namespace hirzel
 	{
 	private:
 
-		bool _is_nullable = false;
+		bool _isNullable = false;
 
 	public:
 
@@ -106,7 +107,7 @@ namespace hirzel
 
 	private:
 
-		bool _is_nullable = false;
+		bool _isNullable = false;
 		Range _range;
 
 	public:
@@ -121,7 +122,7 @@ namespace hirzel
 	{
 	private:
 
-		bool _is_nullable = false;
+		bool _isNullable = false;
 
 	public:
 
@@ -135,7 +136,7 @@ namespace hirzel
 	{
 	private:
 
-		bool _is_nullable = false;
+		bool _isNullable = false;
 		std::vector<std::pair<std::string, DataValidator*>> _validators;
 
 	public:
@@ -155,7 +156,7 @@ namespace hirzel
 	{
 	private:
 
-		bool _is_nullable = false;
+		bool _isNullable = false;
 		bool _is_last_variadic = false;
 		std::vector<DataValidator*> _validators;
 
@@ -185,7 +186,7 @@ namespace hirzel
 			delete _validator;
 		}
 
-		inline std::vector<std::string> operator()(const Data& data) const
+		std::vector<std::string> operator()(const Data& data) const
 		{
 			return _validator->validate(data);
 		}
@@ -201,14 +202,14 @@ namespace hirzel
 {
 	namespace details
 	{
-		std::string value_type_error(const std::string& expected, const std::string& actual, bool is_nullable)
+		std::string value_type_error(const std::string& expected, const std::string& actual, bool isNullable)
 		{
-			return (is_nullable)
+			return (isNullable)
 				? "expected value of type '" + expected + "' or null but got '" + actual + "'"
 				: "expected value of type '" + expected + "' but got '" + actual + "'";
 		}
 
-		inline FormatException unexpected_token_error(const std::string& type, char c)
+		FormatException unexpected_token_error(const std::string& type, char c)
 		{
 			return FormatException("unexpected token in "
 				+ type
@@ -240,7 +241,7 @@ namespace hirzel
 			}
 		}
 
-		bool parse_is_nullable(const char *&iter)
+		bool parse_isNullable(const char *&iter)
 		{
 			if (*iter != '?')
 				return false;
@@ -252,7 +253,7 @@ namespace hirzel
 		
 		std::string preprocess_format(const std::string& fmt)
 		{
-			std::string out(fmt.size(), 0);
+			std::string out(fmt.length(), 0);
 			size_t oi = 0;
 
 			for (char c : fmt)
@@ -266,12 +267,12 @@ namespace hirzel
 			return out;
 		}
 
-		inline bool is_integer_char(char c)
+		bool isInteger_char(char c)
 		{
 			return c >= '0' && c <= '9';
 		}
 
-		inline bool is_range_terminal(char c)
+		bool is_range_terminal(char c)
 		{
 			switch (c)
 			{
@@ -286,7 +287,7 @@ namespace hirzel
 			}
 		}
 
-		inline long long parse_range_integer(const char *&iter, bool is_lower_bound)
+		long long parse_range_integer(const char *&iter, bool is_lower_bound)
 		{
 			const char *start_of_literal = iter;
 
@@ -355,7 +356,7 @@ namespace hirzel
 			return out;
 		}
 
-		bool is_decimal_char(char c)
+		bool isFloat_char(char c)
 		{
 			return (c >= '0' && c <= '9') || c == '.';
 		}
@@ -451,7 +452,7 @@ namespace hirzel
 			return out;
 		}
 
-		inline bool is_key_char(char c)
+		bool is_key_char(char c)
 		{
 			return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 		}
@@ -472,7 +473,7 @@ namespace hirzel
 			return key;
 		}
 
-		inline void parse_elipsis(const char *&iter)
+		void parse_elipsis(const char *&iter)
 		{
 			iter += 1;
 
@@ -502,20 +503,20 @@ namespace hirzel
 		iter += 1;
 
 		_range = details::parse_integer_range(iter);
-		_is_nullable = details::parse_is_nullable(iter);
+		_isNullable = details::parse_isNullable(iter);
 	}
 
 	std::vector<std::string> IntegerValidator::validate(const Data& data) const
 	{
-		bool is_correct_type = data.is_integer() || (data.is_null() && _is_nullable);
+		bool is_correct_type = data.isInteger() || (data.isNull() && _isNullable);
 
 		if (!is_correct_type)
-			return { details::value_type_error("integer", data.type_name(), _is_nullable) };
+			return { details::value_type_error("integer", data.typeName(), _isNullable) };
 
-		if (data.is_null())
+		if (data.isNull())
 			return {};
 
-		auto value = data.as_long_long();
+		auto value = data.asI64();
 		auto is_out_of_range = value < _range.min
 			|| (value == _range.min && _range.min_exclusive)
 			|| value > _range.max
@@ -532,20 +533,20 @@ namespace hirzel
 		iter += 1;
 
 		_range = details::parse_decimal_range(iter);
-		_is_nullable = details::parse_is_nullable(iter);
+		_isNullable = details::parse_isNullable(iter);
 	}
 
 	std::vector<std::string> DecimalValidator::validate(const Data& data) const
 	{
-		bool is_correct_type = data.is_number() || (data.is_null() && _is_nullable);
+		bool is_correct_type = data.isNumber() || (data.isNull() && _isNullable);
 
 		if (!is_correct_type)
-			return { details::value_type_error("decimal", data.type_name(), _is_nullable) };
+			return { details::value_type_error("decimal", data.typeName(), _isNullable) };
 
-		if (data.is_null())
+		if (data.isNull())
 			return {};
 
-		auto value = data.as_double();
+		auto value = data.asF64();
 		auto is_out_of_range = value < _range.min
 			|| (value == _range.min && _range.min_exclusive)
 			|| value > _range.max
@@ -560,15 +561,15 @@ namespace hirzel
 	StringValidator::StringValidator(const char *&iter)
 	{
 		iter += 1;
-		_is_nullable = details::parse_is_nullable(iter);
+		_isNullable = details::parse_isNullable(iter);
 	}
 
 	std::vector<std::string> StringValidator::validate(const Data& data) const
 	{
-		auto is_correct_type = data.is_string() || (data.is_null() && _is_nullable);
+		auto is_correct_type = data.isString() || (data.isNull() && _isNullable);
 
 		if (!is_correct_type)
-			return { details::value_type_error("string", data.type_name(), _is_nullable) };
+			return { details::value_type_error("string", data.typeName(), _isNullable) };
 
 		return {};
 	}
@@ -576,15 +577,15 @@ namespace hirzel
 	BooleanValidator::BooleanValidator(const char *&iter)
 	{
 		iter += 1;
-		_is_nullable = details::parse_is_nullable(iter);
+		_isNullable = details::parse_isNullable(iter);
 	}
 
 	std::vector<std::string> BooleanValidator::validate(const Data& data) const
 	{
-		auto is_correct_type = data.is_boolean() || (data.is_null() && _is_nullable);
+		auto is_correct_type = data.isBoolean() || (data.isNull() && _isNullable);
 
 		if (!is_correct_type)
-			return { details::value_type_error("boolean", data.type_name(), _is_nullable) };
+			return { details::value_type_error("boolean", data.typeName(), _isNullable) };
 
 		return {};
 	}
@@ -642,18 +643,18 @@ namespace hirzel
 		if (*iter != ']')
 			throw details::unexpected_token_error("end of array", *iter);
 		iter += 1;
-		_is_nullable = details::parse_is_nullable(iter);
+		_isNullable = details::parse_isNullable(iter);
 	}
 
 
 	std::vector<std::string> ArrayValidator::validate(const Data& data) const
 	{
-		auto is_correct_type = data.is_array() || (data.is_null() && _is_nullable);
+		auto is_correct_type = data.isArray() || (data.isNull() && _isNullable);
 
 		if (!is_correct_type)
-			return { details::value_type_error("array", data.type_name(), _is_nullable) };
+			return { details::value_type_error("array", data.typeName(), _isNullable) };
 
-		if (data.is_null())
+		if (data.isNull())
 			return {};
 
 		const auto& array = data.array();
@@ -661,7 +662,7 @@ namespace hirzel
 		if (_validators.empty())
 		{
 			if (!array.empty())
-				return { "expected no array elements but got " + std::to_string(data.size()) };
+				return { "expected no array elements but got " + std::to_string(data.length()) };
 
 			return {};
 		}
@@ -754,17 +755,17 @@ namespace hirzel
 		}
 
 		iter += 1;
-		_is_nullable = details::parse_is_nullable(iter);
+		_isNullable = details::parse_isNullable(iter);
 	}
 
 	std::vector<std::string> TableValidator::validate(const Data& data) const
 	{
-		auto is_correct_type = data.is_table() || (data.is_null() && _is_nullable);
+		auto is_correct_type = data.isTable() || (data.isNull() && _isNullable);
 
 		if (!is_correct_type)
-			return { details::value_type_error("table", data.type_name(), _is_nullable) };
+			return { details::value_type_error("table", data.typeName(), _isNullable) };
 
-		if (data.is_null())
+		if (data.isNull())
 			return {};
 
 		std::vector<std::string> out;

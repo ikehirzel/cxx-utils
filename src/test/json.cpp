@@ -1,9 +1,9 @@
 #define HIRZEL_IMPLEMENT
-#include <hirzel/json.h>
+#include <hirzel/json.hpp>
 
 #include <iostream>
 
-#include "assert.h"
+#include <cassert>
 
 using namespace hirzel;
 
@@ -17,7 +17,7 @@ using namespace hirzel;
 #define assert_parse_throws(json) true//assert_throws(Json::deserialize(json), Json::SyntaxError)
 #define assert_parse_not_throws(json) true//assert_no_throw(Json::deserialize(json))
 
-#define assert_type(var, type) assert(var.is_##type() && "Expected type '" #type "' but got '" #type "'")
+#define assert_type(var, type) assert(var.is##type() && "Expected type '" #type "' but got '" #type "'")
 #define assert_value(var, func, value) assert(var.as_##func() == value && "Expected value of " #value)
 
 #define assert_json(json, value) {\
@@ -182,7 +182,7 @@ void test_null()
 	assert_parse_not_throws("null");
 
 	Data null = Json::deserialize("null");
-	assert_type(null, null);
+	assert_type(null, Null);
 	assert(null == Data());
 
 	// invalid

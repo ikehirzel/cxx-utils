@@ -1,4 +1,4 @@
-#include <hirzel/system.h>
+#include <hirzel/system.hpp>
 
 int main(void)
 {

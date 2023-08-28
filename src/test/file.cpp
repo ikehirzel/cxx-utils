@@ -1,5 +1,5 @@
 #define HIRZEL_IMPLEMENT
-#include <hirzel/file.h>
+#include <hirzel/file.hpp>
 
 int main(void)
 {

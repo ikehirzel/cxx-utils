@@ -1,5 +1,5 @@
-#ifndef HIRZEL_UTIL_SYS_H
-#define HIRZEL_UTIL_SYS_H
+#ifndef HIRZEL_UTIL_SYS_HPP
+#define HIRZEL_UTIL_SYS_HPP
 
 #include <iostream>
 #include <chrono>
@@ -14,7 +14,7 @@
 
 #if defined(_WIN32) || defined(WIN32) || defined(WIN64)
 	#define HIRZEL_OS HIRZEL_WINDOWS
-	#include <libloaderapi.h>
+	#include <libloaderapi.hpp>
 #else
 	#include <unistd.h>
 	#if defined(__linux__)
@@ -45,7 +45,7 @@ namespace hirzel
 			UNKNOWN
 		};
 
-		inline OsType current_os_type()
+		OsType current_os_type()
 		{
 			#if HIRZEL_OS == HIRZEL_WINDOWS
 				return OsType::WINDOWS;
@@ -65,13 +65,13 @@ namespace hirzel
 		/**
 		 * @return	milliseconds since unix epoch
 		 */
-		inline long long epoch_millis() noexcept
+		long long epoch_millis() noexcept
 		{
 			return std::chrono::duration_cast<std::chrono::milliseconds>
 				(std::chrono::system_clock::now().time_since_epoch()).count();
 		}
 
-		inline constexpr bool os_is_unixlike()
+		constexpr bool os_is_unixlike()
 		{
 			#if HIRZEL_OS == HIRZEL_WINDOWS
 				return false;
@@ -80,7 +80,7 @@ namespace hirzel
 			#endif
 		}
 
-		inline constexpr const char *current_os_str()
+		constexpr const char *current_os_str()
 		{
 			#if HIRZEL_OS == HIRZEL_WINDOWS
 				return "Windows";
@@ -100,13 +100,13 @@ namespace hirzel
 		/**
 		 * @return	seconds since unix epoch
 		 */
-		inline long long epoch_seconds() noexcept
+		long long epoch_seconds() noexcept
 		{
 			return std::chrono::duration_cast<std::chrono::seconds>
 				(std::chrono::system_clock::now().time_since_epoch()).count();
 		}
 
-		inline std::string executable_path()
+		std::string executable_path()
 		{
 		#if HIRZEL_OS == HIRZEL_WINDOWS
 
@@ -128,7 +128,7 @@ namespace hirzel
 		#endif
 		}
 
-		inline std::string executable_dir()
+		std::string executable_dir()
 		{
 			#if HIRZEL_OS == HIRZEL_WINDOWS	
 
@@ -165,7 +165,7 @@ namespace hirzel
 		 * Pauses thread for specified time
 		 * @param	millis	milliseconds to sleep for
 		 */
-		inline void sleep_millis(unsigned millis) 
+		void sleep_millis(unsigned millis) 
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(millis));
 		}
@@ -174,7 +174,7 @@ namespace hirzel
 		 * Pauses thread for specified time
 		 * @param	micros	microseconds to sleep for
 		 */
-		inline void sleep_micros(unsigned micros)
+		void sleep_micros(unsigned micros)
 		{
 			std::this_thread::sleep_for(std::chrono::microseconds(micros));
 		}

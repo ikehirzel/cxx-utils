@@ -1,9 +1,9 @@
 #define HIRZEL_IMPLEMENT
-#include <hirzel/validation.h>
+#include <hirzel/validation.hpp>
 
 #include <iostream>
 
-#include "assert.h"
+#include <cassert>
 
 using namespace hirzel;
 
@@ -138,7 +138,7 @@ void test_table()
 	assert_no_errors("{key:#?}", Table({{ "key", 1 }}));
 	assert_has_errors("{key:#?}", Table({{ "key", "hello" }}));
 
-	assert_no_errors("{key:#,name:$}", Table({ { "key", 47 }, { "name", "Ike" } }));
+	assert_no_errors("{key:#,name:$}", Table({ { "key", 47 }, { "name", "Isaac" } }));
 	assert_has_errors("{key:#,name:$}", Table({ { "key", Data() } }));
 	assert_has_errors("{key:#,name:$}", Table({ { "key", Data() }, { "name", Data() } }));
 	assert_has_errors("{key:#,name:$}", Table({ }));
@@ -206,7 +206,7 @@ void test_form()
 {
 	auto format = "{first_name:$,middle_name:$?,last_name:$,age:#[0,150],minor:&,patience:%[0,1],friends:[$, $, $]}";
 	auto data = Data::Table({
-		{ "first_name", "Ike" },
+		{ "first_name", "Isaac" },
 		{ "last_name", "Hirzel" },
 		{ "age", 22 },
 		{ "minor", false },

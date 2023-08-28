@@ -1,5 +1,5 @@
-#ifndef HIRZEL_FILE_H
-#define HIRZEL_FILE_H
+#ifndef HIRZEL_FILE_HPP
+#define HIRZEL_FILE_HPP
 
 #include <vector>
 #include <string>
@@ -59,7 +59,7 @@ namespace hirzel
 			{
 				if (curr_line >= first_line)
 				{
-					if (line.back() == '\r') line.resize(line.size() - 1);
+					if (line.back() == '\r') line.resize(line.length() - 1);
 					lines[lines_i++] = line;
 				}
 				curr_line++;

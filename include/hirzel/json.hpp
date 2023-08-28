@@ -1,12 +1,12 @@
-#ifndef HIRZEL_DATA_JSON_H
-#define HIRZEL_DATA_JSON_H
+#ifndef HIRZEL_DATA_JSON_HPP
+#define HIRZEL_DATA_JSON_HPP
 
 /**
- * @file json.h
+ * @file json.hpp
  * @brief Json de/serialization utilities for hirzel::data::Data
- * @author Ike Hirzel
+ * @author Isaac Hirzel
  * 
- * Copyright 2021 Ike Hirzel
+ * Copyright 2023 Isaac Hirzel
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,7 +27,7 @@
  */
 
 #include <string>
-#include <hirzel/data.h>
+#include <hirzel/data.hpp>
 
 namespace hirzel
 {
@@ -47,14 +47,14 @@ namespace hirzel
 	private:
 
 		static std::string preprocess(const std::string& src);
-		static bool parse_number_literal(const char *& iter);
-		static Data parse_number(const char *& iter);
-		static Data parse_string(const char *& iter);
-		static Data parse_null(const char *& iter);
-		static Data parse_bool(const char *& iter, bool expected);
-		static Data parse_array(const char *& iter);
-		static Data parse_object(const char *& iter);
-		static Data parse_value(const char *& iter);
+		static bool parseNumberLiteral(const char *& iter);
+		static Data parseNumber(const char *& iter);
+		static Data parseString(const char *& iter);
+		static Data parseNull(const char *& iter);
+		static Data parseBool(const char *& iter, bool expected);
+		static Data parseArray(const char *& iter);
+		static Data parseObject(const char *& iter);
+		static Data parseValue(const char *& iter);
 
 		static std::string serialize_array(const Data& data);
 		static std::string serialize_object(const Data& data);
@@ -63,7 +63,7 @@ namespace hirzel
 	public:
 
 		static Data deserialize(const std::string& json);
-		static inline std::string serialize(const Data& data)
+		static std::string serialize(const Data& data)
 		{
 			return serialize_value(data);
 		}
@@ -80,7 +80,7 @@ namespace hirzel
 	std::string Json::preprocess(const std::string& src)
 	{
 		const char *iter = src.c_str();
-		std::string out(src.size(), '\0');
+		std::string out(src.length(), '\0');
 		size_t oi = 0;
 
 		while (*iter)
@@ -124,9 +124,9 @@ namespace hirzel
 		return out;
 	}
 
-	bool Json::parse_number_literal(const char *& iter)
+	bool Json::parseNumberLiteral(const char *& iter)
 	{
-		bool is_decimal = false;
+		bool isFloat = false;
 		bool expecting_digit = true;
 		
 		if (*iter == '-' || *iter == '+')
@@ -151,11 +151,11 @@ namespace hirzel
 					break;
 
 				case '.':
-					if (is_decimal)
+					if (isFloat)
 						throw SyntaxError("extra '.' in number literal");
 
 					iter += 1;
-					is_decimal = true;
+					isFloat = true;
 					expecting_digit = true;
 					break;
 
@@ -163,24 +163,24 @@ namespace hirzel
 					if (expecting_digit)
 						throw SyntaxError("number literals must end in a digit");
 
-					return is_decimal;
+					return isFloat;
 			}
 		}
 	}
 
-	Data Json::parse_number(const char *& iter)
+	Data Json::parseNumber(const char *& iter)
 	{
 		const char * const start_of_number = iter;
 
 		try
 		{
-			bool is_base_decimal = parse_number_literal(iter);
+			bool is_base_decimal = parseNumberLiteral(iter);
 
 			if (*iter == 'e' || *iter == 'E')
 			{
 				iter += 1;
 
-				if (parse_number_literal(iter))
+				if (parseNumberLiteral(iter))
 					throw SyntaxError("exponents must be integers");
 			}
 
@@ -199,7 +199,7 @@ namespace hirzel
 		}
 	}
 
-	Data Json::parse_string(const char *& iter)
+	Data Json::parseString(const char *& iter)
 	{
 		iter += 1;
 
@@ -221,7 +221,7 @@ namespace hirzel
 		return out;
 	}
 
-	Data Json::parse_null(const char *& iter)
+	Data Json::parseNull(const char *& iter)
 	{
 		iter += 1;
 
@@ -238,7 +238,7 @@ namespace hirzel
 		return Data();
 	}
 
-	Data Json::parse_bool(const char *&iter, bool expected)
+	Data Json::parseBool(const char *&iter, bool expected)
 	{
 		iter += 1;
 
@@ -263,9 +263,9 @@ namespace hirzel
 		return Data(expected);
 	}
 
-	Data Json::parse_array(const char *& iter)
+	Data Json::parseArray(const char *& iter)
 	{
-		Data arr(Data::Type::ARRAY);
+		Data arr(DataType::Array);
 
 		iter += 1;
 
@@ -279,7 +279,7 @@ namespace hirzel
 
 		while (true)
 		{
-			arr[curr_array_index++] = parse_value(iter);
+			arr[curr_array_index++] = parseValue(iter);
 
 			if (*iter != ',')
 				break;
@@ -295,9 +295,9 @@ namespace hirzel
 		return arr;
 	}
 
-	Data Json::parse_object(const char *& iter)
+	Data Json::parseObject(const char *& iter)
 	{
-		Data obj(Data::Type::TABLE);
+		Data obj(DataType::Table);
 
 		iter += 1;
 
@@ -336,7 +336,7 @@ namespace hirzel
 
 			iter += 1;
 			
-			obj[label] = parse_value(iter);
+			obj[label] = parseValue(iter);
 			
 			if (*iter != ',')
 			{
@@ -352,7 +352,7 @@ namespace hirzel
 		return obj;
 	}
 
-	Data Json::parse_value(const char *& iter)
+	Data Json::parseValue(const char *& iter)
 	{
 		switch (*iter)
 		{
@@ -367,19 +367,19 @@ namespace hirzel
 			case '8':
 			case '9':
 			case '-':
-				return parse_number(iter);
+				return parseNumber(iter);
 			case '\"':
-				return parse_string(iter);
+				return parseString(iter);
 			case '{':
-				return parse_object(iter);
+				return parseObject(iter);
 			case '[':
-				return parse_array(iter);
+				return parseArray(iter);
 			case 't':
-				return parse_bool(iter, true);
+				return parseBool(iter, true);
 			case 'f':
-				return parse_bool(iter, false);
+				return parseBool(iter, false);
 			case 'n':
-				return parse_null(iter);
+				return parseNull(iter);
 			case 0:
 				throw SyntaxError("expected value but reached end of input");
 			default:
@@ -398,7 +398,7 @@ namespace hirzel
 
 		const char *iter = preprocessed_src.c_str();
 
-		auto out = parse_value(iter);
+		auto out = parseValue(iter);
 
 		if (*iter != '\0')
 			throw SyntaxError("unexpected characters at end of JSON: '" + std::string(iter) + "'");
@@ -448,19 +448,19 @@ namespace hirzel
 	{
 		switch (data.type())
 		{
-			case Data::Type::NONE:
+			case DataType::Null:
 				return "null";
-			case Data::Type::INTEGER:
+			case DataType::Integer:
 				return std::to_string(data.integer());
-			case Data::Type::DECIMAL:
+			case DataType::Float:
 				return std::to_string(data.decimal());
-			case Data::Type::BOOLEAN:
+			case DataType::Boolean:
 				return data.boolean() ? "true" : "false";
-			case Data::Type::STRING:
+			case DataType::String:
 				return "\"" + data.string() + "\"";
-			case Data::Type::ARRAY:
+			case DataType::Array:
 				return serialize_array(data);
-			case Data::Type::TABLE:
+			case DataType::Table:
 				return serialize_object(data);
 			default:
 				throw std::runtime_error("Invalid type!");
