@@ -9,220 +9,8 @@
 
 namespace hirzel
 {
-	class Logger
+	namespace log
 	{
-	public:
-		class Arg
-		{
-		public:
-			enum ArgType
-			{
-				ARG_INTEGER,
-				ARG_UNSIGNED,
-				ARG_FLOATING,
-				ARG_CHARACTER,
-				ARG_BOOLEAN,
-				ARG_STRING,
-				ARG_ARRAY
-			};
-
-			struct Array
-			{
-				Arg *JsonValue;
-				size_t size;
-			};
-
-		private:
-			union
-			{
-				long long _integer;
-				unsigned long long _unsigned;
-				double _floating;
-				char _character;
-				bool _boolean;
-				char *_string;
-				Array _array;
-			};
-
-			ArgType _type;
-
-			Arg() : Arg(0) {}
-
-		public:
-
-			Arg(long long i) : _type(ARG_INTEGER), _integer(i) {}
-			Arg(long i) : Arg((long long)i) {}
-			Arg(int i) : Arg((long long)i) {}
-			Arg(short i) : Arg((long long)i) {}
-
-			Arg(unsigned long long u) : _type(ARG_UNSIGNED), _unsigned(u) {}
-			Arg(unsigned long u) : Arg((unsigned long long)u) {}
-			Arg(unsigned int u) : Arg((unsigned long long)u) {}
-			Arg(unsigned short u) : Arg((unsigned long long)u) {}
-
-			Arg(double f) : _type(ARG_FLOATING), _floating((double)f) {}
-			Arg(float f) : Arg((double)f) {}
-
-			Arg(char c) : _type(ARG_CHARACTER), _character(c) {}
-
-			Arg(bool b) : _type(ARG_BOOLEAN), _boolean(b) {}
-
-			Arg(const char *s) : _type(ARG_STRING), _string(new char[std::strlen(s) + 1])
-			{
-				std::strcpy(_string, s);
-			}
-
-			Arg(char *s) : Arg((const char *)s) {}
-
-			Arg(const std::string& s) : Arg(s.c_str()) {}
-
-			Arg(const Arg *JsonValue, size_t size) : _type(ARG_ARRAY)
-			{
-				_array.size = size;
-				_array.JsonValue = new Arg[size];
-
-				for (size_t i = 0; i < _array.size; ++i)
-					_array.JsonValue[i] = JsonValue[i];
-			}
-
-			Arg(const Array& a) : Arg(a.JsonValue, a.size) {}
-
-			Arg(const std::vector<Arg>& a) : _type(ARG_ARRAY)
-			{
-
-				_array.size = a.length();
-				_array.JsonValue = new Arg[a.length()];
-
-				for (size_t i = 0; i < a.length(); ++i)
-					_array.JsonValue[i] = a[i];
-			}
-
-			Arg(Arg&& other) { *this = other; }
-			Arg(const Arg& other) { *this = other; }
-
-			~Arg()
-			{
-				switch (_type)
-				{
-					case ARG_STRING:
-						delete[] _string;
-						return;
-					case ARG_ARRAY:
-						delete[] _array.JsonValue;
-						return;
-				}
-			}
-
-			long long asI32eger() const { return _integer; }
-			unsigned long long as_unsigned() const { return _unsigned; }
-			double asF32ing() const { return _floating; }
-			char as_character() const { return _character; }
-			bool asBoolean() const { return _boolean; }
-			const char *asString() const { return _string; }
-			const Array as_array() const { return _array; }
-
-			std::string to_string() const
-			{
-				switch (_type)
-				{
-					case ARG_INTEGER:
-						return std::to_string(_integer);
-					case ARG_UNSIGNED:
-						return std::to_string(_unsigned);
-					case ARG_FLOATING:
-						return std::to_string(_floating);
-					case ARG_CHARACTER:
-						return std::string(1, _character);
-					case ARG_BOOLEAN:
-						return _boolean ? "true" : "false";
-					case ARG_STRING:
-						return std::string(_string);
-					case ARG_ARRAY:
-					{
-						std::string out = "[";
-						if (_array.size)
-						{
-							out += _array.JsonValue[0].to_string();
-							for (size_t i = 1; i < _array.size; ++i)
-								out += ", " + _array.JsonValue[i].to_string();
-						}
-						return out + "]";
-					}
-					default:
-						throw std::invalid_argument("Arg is an invalid type");
-				}
-			}
-
-			ArgType type() const
-			{
-				return _type;
-			}
-
-			Arg& operator=(Arg&& other)
-			{
-				_type = other._type;
-				switch (_type)
-				{
-					case ARG_INTEGER:
-						_integer = other._integer;
-						return *this;
-					case ARG_UNSIGNED:
-						_unsigned = other._unsigned;
-						return *this;
-					case ARG_FLOATING:
-						_floating = other._floating;
-						return *this;
-					case ARG_CHARACTER:
-						_character = other._character;
-						return *this;
-					case ARG_BOOLEAN:
-						_boolean = other._boolean;
-						return *this;
-
-					case ARG_STRING:
-						_string = other._string;
-						other._string = nullptr;
-						other._type = ARG_INTEGER;
-						return *this;
-
-					case ARG_ARRAY:
-						_array = other._array;
-						other._array.JsonValue = nullptr;
-						other._type = ARG_INTEGER;
-						return *this;
-
-					default:
-						throw std::invalid_argument("Arg is an invalid type");
-				}
-			}
-
-			Arg& operator=(const Arg& other)
-			{
-				_type = other.type();
-				switch (_type)
-				{
-					case ARG_INTEGER:
-						return *this = other.asI32eger();
-					case ARG_UNSIGNED:
-						return *this = other.as_unsigned();
-					case ARG_FLOATING:
-						return *this = other.asF32ing();
-					case ARG_CHARACTER:
-						return *this = other.as_character();
-					case ARG_BOOLEAN:
-						return *this = other.asBoolean();
-					case ARG_STRING:
-						return *this = other.asString();
-					case ARG_ARRAY:
-						return *this = Arg(other.as_array());
-					default:
-						throw std::invalid_argument("Arg is an invalid type");
-				}
-			}
-		};
-
-	private:
-
 		static std::mutex _mtx;
 		static std::string _log_filepath;
 		static std::ofstream _log_file;
@@ -236,8 +24,6 @@ namespace hirzel
 		static const char *_warning_color;
 		static const char *_error_color;
 		static const char *_fatal_color;
-
-	public:
 
 		static void init_log_file(const std::string& log_filepath);
 		static void log(const char *color, const char *tag, const std::string& label,
@@ -328,37 +114,43 @@ namespace hirzel
 		Logger() : _label("") {}
 		Logger(const std::string& label) : _label(label) {}
 
-		void debug(const std::string& msg, const std::vector<Arg>& args = {}) const
-		{
-			Logger::log_debug(_label, msg, args);
-		}
-
-		void info(const std::string& msg, const std::vector<Arg>& args = {}) const
-		{
-			Logger::log_info(_label, msg, args);
-		}
-
-		void success(const std::string& msg, const std::vector<Arg>& args = {}) const
-		{
-
-			Logger::log_success(_label, msg, args);
-		}
-
-		void warning(const std::string& msg, const std::vector<Arg>& args = {}) const
-		{
-			Logger::log_warning(_label, msg, args);
-		}
-
-		void error(const std::string& msg, const std::vector<Arg>& args = {}) const
-		{
-			Logger::log_error(_label, msg, args);
-		}
-
-		void fatal(const std::string& msg, const std::vector<Arg>& args = {}) const
-		{
-			Logger::log_fatal(_label, msg, args);
-		}	
 	};
+
+	template <typename Args>
+	void debug(const std::string& msg, Args... args)
+	{
+		log_debug(_label, msg, args);
+	}
+
+	template <typename Args>
+	void info(const std::string& msg, Args... args)
+	{
+		log_info(_label, msg, args);
+	}
+
+	template <typename Args>
+	void success(const std::string& msg, Args... args)
+	{
+		log_success(_label, msg, args);
+	}
+
+	template <typename Args>
+	void warning(const std::string& msg, Args... args)
+	{
+		Logger::log_warning(_label, msg, args);
+	}
+
+	template <typename Args>
+	void error(const std::string& msg, Args... args)
+	{
+		Logger::log_error(_label, msg, args);
+	}
+
+	template <typename Args>
+	void fatal(const std::string& msg, Args... args)
+	{
+		Logger::log_fatal(_label, msg, args);
+	}	
 }
 
 #endif // HIRZEL_LOGGER_HPP
