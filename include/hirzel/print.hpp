@@ -7,7 +7,7 @@
 
 namespace hirzel
 {
-	inline void output(std::ostream& out, const char *str)
+	inline void output(std::ostream& out, const char* str)
 	{
 		const char *iter = str;
 
@@ -98,13 +98,13 @@ namespace hirzel
 	}
 
 	template <typename... Arg>
-	void print(const char *fmt, Arg const&... args)
+	void print(const char* fmt, Arg const&... args)
 	{
 		output(std::cout, fmt, args...);
 	}
 
 	template <typename... Arg>
-	void println(const char * const fmt, Arg const&... args)
+	void println(const char* fmt, Arg const&... args)
 	{
 		output(std::cout, fmt, args...);
 

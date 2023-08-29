@@ -1,185 +1,106 @@
-#ifndef HIRZEL_LOGGER_HPP
-#define HIRZEL_LOGGER_HPP
+#define HIRZEL_IMPLEMENT
+#ifndef HIRZEL_LOG_HPP
+#define HIRZEL_LOG_HPP
 
-#include <vector>
-#include <mutex>
-#include <cstring>
-#include <fstream>
-#include <iostream>
+#include <hirzel/print.hpp>
 
-namespace hirzel
+namespace hirzel::log
 {
-	namespace log
+	enum class LogLevel
 	{
-		static std::mutex _mtx;
-		static std::string _log_filepath;
-		static std::ofstream _log_file;
-		static bool _is_log_printing_enabled;
-		static bool _is_debug_mode_enabled;
-		static bool _is_color_enabled;
-
-		static const char *_debug_color;
-		static const char *_info_color;
-		static const char *_success_color;
-		static const char *_warning_color;
-		static const char *_error_color;
-		static const char *_fatal_color;
-
-		static void init_log_file(const std::string& log_filepath);
-		static void log(const char *color, const char *tag, const std::string& label,
-			const std::string& str, const std::vector<Arg>& args);
-
-		static std::string format(const std::string& str,
-			const std::vector<Arg>& args = {});
-		static void print(const std::string& str, const std::vector<Arg>& args = {});
-		static void println(const std::string& str, const std::vector<Arg>& args = {});		
-
-		static void log_debug(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			log(_debug_color, "  DEBUG", label, msg, args);
-		}
-
-		static void log_info(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			log(_info_color, "   INFO", label, msg, args);
-		}
-
-		static void log_success(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			log(_success_color, "SUCCESS", label, msg, args);
-		}
-
-		static void log_warning(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			log(_warning_color, "WARNING", label, msg, args);
-			std::fputs("\033[0m", stdout);
-		}
-
-		static void log_error(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			log(_error_color, "  ERROR", label, msg, args);
-		}
-
-		static void log_fatal(const std::string& label, const std::string& msg,
-			const std::vector<Arg>& args = {})
-		{
-			log(_fatal_color, "  FATAL", label, msg, args);
-		}
-
-		static void set_debug_color(const char * const ansi_escape_color) noexcept
-		{
-			Logger::_debug_color = ansi_escape_color;
-		}
-
-		static void set_info_color(const char * const ansi_escape_color) noexcept
-		{
-			Logger::_info_color = ansi_escape_color;
-		}
-
-		static void set_success_color(const char * const ansi_escape_color) noexcept
-		{
-			Logger::_success_color = ansi_escape_color;
-		}
-
-		static void set_warning_color(const char * const ansi_escape_color) noexcept
-		{
-			Logger::_warning_color = ansi_escape_color;
-		}
-
-		static void set_error_color(const char * const ansi_escape_color) noexcept
-		{
-			Logger::_error_color = ansi_escape_color;
-		}
-
-		static void set_fatal_color(const char * const ansi_escape_color) noexcept
-		{
-			Logger::_fatal_color = ansi_escape_color;
-		}
-
-		static void enable_log_printing(bool enable);
-		static void enable_debug_mode(bool enable);
-		static void enable_color(bool enable);
-
-	private:
-
-		std::string _label;
-
-	public:
-
-		Logger() : _label("") {}
-		Logger(const std::string& label) : _label(label) {}
-
+		Debug,
+		Info,
+		Success,
+		Warning,
+		Error,
+		Fatal
 	};
 
-	template <typename Args>
-	void debug(const std::string& msg, Args... args)
+	void initLogFile(const char* filepath);
+	void printHeader(LogLevel level);
+
+	template <typename... Arg>
+	void debug(const char* format, Arg const&... args)
 	{
-		log_debug(_label, msg, args);
+#ifndef NDEBUG
+		printHeader(LogLevel::Debug);
+		println(format, args...);
+#endif
 	}
 
-	template <typename Args>
-	void info(const std::string& msg, Args... args)
+	template <typename... Arg>
+	void info(const char* format, Arg const&... args)
 	{
-		log_info(_label, msg, args);
+		printHeader(LogLevel::Info);
+		println(format, args...);
 	}
 
-	template <typename Args>
-	void success(const std::string& msg, Args... args)
+	template <typename... Arg>
+	void success(const char* format, Arg const&... args)
 	{
-		log_success(_label, msg, args);
+		printHeader(LogLevel::Success);
+		println(format, args...);
 	}
 
-	template <typename Args>
-	void warning(const std::string& msg, Args... args)
+	template <typename... Arg>
+	void warning(const char* format, Arg const&... args)
 	{
-		Logger::log_warning(_label, msg, args);
+		printHeader(LogLevel::Warning);
+		println(format, args...);
 	}
 
-	template <typename Args>
-	void error(const std::string& msg, Args... args)
+	template <typename... Arg>
+	void error(const char* format, Arg const&... args)
 	{
-		Logger::log_error(_label, msg, args);
+		printHeader(LogLevel::Error);
+		println(format, args...);
 	}
 
-	template <typename Args>
-	void fatal(const std::string& msg, Args... args)
+	template <typename... Arg>
+	void fatal(const char* format, Arg const&... args)
 	{
-		Logger::log_fatal(_label, msg, args);
-	}	
+		printHeader(LogLevel::Fatal);
+		println(format, args...);
+	}
+
+	void setDebugColor(const char* color);
+	void setInfoColor(const char* color);
+	void setSuccessColor(const char* color);
+	void setWarningColor(const char* color);
+	void setErrorColor(const char* color);
+	void setFatalColor(const char* color);
 }
 
 #endif // HIRZEL_LOGGER_HPP
 
 #ifdef HIRZEL_IMPLEMENT
 
-// standard library
-#include <ctime>
+#include <string>
 #include <fstream>
 #include <iostream>
 #include <mutex>
+#include <ctime>
+#include <cassert>
 
-// environment libraries
 #if defined(_WIN32) || defined(_WIN64)
+
 #define OS_IS_WINDOWS true
 #define WIN32_LEAN_AND_MEAN
-#include <windows.hpp>
+#include <windows.h>
+
 #else 
+
 #define OS_IS_WINDOWS false
+
 #endif
 
-#define color(x) "\033[" #x "m"
-
-#define LOGGER_RESET		color(0)
-#define LOGGER_BLUE			color(34)
-#define LOGGER_GREEN		color(32)
-#define LOGGER_YELLOW		color(33)
-#define LOGGER_RED			color(31)
-#define LOGGER_BRIGHT_RED	color(1;31)
+#define COLOR(x)			("\033[" #x "m")
+#define COLOR_RESET			COLOR(0)
+#define COLOR_BLUE			COLOR(34)
+#define COLOR_GREEN			COLOR(32)
+#define COLOR_YELLOW		COLOR(33)
+#define COLOR_RED			COLOR(31)
+#define COLOR_BRIGHT_RED	COLOR(1;31)
 
 #define LOGGER_NAME_BUF_LEN 24
 
@@ -187,239 +108,137 @@ namespace hirzel
 #define LOGGER_TAB_SIZE 4
 #endif
 
-#define LOGGER_INT		'd'
-#define LOGGER_UINT		'u'
-#define LOGGER_OCTAL	'o'
-#define LOGGER_BINARY	'b'
-#define LOGGER_HPPEXUPPER	'X'
-#define LOGGER_HPPEXLOWER	'x'
-#define LOGGER_FLOAT 	'f'
-#define LOGGER_BOOL		't'
-#define LOGGER_STRING	's'
-#define LOGGER_CHAR		'c'
-#define LOGGER_PERCENT	'%'
-#define LOGGER_PTRLOWER	'p'
-#define LOGGER_PTRUPPER	'P'
-
-namespace hirzel
+namespace hirzel::log
 {
-	namespace details
+	std::mutex mutex;
+	std::string logFilepath;
+	std::ofstream logFile;
+	bool isLogPrintingEnabled = true;
+	bool isColorEnabled = true;
+	const char *debugColor = COLOR_BLUE;
+	const char *infoColor = COLOR_RESET;
+	const char *successColor = COLOR_GREEN;
+	const char *warningColor = COLOR_YELLOW;
+	const char *errorColor = COLOR_RED;
+	const char *fatalColor = COLOR_BRIGHT_RED;	
+
+	void initLogFile(const char* filepath)
 	{
-		std::string utos(uintmax_t num, unsigned base, bool upper)
-		{
-			if (num == 0) return "0";
+		if (filepath == nullptr || filepath[0] == '\0')
+			throw std::invalid_argument("Filename must not be empty.");
 
-			char tmp[sizeof(uintmax_t)*8 + 1];
-			char out[sizeof(uintmax_t)*8 + 1];
-			char* tmpp = tmp;
-			char* outp = out;
-			const char* charset;
+		logFilepath = filepath;
+		logFile = std::ofstream(filepath);
 
-			if(upper)
-			{
-				charset = "0123456789ABCDEF";
-			}
-			else
-			{
-				charset = "0123456789abcdef";
-			}
-
-			while (num > 0)
-			{
-				*tmpp++ = charset[num % base];
-				num /= base;
-			}
-		
-			tmpp--;
-
-			while (tmpp > tmp - 1)
-			{
-				*outp++ = *tmpp--;
-			}
-
-			*outp = 0;
-
-			return std::string(out);
-		}
+		if (!logFile.is_open())
+			throw std::runtime_error("Failed to open log file: " + std::string(filepath) + ".");
 	}
 
-	std::mutex Logger::_mtx;
-	std::ofstream Logger::_log_file;
-	std::string Logger::_log_filepath;
-	bool Logger::_is_log_printing_enabled = true;
-	bool Logger::_is_debug_mode_enabled = true;
-	bool Logger::_is_color_enabled = false;
-
-	const char *Logger::_debug_color = LOGGER_BLUE;
-	const char *Logger::_info_color = LOGGER_RESET;
-	const char *Logger::_success_color = LOGGER_GREEN;
-	const char *Logger::_warning_color = LOGGER_YELLOW;
-	const char *Logger::_error_color = LOGGER_RED;
-	const char *Logger::_fatal_color = LOGGER_BRIGHT_RED;
-
-	const char *get_end_of_number_literal(const char *pos)
+	void printHeader(LogLevel level)
 	{
-		while (true)
+		const char* header;
+		const char* color;
+
+		switch (level)
 		{
-			switch (*pos)
-			{
-				case '0':
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
-				case '9':
-					pos += 1;
-					continue;
-				default:
-					return pos;
-			}
-		}
-	}
+			case LogLevel::Debug:
+				header = "  DEBUG";
+				color = debugColor;
+				break;
 
-	std::string Logger::format(const std::string &str, const std::vector<Arg>& args)
-	{
-		std::string out;
-		out.reserve(256);
-		size_t arg_index = 0;
+			case LogLevel::Info:
+				header = "   INFO";
+				color = infoColor;
+				break;
 
-		for (const char *pos = str.c_str(); *pos; ++pos)
-		{
-			if (*pos != '{')
-			{
-				out += *pos;
-				continue;
-			}
+			case LogLevel::Success:
+				header = "SUCCESS";
+				color = successColor;
+				break;
 
-			if (out.length() > 1 && out.back() == '\\')
-			{
-				out.back() = '{';
-				continue;
-			}
+			case LogLevel::Warning:
+				header = "WARNING";
+				color = warningColor;
+				break;
 
-			pos += 1;
+			case LogLevel::Error:
+				header = "  ERROR";
+				color = errorColor;
+				break;
 
-			auto num_literal_end = get_end_of_number_literal(pos);
-			size_t arg_to_print_index = arg_index;
+			case LogLevel::Fatal:
+				header = "  FATAL";
+				color = fatalColor;
+				break;
 
-			if (num_literal_end > pos)
-			{
-				std::string specified_index_str(pos, num_literal_end - pos);
-				size_t specified_index = (size_t)std::stoul(specified_index_str);
-
-				if (specified_index >= args.length())
-					throw std::invalid_argument("invalid argument position given in format: {"
-						+ specified_index_str
-						+ "}");
-
-				pos = num_literal_end;	
-				arg_to_print_index = specified_index;
-			}
-			else
-			{
-				if (arg_index >= args.length())
-					throw std::invalid_argument("not enough args supplied for format");
-
-				arg_index += 1;
-			}
-
-			if (*pos != '}')
-				throw std::invalid_argument("'{' must be escaped if not for argument designation");
-
-			out += args[arg_to_print_index].to_string();
+			default:
+				header = "   ????";
+				color = "";
+				break;
 		}
 
-		out.shrink_to_fit();
+		// TODO: Check if std::cout supports colors
 
-		return out;
+		auto now = time(nullptr);
+		auto* time = localtime(&now);
+
+		std::cout << "\r[" << time->tm_hour << ":" << time->tm_min << ":" << time->tm_sec << " " << color << header << COLOR_RESET << "] : ";
 	}
 
-	void Logger::print(const std::string &str, const std::vector<Arg>& args)
+	void enableLogPrinting(bool enable)
 	{
-		std::string out = format(str, args);
-		std::fputs(out.c_str(), stdout);
+		isLogPrintingEnabled = enable;
 	}
 
-	void Logger::println(const std::string &str, const std::vector<Arg>& args)
+	void enableColor(bool enable)
 	{
-		std::string out = format(str, args);
-		std::puts(out.c_str());
+		isColorEnabled = enable;
+
+//#if OS_IS_WINDOWS
+//		if (isColorEnabled)
+//		{
+//			DWORD outMode = 0;
+//			HANDLE outHandle = GetStdHandle(STD_OUTPUT_HPPANDLE);
+//			GetConsoleMode(outHandle, &outMode);
+//			SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+//		}
+//#endif
 	}
 
-	void Logger::init_log_file(const std::string& log_filepath)
+	void setDebugColor(const char* color)
 	{
-		if (log_filepath.empty())
-			throw std::invalid_argument("log filename must not be empty");
-
-		_log_filepath = log_filepath;
-		_log_file = std::ofstream(_log_filepath);
-
-		if (!_log_file.is_open())
-			throw std::runtime_error("failed to open log file: " + _log_filepath);
+		assert(color != nullptr);
+		debugColor = color;
 	}
 
-	void Logger::enable_log_printing(bool enable)
+	void setInfoColor(const char* color)
 	{
-		_is_log_printing_enabled = enable;
+		assert(color != nullptr);
+		infoColor = color;
 	}
 
-	void Logger::enable_debug_mode(bool enable)
+	void setSuccessColor(const char* color)
 	{
-		_is_debug_mode_enabled = enable;
+		assert(color != nullptr);
+		successColor = color;
 	}
 
-	void Logger::enable_color(bool enable)
+	void setWarningColor(const char* color)
 	{
-		_is_color_enabled = enable;
-
-#if OS_IS_WINDOWS
-		if (_is_color_enabled)
-		{
-			DWORD outMode = 0;
-			HANDLE outHandle = GetStdHandle(STD_OUTPUT_HPPANDLE);
-			GetConsoleMode(outHandle, &outMode);
-			SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-		}
-#endif
+		assert(color != nullptr);
+		warningColor = color;
 	}
 
-	void Logger::log(const char *color, const char *tag, const std::string& label, const std::string &str,
-		const std::vector<Arg> &args)
+	void setErrorColor(const char* color)
 	{
-		std::string msg = format(str, args);
+		assert(color != nullptr);
+		errorColor = color;
+	}
 
-		time_t currtime;
-		char timebuf[17];
-
-		std::time(&currtime);
-		std::strftime(timebuf, 16, "%T", localtime(&currtime));
-		
-		std::string log = label.empty()
-			? format("[{} {}] {}\n", { timebuf, tag, msg })
-			: format("[{} {}] {} : {}\n", { timebuf, tag, label, msg });
-
-		if (!_log_file.is_open())
-		{
-			_mtx.lock();
-			_log_file << log;
-			_mtx.unlock();
-		}
-
-		if (_is_log_printing_enabled)
-		{
-			_mtx.lock();
-
-			if (_is_color_enabled)
-				std::cout << color << log << "\033[0m";
-			else
-				std::cout << log;
-
-			_mtx.unlock();
-		}
+	void setFatalColor(const char* color)
+	{
+		assert(color != nullptr);
+		fatalColor = color;
 	}
 }
 

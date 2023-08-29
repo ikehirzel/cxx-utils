@@ -801,7 +801,7 @@ namespace hirzel
 					{
 						return std::stoll(*_string);
 					}
-					catch (const std::exception& e)
+					catch (const std::exception&)
 					{
 						return 0;
 					}
@@ -825,7 +825,7 @@ namespace hirzel
 					{
 						return std::stod(*_string);
 					}
-					catch(const std::exception& e)
+					catch(const std::exception&)
 					{
 						return 0.0;
 					}
@@ -937,7 +937,8 @@ namespace hirzel
 
 					if (_table->empty()) return "{}";
 					str_reps.resize(_table->size());
-					int i = 0;
+					size_t i = 0;
+
 					for (auto iter = _table->begin(); iter != _table->end(); iter++)
 					{
 						const JsonValue& v = iter->second;
