@@ -1,10 +1,17 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16)
 project("cxx-utils")
 
 file(GLOB TEST_SOURCES "src/*.cpp")
 
-if (MSVC)
+if(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
+if(MSVC)
+	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+	add_compile_options(/W4 /WX)
+else()
+	add_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
 
@@ -13,9 +20,4 @@ foreach(TEST ${TEST_SOURCES})
 	add_executable(${TARGET} ${TEST})
 	target_include_directories(${TARGET} PRIVATE "include")
 	set_target_properties(${TARGET} PROPERTIES CXX_STANDARD 17)
-	if(MSVC)
-		target_compile_options(${TARGET} PRIVATE /W4 /WX)
-	else()
-		target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic -Werror)
-	endif()
 endforeach()
