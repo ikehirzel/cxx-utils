@@ -5,5 +5,9 @@ using namespace hirzel::log;
 
 int main()
 {
-	info("This is a log.");
+	debug("This is a debug message.");
+	info("This is an info log.");
+	warning("This is a warning.");
+	error("This is an error.");
+	fatal("This is an fatal error.");
 }

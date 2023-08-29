@@ -15,7 +15,7 @@ namespace hirzel::log
 		Fatal
 	};
 
-	void initLogFile(const char* filepath);
+	//void initLogFile(const char* filepath);
 	void printHeader(LogLevel level);
 
 	template <typename... Arg>
@@ -96,6 +96,7 @@ namespace hirzel::log
 #define COLOR(x)			("\033[" #x "m")
 #define COLOR_RESET			COLOR(0)
 #define COLOR_BLUE			COLOR(34)
+#define COLOR_CYAN			COLOR(36)
 #define COLOR_GREEN			COLOR(32)
 #define COLOR_YELLOW		COLOR(33)
 #define COLOR_RED			COLOR(31)
@@ -112,26 +113,25 @@ namespace hirzel::log
 	std::mutex mutex;
 	std::string logFilepath;
 	std::ofstream logFile;
-	bool isLogPrintingEnabled = true;
-	bool isColorEnabled = true;
 	const char *debugColor = COLOR_BLUE;
-	const char *infoColor = COLOR_RESET;
+	const char *infoColor = COLOR_CYAN;
 	const char *successColor = COLOR_GREEN;
 	const char *warningColor = COLOR_YELLOW;
-	const char *errorColor = COLOR_RED;
-	const char *fatalColor = COLOR_BRIGHT_RED;	
+	const char *errorColor = COLOR_BRIGHT_RED;
+	const char *fatalColor = COLOR_RED;
 
-	void initLogFile(const char* filepath)
-	{
-		if (filepath == nullptr || filepath[0] == '\0')
-			throw std::invalid_argument("Filename must not be empty.");
+	//void initLogFile(const char* filepath)
+	//{
+	//	// TODO: Ad an atexit flag to create a log
+	//	if (filepath == nullptr || filepath[0] == '\0')
+	//		throw std::invalid_argument("Filename must not be empty.");
 
-		logFilepath = filepath;
-		logFile = std::ofstream(filepath);
+	//	logFilepath = filepath;
+	//	logFile = std::ofstream(filepath);
 
-		if (!logFile.is_open())
-			throw std::runtime_error("Failed to open log file: " + std::string(filepath) + ".");
-	}
+	//	if (!logFile.is_open())
+	//		throw std::runtime_error("Failed to open log file: " + std::string(filepath) + ".");
+	//}
 
 	void printHeader(LogLevel level)
 	{
@@ -181,27 +181,7 @@ namespace hirzel::log
 		auto now = time(nullptr);
 		auto* time = localtime(&now);
 
-		std::cout << "\r[" << time->tm_hour << ":" << time->tm_min << ":" << time->tm_sec << " " << color << header << COLOR_RESET << "] : ";
-	}
-
-	void enableLogPrinting(bool enable)
-	{
-		isLogPrintingEnabled = enable;
-	}
-
-	void enableColor(bool enable)
-	{
-		isColorEnabled = enable;
-
-//#if OS_IS_WINDOWS
-//		if (isColorEnabled)
-//		{
-//			DWORD outMode = 0;
-//			HANDLE outHandle = GetStdHandle(STD_OUTPUT_HPPANDLE);
-//			GetConsoleMode(outHandle, &outMode);
-//			SetConsoleMode(outHandle, outMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-//		}
-//#endif
+		std::cout << color << "\r[" << time->tm_hour << ":" << time->tm_min << ":" << time->tm_sec << " " << color << header << "]" << COLOR_RESET << ": ";
 	}
 
 	void setDebugColor(const char* color)

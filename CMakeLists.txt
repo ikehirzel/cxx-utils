@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project("cxx-utils")
 
-file(GLOB TEST_SOURCES "src/*.cpp")
-
 if(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
@@ -14,6 +12,7 @@ else()
 	add_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
+file(GLOB TEST_SOURCES "src/*.cpp")
 
 foreach(TEST ${TEST_SOURCES})
 	get_filename_component(TARGET ${TEST} NAME_WE)
