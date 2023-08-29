@@ -1,3 +1,4 @@
+#define HIRZEL_IMPLEMENT
 #include "hirzel/log.hpp"
 
 using namespace hirzel::log;

@@ -1,4 +1,3 @@
-#define HIRZEL_IMPLEMENT
 #ifndef HIRZEL_LOG_HPP
 #define HIRZEL_LOG_HPP
 
