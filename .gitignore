@@ -1,3 +1,6 @@
 # ide files
 .vscode/
 .cache/
+.vs/
+out/
+build/

@@ -14,7 +14,7 @@
 
 #if defined(_WIN32) || defined(WIN32) || defined(WIN64)
 	#define HIRZEL_OS HIRZEL_WINDOWS
-	#include <libloaderapi.hpp>
+	#include <windows.h>
 #else
 	#include <unistd.h>
 	#if defined(__linux__)
