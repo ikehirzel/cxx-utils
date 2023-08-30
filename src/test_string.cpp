@@ -8,7 +8,7 @@ using namespace hirzel::string;
 
 void test_get_folder()
 {
-	#define test(path, folder) assert(hirzel::string::get_folder(path) == folder)
+	#define test(path, folder) assert(hirzel::string::directoryOf(path) == folder)
 	std::cout << "\thirzel::string::get_folder()\n";
 
 	test("hello", "./");
@@ -23,7 +23,7 @@ void test_get_folder()
 
 void test_get_filename()
 {
-	#define test(path, filename, include_extension) assert(hirzel::string::get_filename(path, include_extension) == filename)
+	#define test(path, filename, include_extension) assert(hirzel::string::filenameOf(path, include_extension) == filename)
 	std::cout << "\thirzel::string::get_filename()\n";
 
 	test("hello", "hello", true);
@@ -42,7 +42,7 @@ void test_get_filename()
 
 void test_get_extension()
 {
-	#define test(path, expected) assert(hirzel::string::get_extension(path) == expected)
+	#define test(path, expected) assert(hirzel::string::fileExtensionOf(path) == expected)
 	std::cout << "\thirzel::string::get_extension()\n";
 
 	test("file.txt", ".txt");

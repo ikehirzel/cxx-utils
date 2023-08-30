@@ -3,7 +3,9 @@
 #include <hirzel/json.hpp>
 #include <iostream>
 #include <cassert>
+#include <hirzel/print.hpp>
 
+using namespace hirzel;
 using namespace hirzel::json;
 
 #define assert_equals(a, b) {\
@@ -13,20 +15,23 @@ using namespace hirzel::json;
 	assert_false(b != a);\
 }
 
-#define assert_parse_throws(json) true//assert_throws(json::deserialize(json), json::SyntaxError)
-#define assert_parse_not_throws(json) true//assert_no_throw(json::deserialize(json))
+#define assert_parse_throws(json) assert(true)//assert_throws(json::parse(json), json::SyntaxError)
+#define assert_parse_not_throws(json) assert(true)//assert_no_throw(json::parse(json))
 
 #define assert_type(var, type) assert(var.is##type() && "Expected type '" #type "' but got '" #type "'")
 #define assert_value(var, func, value) assert(var.as_##func() == value && "Expected value of " #value)
 
-#define assert_json(json, value) {\
-	assert_parse_not_throws(json);\
-	auto jsonValue = deserialize(json);\
-	auto expected = JsonValue(value);\
-	assert(jsonValue == expected);\
+template <typename V>
+void assert_json(const char* json, const V& value)
+{
+	assert_parse_not_throws(json);
+	auto jsonValue = parse(json);
+	auto expected = JsonValue(value);
+	assert(jsonValue == expected);
+
 }
 
-std::string colors_json =
+const char* colors_json =
 R"=====({
 	"colors": [
 		{
@@ -85,7 +90,7 @@ R"=====({
 	]
 })=====";
 
-std::string pokemon_json= R"====(
+const char* pokemon_json= R"====(
 	{
 	"count": 1118,
 	"next": "https://pokeapi.co/api/v2/pokemon?offset=20&limit=20",
@@ -177,10 +182,11 @@ std::string pokemon_json= R"====(
 
 void test_null()
 {
+	println("Testing null.");
 	// valid
 	assert_parse_not_throws("null");
 
-	JsonValue null = deserialize("null");
+	JsonValue null = parse("null");
 	assert_type(null, Null);
 	assert(null == JsonValue());
 
@@ -193,6 +199,7 @@ void test_null()
 
 void test_integer()
 {
+	println("Testing integer.");
 	// valid
 	assert_json("1", 1);
 	assert_json("-1", -1);
@@ -209,8 +216,9 @@ void test_integer()
 	assert_parse_not_throws("214e7");
 }
 
-void test_decimal()
+void test_float()
 {
+	println("Testing float");
 	// valid
 	assert_json("1.234", 1.234);
 	assert_json("-11.234", -11.234);
@@ -230,6 +238,7 @@ void test_decimal()
 
 void test_boolean()
 {
+	println("Testing boolean");
 	// valid
 	assert_json("true", true);
 	assert_json("false", false);
@@ -243,6 +252,7 @@ void test_boolean()
 
 void test_string()
 {
+	println("Testing string");
 	// valid
 	assert_json("\"\"", "");
 	assert_json("\"hello\"", "hello");
@@ -258,13 +268,20 @@ void test_string()
 
 void test_array()
 {
+	println("Testing array");
 	using Array = JsonArray;
 
+
 	assert_json("[]", Array());
+	println("a");
 	assert_json("[1,2,3]", Array({ 1, 2, 3 }));
+	println("a");
 	assert_json("[234, \"hello\", null, true, {}]", Array({ 234, "hello", JsonValue(), true, JsonObject() }));
+	println("a");
 	assert_json("[[{}]]", JsonValue(Array({ JsonValue(Array({ JsonValue(JsonObject()) })) })) );
+	println("a");
 	assert_json("[[[]]]", JsonValue(Array({ JsonValue(Array({ JsonValue(Array()) })) })) );
+	println("a");
 	assert_json("[[1,2,3], [2,3,4], {\"key\":true}]", Array({ Array({ 1, 2, 3 }), Array({ 2, 3, 4 }), JsonObject({ { "key", true } }) }));
 
 	assert_parse_throws("[");
@@ -280,6 +297,7 @@ void test_array()
 
 void test_table()
 {
+	println("Testing table");
 	using Table = JsonObject;
 
 	assert_json("{}", JsonObject());
@@ -303,8 +321,9 @@ void test_table()
 	assert_parse_throws("{\"a\":1,}");
 }
 
-void test_json()
+void test_parse()
 {
+	println("Testing parse");
 	using Table = JsonObject;
 	using Array = JsonArray;
 
@@ -469,9 +488,9 @@ void test_json()
 
 	// testing serialization
 	auto pokemon_expected = JsonValue(pokemon_Value);
-	auto from_json = deserialize(pokemon_json);
+	auto from_json = parse(pokemon_json);
 	auto serialized_json = serialize(pokemon_expected);
-	auto from_json_clone = deserialize(serialized_json);
+	auto from_json_clone = parse(serialized_json);
 
 	assert(from_json == pokemon_expected);
 	assert(from_json_clone == from_json);
@@ -479,18 +498,16 @@ void test_json()
 
 }
 
-#define test(func) test_##func()
-
 int main()
 {
-	test(null);
-	test(integer);
-	test(decimal);
-	test(boolean);
-	test(string);
-	test(array);
-	test(table);
-	test(json);
+	test_null();
+	test_integer();
+	test_float();
+	test_boolean();
+	test_string();
+	test_array();
+	test_table();
+	test_parse();
 
 	return 0;
 }

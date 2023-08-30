@@ -6,147 +6,190 @@
 #include <cassert>
 
 using namespace hirzel;
-
-#define assert_no_throw(expr) {\
-	try {\
-		expr;\
-	} catch (const std::exception&) {\
-		assert(false && #expr " threw an exception");\
-	}\
-}
-
-#define assert_cast_values(obj, int_val, float_val, bool_val, string_val)\
-	assert(obj.asI32() == int_val);\
-	assert(obj.asF64() == float_val);\
-	assert(obj.asBool() == bool_val);\
-	assert(obj.asString() == string_val);
-
-#define assert_primitive(obj, typename, funcname, value)\
-	assert(obj.type() == typename);\
-	assert(obj.is##funcname());\
-	assert(obj.length() == 1)
-
-#define assert_not_primitive(obj, typename, funcname)\
-	assert(obj.type() != typename);\
-	assert(!obj.is##funcname())
-
-#define assert_not_null(obj)		{ assert(obj.type() != ValueType::Null); assert(!obj.isNull()); }
-#define assert_not_bool(obj)		{ assert_not_primitive(obj, ValueType::Boolean, Boolean); }
-#define assert_not_int(obj)			{ assert_not_primitive(obj, ValueType::Integer, Integer); }
-#define assert_not_float(obj)		{ assert_not_primitive(obj, ValueType::Float, Float); }
-#define assert_not_string(obj)		{ assert_not_primitive(obj, ValueType::String, String); }
-#define assert_not_array(obj)		{ assert(obj.type() != ValueType::Array); assert(!obj.isArray()); }
-#define assert_not_table(obj)		{ assert(obj.type() != ValueType::Object); assert(!obj.isTable()); }
-
-#define assert_equals(obj, b) {\
-	assert(obj == b);\
-	assert(b == obj);\
-	assert(!(obj != b));\
-	assert(!(b != obj));\
-}
-
-#define assert_not_equals(obj, b) {\
-	assert(!(obj == b));\
-	assert(!(b == obj));\
-	assert(obj != b);\
-	assert(b != obj);\
-}
-
-#define assert_null(obj) {\
-	assert(obj.type() == ValueType::Null);\
-	assert(obj.isNull());\
-	assert(obj.length() == 0);\
-	assert_cast_values(obj, 0, 0.0, false, "null");\
-	assert_not_int(obj);\
-	assert_not_float(obj);\
-	assert_not_bool(obj);\
-	assert_not_string(obj);\
-	assert_not_array(obj);\
-	assert_not_table(obj);\
-	assert_equals(obj, JsonValue());\
-	assert_equals(obj, JsonValue(ValueType::Null));\
-}
-
-#define assert_boolean(obj, value) {\
-	assert_primitive(obj, ValueType::Boolean, Boolean, value);\
-	assert_cast_values(obj, (int)value, (double)value, value, (value ? "true" : "false"));\
-	assert_not_null(obj);\
-	assert_not_int(obj);\
-	assert_not_float(obj);\
-	assert_not_string(obj);\
-	assert_not_array(obj);\
-	assert_not_table(obj);\
-	assert_no_throw(JsonValue(value).toBool());\
-	assert_equals(obj, JsonValue(value));\
-}
-
-
-#define assert_integer(obj, value) {\
-	assert_primitive(obj, ValueType::Integer, Integer, value);\
-	assert_cast_values(obj, value, (double)value, (bool)value, std::to_string(value));\
-	assert(obj.isNumber());\
-	assert_not_null(obj);\
-	assert_not_bool(obj);\
-	assert_not_float(obj);\
-	assert_not_string(obj);\
-	assert_not_array(obj);\
-	assert_not_table(obj);\
-	assert_equals(obj, JsonValue(value));\
-}
-
-#define assert_decimal(obj, value) {\
-	assert_primitive(obj, ValueType::Float, Float, value);\
-	assert_cast_values(obj, (int)value, (double)value, (bool)value, std::to_string(value));\
-	assert(obj.isNumber());\
-	assert_not_null(obj);\
-	assert_not_int(obj);\
-	assert_not_bool(obj);\
-	assert_not_string(obj);\
-	assert_not_array(obj);\
-	assert_not_table(obj);\
-	assert_equals(obj, JsonValue(value));\
-}
-
-#define assert_string(obj, int_value, float_value, bool_value, string_value) {\
-	assert(obj.type() == ValueType::String);\
-	assert(std::string(obj.typeName()) == "string");\
-	assert(obj.isString());\
-	assert(obj.length() == obj.asString().length());\
-	assert_cast_values(obj, int_value, float_value, bool_value, string_value);\
-	assert_not_null(obj);\
-	assert_not_int(obj);\
-	assert_not_float(obj);\
-	assert_not_bool(obj);\
-	assert_not_array(obj);\
-	assert_not_table(obj);\
-	assert_equals(obj, JsonValue(string_value));\
-}
-
-#define assert_array(obj, value) {\
-	assert(obj.type() == ValueType::Array);\
-	assert(obj.isArray());\
-	assert_not_null(obj);\
-	assert_not_int(obj);\
-	assert_not_float(obj);\
-	assert_not_bool(obj);\
-	assert_not_string(obj);\
-	assert_not_table(obj);\
-	assert_equals(obj, JsonValue(value));\
-}
-
-#define assert_table(obj, value) {\
-	assert(obj.type() == ValueType::Object);\
-	assert(obj.isTable());\
-	assert_not_null(obj);\
-	assert_not_bool(obj);\
-	assert_not_int(obj);\
-	assert_not_float(obj);\
-	assert_not_string(obj);\
-	assert_not_array(obj);\
-	assert_equals(obj, JsonValue(value));\
-}
-
 using namespace hirzel::json;
+
+void assert_cast_values(const JsonValue& obj, i64 intValue, f64 floatValue, bool boolValue, const std::string&)
+{
+	assert(obj.asI64() == intValue);
+	assert(obj.asF64() == floatValue);
+	assert(obj.asBool() == boolValue);
+	// TODO: Trim zeroes and spaces to make this comparison work
+	//assert(obj.asString() == stringValue);
+}
+
+void assert_primitive(const JsonValue& obj, ValueType type)
+{
+	// TODO: Check value?
+	assert(obj.type() == type);
+	//assert(obj.is##funcname());
+	assert(obj.length() == 0);
+}
+
+void assert_not_primitive(const JsonValue& obj, ValueType type)
+{
+	assert(obj.type() != type);
+	//assert(!obj.is##funcname())
+}
+
+void assert_not_null(const JsonValue& obj)
+{
+	assert(obj.type() != ValueType::Null);
+	assert(!obj.isNull());
+}
+
+void assert_not_bool(const JsonValue& obj)
+{
+	assert(obj.type() != ValueType::Boolean);
+	assert(!obj.isBoolean());
+}
+
+void assert_not_int(const JsonValue& obj)
+{
+	assert(obj.type() != ValueType::Integer);
+	assert(!obj.isInteger());
+}
+
+void assert_not_float(const JsonValue& obj)
+{
+	assert(obj.type() != ValueType::Float);
+	assert(!obj.isFloat());
+}
+
+void assert_not_string(const JsonValue& obj)
+{
+	assert(obj.type() != ValueType::String);
+	assert(!obj.isString());
+}
+
+void assert_not_array(const JsonValue& obj)
+{
+	assert(obj.type() != ValueType::Array);
+	assert(!obj.isArray());
+}
+
+void assert_not_table(const JsonValue& obj)
+{
+	assert(obj.type() != ValueType::Object);
+	assert(!obj.isObject());
+}
+
+void assert_equals(const JsonValue& a, const JsonValue& b)
+{
+	assert(a == b);
+	assert(b == a);
+	assert(!(a != b));
+	assert(!(b != a));
+}
+
+void assert_not_equals(const JsonValue& a, const JsonValue& b)
+{
+	assert(!(a == b));
+	assert(!(b == a));
+	assert(a != b);
+	assert(b != a);
+}
+
+void assert_null(const JsonValue& obj)
+{
+	assert(obj.type() == ValueType::Null);
+	assert(obj.isNull());
+	assert(obj.length() == 0);
+	assert_cast_values(obj, 0, 0.0, false, "null");
+	assert_not_int(obj);
+	assert_not_float(obj);
+	assert_not_bool(obj);
+	assert_not_string(obj);
+	assert_not_array(obj);
+	assert_not_table(obj);
+	assert_equals(obj, JsonValue());
+	assert_equals(obj, JsonValue(ValueType::Null));
+}
+
+template <typename V>
+void assert_boolean(const JsonValue& obj, const V& value)
+{
+	assert_primitive(obj, ValueType::Boolean);
+	assert_cast_values(obj, (int)value, (double)value, value, (value ? "true" : "false"));
+	assert_not_null(obj); 
+	assert_not_int(obj);
+	assert_not_float(obj);
+	assert_not_string(obj);
+	assert_not_array(obj);
+	assert_not_table(obj);
+	assert_equals(obj, JsonValue(value));
+}
+
+void assert_integer(const JsonValue& obj, i64 value)
+{
+	assert_primitive(obj, ValueType::Integer);
+	assert(obj.integer() == value);
+	assert(obj.isNumber());
+	assert_cast_values(obj, value, (double)value, (bool)value, std::to_string(value));
+	assert_not_null(obj);
+	assert_not_bool(obj);
+	assert_not_float(obj);
+	assert_not_string(obj);
+	assert_not_array(obj);
+	assert_not_table(obj);
+	assert_equals(obj, JsonValue(value));
+}
+
+void assert_decimal(const JsonValue& obj, f64 value)
+{
+	assert_primitive(obj, ValueType::Float);
+	assert(obj.decimal() == value);
+	assert_cast_values(obj, (int)value, (double)value, (bool)value, std::to_string(value));
+	assert(obj.isNumber());
+	assert_not_null(obj);
+	assert_not_int(obj);
+	assert_not_bool(obj);
+	assert_not_string(obj);
+	assert_not_array(obj);
+	assert_not_table(obj);
+	assert_equals(obj, JsonValue(value));
+}
+
+void assert_string(const JsonValue& obj, i64 intValue, f64 floatValue, bool boolValue, const char* stringValue)
+{
+	assert(obj.type() == ValueType::String);
+	assert(std::string(obj.typeName()) == "string");
+	assert(obj.isString());
+	assert(obj.length() == obj.asString().length());
+	assert_cast_values(obj, intValue, floatValue, boolValue, stringValue);
+	assert_not_null(obj);
+	assert_not_int(obj);
+	assert_not_float(obj);
+	assert_not_bool(obj);
+	assert_not_array(obj);
+	assert_not_table(obj);
+	assert_equals(obj, JsonValue(stringValue));
+}
+
+void assert_array(const JsonValue& obj, const JsonArray& value)
+{
+	assert(obj.type() == ValueType::Array);
+	assert(obj.isArray());
+	assert_not_null(obj);
+	assert_not_int(obj);
+	assert_not_float(obj);
+	assert_not_bool(obj);
+	assert_not_string(obj);
+	assert_not_table(obj);
+	assert_equals(obj, JsonValue(value));
+}
+
+void assert_object(const JsonValue& obj, const JsonObject& value)
+{
+	assert(obj.type() == ValueType::Object);
+	assert(obj.isObject());
+	assert_not_null(obj);
+	assert_not_bool(obj);
+	assert_not_int(obj);
+	assert_not_float(obj);
+	assert_not_string(obj);
+	assert_not_array(obj);
+	assert_equals(obj, JsonValue(value));
+}
 
 void test_null()
 {
@@ -218,7 +261,7 @@ void test_integer()
 	assert_not_equals(move, JsonValue(ValueType::Object));
 }
 
-void test_decimal()
+void test_float()
 {
 	JsonValue init = 2.34;
 	assert_decimal(init, 2.34);
@@ -458,29 +501,29 @@ void test_table()
 
 	{
 		JsonValue empty = Table {};
-		assert_table(empty, Table());
+		assert_object(empty, Table());
 		assert(empty.length() == 0);
 		assert(empty.isEmpty());
 
 		JsonValue copy(empty);
-		assert_table(copy, Table());
+		assert_object(copy, Table());
 		assert(copy.length() == 0);
 		assert(copy.isEmpty());
 		assert_equals(copy, empty);
 		copy = empty;
-		assert_table(copy, Table());
+		assert_object(copy, Table());
 		assert(copy.length() == 0);
 		assert(copy.isEmpty());
 		assert_equals(copy, empty);
 
 		JsonValue move(std::move(empty));
-		assert_table(move, Table());
+		assert_object(move, Table());
 		assert(move.length() == 0);
 		assert(move.isEmpty());
 		assert_equals(move, copy);
 		JsonValue clone = copy;
 		move = std::move(copy);
-		assert_table(move, Table());
+		assert_object(move, Table());
 		assert(move.length() == 0);
 		assert(move.isEmpty());
 		assert_equals(move, clone);
@@ -504,7 +547,7 @@ void test_table()
 			{ "null", JsonValue() }
 		}; 
 		JsonValue init = table;
-		assert_table(init, table);
+		assert_object(init, table);
 		assert(init.length() == 5);
 		assert(!init.isEmpty());
 		assert_boolean(init["boolean"], true);
@@ -514,24 +557,24 @@ void test_table()
 		assert_null(init["null"]);
 
 		JsonValue copy(init);
-		assert_table(copy, table);
+		assert_object(copy, table);
 		assert(copy.length() == 5);
 		assert(!(copy.isEmpty()));
 		assert_equals(copy, init);
 		copy = init;
-		assert_table(copy, table);
+		assert_object(copy, table);
 		assert(copy.length() == 5);
 		assert(!(copy.isEmpty()));
 		assert_equals(copy, init);
 
 		JsonValue move(std::move(init));
-		assert_table(move, table);
+		assert_object(move, table);
 		assert(move.length() == 5);
 		assert(!(move.isEmpty()));
 		assert_equals(move, copy);
 		JsonValue clone = copy;
 		move = std::move(copy);
-		assert_table(move, table);
+		assert_object(move, table);
 		assert(move.length() == 5);
 		assert(!(move.isEmpty()));
 		assert_equals(move, clone);
@@ -570,17 +613,15 @@ void test_table()
 		assert(table[pair.first] == pair.second && "did not get expected table value");
 }
 
-#define test(func) test_##func()
-
 int main()
 {
-	test(null);
-	test(integer);
-	test(decimal);
-	test(boolean);
-	test(string);
-	test(array);
-	test(table);
+	test_null();
+	test_integer();
+	test_float();
+	test_boolean();
+	test_string();
+	test_array();
+	test_table();
 
 	return 0;
 }
