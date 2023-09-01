@@ -4,8 +4,6 @@
 
 namespace hirzel::time
 {
-	using namespace hirzel::primitives;
-
 	u64 secondsSinceEpoch()
 	{
 		return std::chrono::duration_cast<std::chrono::seconds>
@@ -26,16 +24,16 @@ namespace hirzel::time
 
 	void sleepForSeconds(u64 seconds)
 	{
-		std::thread::this_thread::sleep_for(std::chrono::seconds(seconds));
+		std::this_thread::sleep_for(std::chrono::seconds(seconds));
 	}
 
 	void sleepForMilliseconds(u64 milliseconds)
 	{
-		std::thread::this_thread::sleep_for(std::chrono::milliseconds(seconds));
+		std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 	}
 
 	void sleepForMicroseconds(u64 microseconds)
 	{
-		std::thread::this_thread::sleep_for(std::chrono::microseconds(seconds));
+		std::this_thread::sleep_for(std::chrono::microseconds(microseconds));
 	}
 }

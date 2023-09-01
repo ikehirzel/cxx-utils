@@ -516,7 +516,7 @@
 // 		if (JsonValue.isNull())
 // 			return {};
 
-// 		auto value = JsonValue.asI64();
+// 		auto value = JsonValue.asInteger();
 // 		auto is_out_of_range = value < _range.min
 // 			|| (value == _range.min && _range.min_exclusive)
 // 			|| value > _range.max
@@ -546,7 +546,7 @@
 // 		if (JsonValue.isNull())
 // 			return {};
 
-// 		auto value = JsonValue.asF64();
+// 		auto value = JsonValue.asFloat();
 // 		auto is_out_of_range = value < _range.min
 // 			|| (value == _range.min && _range.min_exclusive)
 // 			|| value > _range.max

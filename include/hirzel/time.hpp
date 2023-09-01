@@ -5,9 +5,9 @@
 
 namespace hirzel::time
 {
-	primitives::u64 secondsSinceEpoch();
-	primitives::u64 millisecondsSinceEpoch();
-	primitives::u64 microsecondsSinceEpoch();
+	u64 secondsSinceEpoch();
+	u64 millisecondsSinceEpoch();
+	u64 microsecondsSinceEpoch();
 	void sleepForSeconds(u64 seconds);
 	void sleepForMilliseconds(u64 milliseconds);
 	void sleepForMicroseconds(u64 microseconds);

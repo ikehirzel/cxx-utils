@@ -11,7 +11,7 @@ else()
 	add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
-file(GLOB COMMON_SOURCES "src/hirzel/*.cpp")
+file(GLOB_RECURSE COMMON_SOURCES "src/hirzel/*.cpp")
 add_library(common OBJECT ${COMMON_SOURCES})
 list(APPEND TARGETS common)
 

@@ -32,7 +32,6 @@
 
 namespace hirzel::system
 {
-	using namespace hirzel::primitives;
 	enum class OsType
 	{
 		Windows,
