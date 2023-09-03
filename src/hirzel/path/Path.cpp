@@ -26,11 +26,15 @@ namespace hirzel::path
 		return '\0';
 	}
 
-	Path::Path(const char* path) :
+	Path::Path():
 	_buffer(""),
 	_length(0),
 	_separator('\0'),
-	_root(rootOf(path))
+	_root('\0')
+	{}
+
+	Path::Path(const char* path) :
+	Path()
 	{
 		append(path);
 	}

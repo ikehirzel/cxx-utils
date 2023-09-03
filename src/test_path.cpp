@@ -12,12 +12,28 @@ void test_paths()
 	println("Config	Dir	: $", configDirectoryPath());
 	println("Executable	: $", executablePath());
 
-	println("'$'", extensionOf("/usr/var/lib"));
+	println("$", concatenate({ "C:\\", "/Users/", "\\Test\\\\\\" }));
+
 }
 
 void test_concatenate()
 {
-
+	assert(concatenate({ "var" }) == "var");
+	assert(concatenate({ "/var" }) == "/var");
+	assert(concatenate({ "/var/" }) == "/var");
+	assert(concatenate({ "/////var/////" }) == "/var");
+	assert(concatenate({ "/var", "lib" }) == "/var/lib");
+	assert(concatenate({ "/var", "lib", "file" }) == "/var/lib/file");
+	assert(concatenate({ "/", "var", "lib", "file" }) == "/var/lib/file");
+	assert(concatenate({ "\\", "var", "lib", "file" }) == "\\var\\lib\\file");
+	assert(concatenate({ "var/", "lib", "file" }) == "var/lib/file");
+	assert(concatenate({ "\\var", "lib", "file" }) == "\\var\\lib\\file");
+	assert(concatenate({ "var\\", "lib", "file" }) == "var\\lib\\file");
+	assert(concatenate({ "C:\\" }) == "C:\\");
+	assert(concatenate({ "C:\\", "/Users/////" }) == "\\Users");
+	assert(concatenate({ "C:\\", "/Users/", "Test\\\\\\" }) == "\\Users\\Test");
+	assert(concatenate({ "C:\\", "/Users/", "\\Test\\\\\\" }) == "\\Test");
+	assert(concatenate({ "C:\\\\\\\\", "Users/////", "Test\\\\\\" }) == "C:\\Users\\Test");
 }
 
 void test_parentOf()

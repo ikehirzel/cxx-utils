@@ -13,7 +13,7 @@ namespace hirzel::path
 	const char* configDirectoryPath();
 	std::string executablePath();
 	std::string sanitize(const char* path);
-	std::string concatenate(const char* path, const std::initializer_list<const char*> paths);
+	std::string concatenate(const std::initializer_list<const char*> paths);
 	std::string parentOf(const char* filepath);
 	std::string filenameOf(const char* filepath, bool includeExtension = true);
 	std::string extensionOf(const char* filepath);

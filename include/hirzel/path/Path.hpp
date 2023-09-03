@@ -18,6 +18,7 @@ namespace hirzel::path
 
 	public:
 
+		Path();
 		Path(const char *path);
 
 		void append(char c);

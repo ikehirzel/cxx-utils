@@ -66,9 +66,9 @@ namespace hirzel::path
 #endif
 	}
 
-	std::string concatenate(const char* first, const std::initializer_list<const char*> paths)
+	std::string concatenate(const std::initializer_list<const char*> paths)
 	{
-		auto path = Path(first);
+		auto path = Path();
 
 		for (const auto* p : paths)
 			path.append(p);
