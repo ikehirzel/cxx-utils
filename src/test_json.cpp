@@ -1,5 +1,3 @@
-#define HIRZEL_IMPLEMENT
-
 #include <hirzel/json.hpp>
 #include <iostream>
 #include <cassert>
@@ -1069,7 +1067,6 @@ void test_parse()
 	assert(from_json == pokemon_expected);
 	assert(from_json_clone == from_json);
 	assert(from_json_clone == pokemon_expected);
-
 }
 
 int main()

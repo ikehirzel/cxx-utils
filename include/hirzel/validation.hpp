@@ -1,4 +1,3 @@
-// #define HIRZEL_IMPLEMENT
 // #ifndef HIRZEL_Value_VALIDATION_HPP
 // #define HIRZEL_Value_VALIDATION_HPP
 

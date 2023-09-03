@@ -26,6 +26,7 @@ namespace hirzel::file
 	std::string read(const std::string& filepath, const char* lineEnding = "\n");
 	bool write(const std::string& filepath, const std::string& buffer);
 	bool exists(const std::string& filepath) noexcept;
+	
 }
 
 #endif
