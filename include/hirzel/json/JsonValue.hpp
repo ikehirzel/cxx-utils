@@ -1,7 +1,7 @@
 #ifndef HIRZEL_JSON_JSON_VALUE_HPP
 #define HIRZEL_JSON_JSON_VALUE_HPP
 
-#include <hirzel/primitives.hpp>
+#include <cstdint>
 #include <hirzel/json/JsonValueType.hpp>
 #include <string>
 #include <unordered_map>
@@ -20,9 +20,9 @@ namespace hirzel::json
 		JsonValueType _type;
 		union
 		{
-			i64 _integer;
+			int64_t _integer;
 			bool _boolean;
-			f64 _decimal;
+			double _decimal;
 			std::string* _string;
 			JsonArray* _array;
 			JsonObject* _object;
@@ -63,7 +63,7 @@ namespace hirzel::json
 
 			out.resize(array.size());
 
-			for (usize i = 0; i < array.size(); ++i)
+			for (size_t i = 0; i < array.size(); ++i)
 				out[i] = array[i];
 
 			return out;
@@ -98,8 +98,8 @@ namespace hirzel::json
 		auto& object() { return *_object; }
 		const auto& object() const { return *_object; }
 
-		i64 asInteger() const;
-		f64 asFloat() const;
+		int64_t asInteger() const;
+		double asDecimal() const;
 		bool asBoolean() const;
 		std::string	asString() const;
 
@@ -113,24 +113,24 @@ namespace hirzel::json
 		bool isEmpty() const;
 		bool isNull() const { return _type == JsonValueType::Null; }
 		bool isInteger() const { return _type == JsonValueType::Integer; }
-		bool isFloat() const { return _type == JsonValueType::Float; }
-		bool isNumber() const { return _type == JsonValueType::Integer || _type == JsonValueType::Float; }
+		bool isDecimal() const { return _type == JsonValueType::Decimal; }
+		bool isNumber() const { return _type == JsonValueType::Integer || _type == JsonValueType::Decimal; }
 		bool isBoolean() const { return _type == JsonValueType::Boolean; }
 		bool isString() const { return _type == JsonValueType::String; }
 		bool isArray() const { return _type == JsonValueType::Array; }
 		bool isObject() const { return _type == JsonValueType::Object; }
 
-		usize length() const;
+		size_t length() const;
 		const auto& type() const { return _type; }
 		const char* typeName() const noexcept;
 
 		JsonValue& operator=(JsonValue&& other);
 		JsonValue& operator=(const JsonValue& other);
 
-		JsonValue& at(usize i);
-		JsonValue& operator[](usize i) { return at(i); }
-		const JsonValue& at(usize i) const;
-		const JsonValue& operator[](usize i) const { return at(i); }
+		JsonValue& at(size_t i);
+		JsonValue& operator[](size_t i) { return at(i); }
+		const JsonValue& at(size_t i) const;
+		const JsonValue& operator[](size_t i) const { return at(i); }
 
 		JsonValue& at(const std::string& key);
 		JsonValue& operator[](const std::string& key) { return at(key); }

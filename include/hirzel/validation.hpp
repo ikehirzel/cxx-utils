@@ -545,7 +545,7 @@
 // 		if (JsonValue.isNull())
 // 			return {};
 
-// 		auto value = JsonValue.asFloat();
+// 		auto value = JsonValue.asDecimal();
 // 		auto is_out_of_range = value < _range.min
 // 			|| (value == _range.min && _range.min_exclusive)
 // 			|| value > _range.max

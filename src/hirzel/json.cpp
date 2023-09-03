@@ -119,7 +119,7 @@ namespace hirzel::json
 
 	static JsonValue deserializeFloat(JsonToken& token)
 	{
-		assert(token.type() == JsonTokenType::Float);
+		assert(token.type() == JsonTokenType::Decimal);
 
 		auto text = token.text();
 		auto value = atof(text.c_str());
@@ -143,7 +143,7 @@ namespace hirzel::json
 			case JsonTokenType::String:
 				return deserializeString(token);
 
-			case JsonTokenType::Float:
+			case JsonTokenType::Decimal:
 				return deserializeFloat(token);
 
 			case JsonTokenType::Integer:
@@ -309,7 +309,7 @@ namespace hirzel::json
 			out << json.boolean();
 			break;
 
-		case JsonValueType::Float:
+		case JsonValueType::Decimal:
 			out << json.decimal();
 			break;
 

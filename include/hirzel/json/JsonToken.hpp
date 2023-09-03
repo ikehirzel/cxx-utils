@@ -10,13 +10,13 @@ namespace hirzel::json
 	class JsonToken
 	{
 		const char* _src;
-		usize _pos;
-		usize _length;
+		size_t _pos;
+		size_t _length;
 		JsonTokenType _type;
 
 	public:
 
-		JsonToken(const char* src, usize pos, usize length, JsonTokenType type);
+		JsonToken(const char* src, size_t pos, size_t length, JsonTokenType type);
 		JsonToken(JsonToken&&) = default;
 		JsonToken(const JsonToken&) = default;
 

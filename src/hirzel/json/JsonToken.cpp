@@ -7,16 +7,16 @@
 
 namespace hirzel::json
 {
-	JsonToken::JsonToken(const char* src, usize pos, usize length, JsonTokenType type) :
+	JsonToken::JsonToken(const char* src, size_t pos, size_t length, JsonTokenType type) :
 	_src(src),
 	_pos(pos),
 	_length(length),
 	_type(type)
 	{}
 
-	static usize endOfLineCommentPos(const char* src, usize pos)
+	static size_t endOfLineCommentPos(const char* src, size_t pos)
 	{
-		usize i;
+		size_t i;
 
 		for (i = pos; src[i]; ++i)
 		{
@@ -30,9 +30,9 @@ namespace hirzel::json
 		return i;
 	}
 
-	static usize endOfBlockCommentPos(const char* src, usize pos)
+	static size_t endOfBlockCommentPos(const char* src, size_t pos)
 	{
-		usize i;
+		size_t i;
 
 		for (i = pos; src[i]; ++i)
 		{
@@ -46,9 +46,9 @@ namespace hirzel::json
 		return i;
 	}
 
-	static usize nextTokenPos(const char* src, usize pos)
+	static size_t nextTokenPos(const char* src, size_t pos)
 	{
-		usize i;
+		size_t i;
 
 		for (i = pos; src[i]; ++i)
 		{
@@ -80,9 +80,9 @@ namespace hirzel::json
 		return i;
 	}
 
-	static std::runtime_error unexpectedToken(const char* src, usize startPos)
+	static std::runtime_error unexpectedToken(const char* src, size_t startPos)
 	{
-		usize i = startPos;
+		size_t i = startPos;
 
 		while (isalpha(src[i]))
 			i += 1;
@@ -94,11 +94,11 @@ namespace hirzel::json
 			+ ".");
 	}
 
-	static JsonToken parseStringToken(const char* src, const usize startPos)
+	static JsonToken parseStringToken(const char* src, const size_t startPos)
 	{
 		assert(src[startPos] == '\"');
 
-		usize i = startPos + 1;
+		size_t i = startPos + 1;
 
 		while (true)
 		{
@@ -116,7 +116,7 @@ namespace hirzel::json
 		return JsonToken(src, startPos, i - startPos, JsonTokenType::String);
 	}
 
-	static usize numberLength(const char* const src)
+	static size_t numberLength(const char* const src)
 	{
 		const char *iter = src;
 
@@ -126,12 +126,12 @@ namespace hirzel::json
 		return iter - src;
 	}
 
-	static JsonToken parseNumberToken(const char* src, const usize start)
+	static JsonToken parseNumberToken(const char* src, const size_t start)
 	{
 		assert(isdigit(src[start]) || src[start] == '-');
 
 		auto i = start;
-		auto isFloat = false;
+		auto isDecimal = false;
 
 		if (src[i] == '-')
 		{
@@ -145,7 +145,7 @@ namespace hirzel::json
 
 		if (src[i] == '.')
 		{
-			isFloat = true;
+			isDecimal = true;
 
 			i += 1;
 
@@ -184,14 +184,14 @@ namespace hirzel::json
 		}
 
 		auto length = i - start;
-		auto token = isFloat
-			? JsonToken(src, start, length, JsonTokenType::Float)
+		auto token = isDecimal
+			? JsonToken(src, start, length, JsonTokenType::Decimal)
 			: JsonToken(src, start, length, JsonTokenType::Integer);
 
 		return token;
 	}
 
-	static JsonToken parseTrueToken(const char* src, usize pos)
+	static JsonToken parseTrueToken(const char* src, size_t pos)
 	{
 		assert(src[pos] == 't');
 
@@ -201,7 +201,7 @@ namespace hirzel::json
 		throw unexpectedToken(src, pos);
 	}
 
-	static JsonToken parseFalseToken(const char* src, usize pos)
+	static JsonToken parseFalseToken(const char* src, size_t pos)
 	{
 		assert(src[pos] == 'f');
 
@@ -211,7 +211,7 @@ namespace hirzel::json
 		throw unexpectedToken(src, pos);
 	}
 
-	static JsonToken parseNullToken(const char* src, usize pos)
+	static JsonToken parseNullToken(const char* src, size_t pos)
 	{
 		assert(src[pos] == 'n');
 
@@ -221,7 +221,7 @@ namespace hirzel::json
 		throw unexpectedToken(src, pos);
 	}
 
-	static JsonToken parseToken(const char* src, usize pos)
+	static JsonToken parseToken(const char* src, size_t pos)
 	{
 		auto c = src[pos];
 

@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace hirzel
+namespace hirzel::primitives
 {
 	using byte	= uint8_t;
 	using u8	= uint8_t;

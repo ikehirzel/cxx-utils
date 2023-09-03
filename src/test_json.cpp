@@ -1,7 +1,5 @@
 #include <hirzel/json.hpp>
-#include <iostream>
 #include <cassert>
-#include <hirzel/print.hpp>
 
 using namespace hirzel;
 using namespace hirzel::json;
@@ -155,10 +153,10 @@ const char* pokemonJson= R"====(
 }
 )====";
 
-void assert_cast_values(const JsonValue& obj, i64 intValue, f64 floatValue, bool boolValue, const std::string&)
+void assert_cast_values(const JsonValue& obj, int64_t intValue, double floatValue, bool boolValue, const std::string&)
 {
 	assert(obj.asInteger() == intValue);
-	assert(obj.asFloat() == floatValue);
+	assert(obj.asDecimal() == floatValue);
 	assert(obj.asBoolean() == boolValue);
 	// TODO: Trim zeroes and spaces to make this comparison work
 	//assert(obj.asString() == stringValue);
@@ -198,8 +196,8 @@ void assert_not_int(const JsonValue& obj)
 
 void assert_not_float(const JsonValue& obj)
 {
-	assert(obj.type() != JsonValueType::Float);
-	assert(!obj.isFloat());
+	assert(obj.type() != JsonValueType::Decimal);
+	assert(!obj.isDecimal());
 }
 
 void assert_not_string(const JsonValue& obj)
@@ -266,7 +264,7 @@ void assert_boolean(const JsonValue& obj, const V& value)
 	assert_equals(obj, JsonValue(value));
 }
 
-void assert_integer(const JsonValue& obj, i64 value)
+void assert_integer(const JsonValue& obj, int64_t value)
 {
 	assert_primitive(obj, JsonValueType::Integer);
 	assert(obj.integer() == value);
@@ -281,9 +279,9 @@ void assert_integer(const JsonValue& obj, i64 value)
 	assert_equals(obj, JsonValue(value));
 }
 
-void assert_decimal(const JsonValue& obj, f64 value)
+void assert_decimal(const JsonValue& obj, double value)
 {
-	assert_primitive(obj, JsonValueType::Float);
+	assert_primitive(obj, JsonValueType::Decimal);
 	assert(obj.decimal() == value);
 	assert_cast_values(obj, (int)value, (double)value, (bool)value, std::to_string(value));
 	assert(obj.isNumber());
@@ -296,7 +294,7 @@ void assert_decimal(const JsonValue& obj, f64 value)
 	assert_equals(obj, JsonValue(value));
 }
 
-void assert_string(const JsonValue& obj, i64 intValue, f64 floatValue, bool boolValue, const char* stringValue)
+void assert_string(const JsonValue& obj, int64_t intValue, double floatValue, bool boolValue, const char* stringValue)
 {
 	assert(obj.type() == JsonValueType::String);
 	assert(std::string(obj.typeName()) == "string");
@@ -486,7 +484,7 @@ void test_float()
 	assert_decimal(move, 2.34);
 	assert_equals(move, clone);
 
-	assert_decimal(JsonValue(JsonValueType::Float), 0.0);
+	assert_decimal(JsonValue(JsonValueType::Decimal), 0.0);
 	assert_decimal(JsonValue(1.34), 1.34);
 	assert_decimal(JsonValue(0.0f), 0.0f);
 	assert_decimal(JsonValue(-0.0), -0.0);

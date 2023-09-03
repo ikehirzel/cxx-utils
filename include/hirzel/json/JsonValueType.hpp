@@ -7,7 +7,7 @@ namespace hirzel::json
 	{
 		Null,
 		Integer,
-		Float,
+		Decimal,
 		Boolean,
 		String,
 		Array,

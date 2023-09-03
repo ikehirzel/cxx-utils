@@ -1,5 +1,4 @@
 #include <hirzel/path/Path.hpp>
-#include <hirzel/primitives.hpp>
 #include <cctype>
 
 #ifdef _WIN32
@@ -64,7 +63,7 @@ namespace hirzel::path
 
 		auto needsSlash = _length > 0;
 
-		for (usize i = start; path[i]; ++i)
+		for (size_t i = start; path[i]; ++i)
 		{
 			if (isDirectorySeparator(path[i]))
 			{
@@ -95,7 +94,7 @@ namespace hirzel::path
 		if (_root && _length == 0)
 			return;
 
-		for (usize i = _length; i-- > 0;)
+		for (size_t i = _length; i-- > 0;)
 		{
 			if (_buffer[i] == separator())
 			{
@@ -117,7 +116,7 @@ namespace hirzel::path
 		size_t dotIndex = SIZE_MAX;
 		size_t slashIndex = SIZE_MAX;
 
-		for (usize i = _length; i-- > 0;)
+		for (size_t i = _length; i-- > 0;)
 		{
 			char c = _buffer[i];
 
@@ -146,7 +145,7 @@ namespace hirzel::path
 
 	std::string Path::parent() const
 	{
-		for (usize i = _length; i-- > 0;)
+		for (size_t i = _length; i-- > 0;)
 		{
 			if (_buffer[i] == separator())
 				return toString(0, i);
@@ -159,7 +158,7 @@ namespace hirzel::path
 	{
 		size_t dotIndex = SIZE_MAX;
 	
-		for (usize i = _length; i-- > 0;)
+		for (size_t i = _length; i-- > 0;)
 		{
 			if (_buffer[i] == '.')
 			{

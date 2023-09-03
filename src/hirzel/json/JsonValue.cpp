@@ -16,7 +16,7 @@ namespace hirzel::json
 	{
 		switch (type)
 		{
-			case JsonValueType::Float:
+			case JsonValueType::Decimal:
 				_decimal = 0.0;
 				break;
 
@@ -82,12 +82,12 @@ namespace hirzel::json
 	{}
 
 	JsonValue::JsonValue(float d) :
-		_type(JsonValueType::Float),
+		_type(JsonValueType::Decimal),
 		_decimal(d)
 	{}
 
 	JsonValue::JsonValue(double d) :
-		_type(JsonValueType::Float),
+		_type(JsonValueType::Decimal),
 		_decimal(d)
 	{}
 
@@ -149,7 +149,7 @@ namespace hirzel::json
 			_integer = other._integer;
 			break;
 
-		case JsonValueType::Float:
+		case JsonValueType::Decimal:
 			_decimal = other._decimal;
 			break;
 
@@ -190,7 +190,7 @@ namespace hirzel::json
 			_integer = other._integer;
 			break;
 
-		case JsonValueType::Float:
+		case JsonValueType::Decimal:
 			_decimal = other._decimal;
 			break;
 
@@ -257,7 +257,7 @@ namespace hirzel::json
 		case JsonValueType::Integer:
 			return "integer";
 
-		case JsonValueType::Float:
+		case JsonValueType::Decimal:
 			return "float";
 
 		case JsonValueType::Boolean:
@@ -277,7 +277,7 @@ namespace hirzel::json
 		}
 	}
 
-	JsonValue& JsonValue::at(usize i)
+	JsonValue& JsonValue::at(size_t i)
 	{
 		assert(_type == JsonValueType::Array);
 		assert(i < _array->size());
@@ -285,7 +285,7 @@ namespace hirzel::json
 		return (*_array)[i];
 	}
 
-	const JsonValue& JsonValue::at(usize i) const
+	const JsonValue& JsonValue::at(size_t i) const
 	{
 		assert(_type == JsonValueType::Array);
 		assert(i < _array->size());
@@ -315,7 +315,7 @@ namespace hirzel::json
 		return iter->second;
 	}
 
-	i64 JsonValue::asInteger() const
+	int64_t JsonValue::asInteger() const
 	{
 		switch (_type)
 		{
@@ -323,7 +323,7 @@ namespace hirzel::json
 			return _integer;
 		case JsonValueType::Boolean:
 			return (long long)_boolean;
-		case JsonValueType::Float:
+		case JsonValueType::Decimal:
 			return (long long)_decimal;
 		case JsonValueType::String:
 			try
@@ -339,7 +339,7 @@ namespace hirzel::json
 		}
 	}
 
-	double JsonValue::asFloat() const
+	double JsonValue::asDecimal() const
 	{
 		switch (_type)
 		{
@@ -347,7 +347,7 @@ namespace hirzel::json
 			return (double)_integer;
 		case JsonValueType::Boolean:
 			return (double)_boolean;
-		case JsonValueType::Float:
+		case JsonValueType::Decimal:
 			return _decimal;
 		case JsonValueType::String:
 			try
@@ -373,7 +373,7 @@ namespace hirzel::json
 		case JsonValueType::Boolean:
 			return _boolean;
 
-		case JsonValueType::Float:
+		case JsonValueType::Decimal:
 			return (bool)_decimal;
 
 		case JsonValueType::String:
@@ -413,7 +413,7 @@ namespace hirzel::json
 		}
 	}
 
-	usize JsonValue::length() const
+	size_t JsonValue::length() const
 	{
 		switch (_type)
 		{
@@ -445,7 +445,7 @@ namespace hirzel::json
 		case JsonValueType::Integer:
 			return _integer == other.integer();
 
-		case JsonValueType::Float:
+		case JsonValueType::Decimal:
 			return _decimal == other.decimal();
 
 		case JsonValueType::Boolean:
@@ -462,7 +462,7 @@ namespace hirzel::json
 			if (arr.size() != oarr.size())
 				return false;
 
-			for (usize i = 0; i < arr.size(); ++i)
+			for (size_t i = 0; i < arr.size(); ++i)
 			{
 				if (arr[i] != oarr[i])
 					return false;

@@ -1,16 +1,16 @@
 #ifndef HIRZEL_TIME_HPP
 #define HIRZEL_TIME_HPP
 
-#include <hirzel/primitives.hpp>
+#include <cstdint>
 
 namespace hirzel::time
 {
-	u64 secondsSinceEpoch();
-	u64 millisecondsSinceEpoch();
-	u64 microsecondsSinceEpoch();
-	void sleepForSeconds(u64 seconds);
-	void sleepForMilliseconds(u64 milliseconds);
-	void sleepForMicroseconds(u64 microseconds);
+	uint64_t secondsSinceEpoch();
+	uint64_t millisecondsSinceEpoch();
+	uint64_t microsecondsSinceEpoch();
+	void sleepForSeconds(uint64_t seconds);
+	void sleepForMilliseconds(uint64_t milliseconds);
+	void sleepForMicroseconds(uint64_t microseconds);
 }
 
 #endif
