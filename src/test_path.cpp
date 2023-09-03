@@ -1,6 +1,5 @@
 #include <hirzel/path.hpp>
 #include <hirzel/print.hpp>
-#include <iostream>
 #include <cassert>
 
 using namespace hirzel;
@@ -25,15 +24,15 @@ void test_parentOf()
 {
 	assert(parentOf("c:\\") == "C:\\");
 	assert(parentOf("\\") == "\\");
-	assert(parentOf("/") == "\\");
+	assert(parentOf("/") == "/");
 	assert(parentOf("hello") == ".");
 	assert(parentOf("./hello") == ".");
-	assert(parentOf("/hello/") == "\\");
+	assert(parentOf("/hello/") == "/");
 	assert(parentOf("\\hello\\") == "\\");
-	assert(parentOf("/var/lib/file.txt") == "\\var\\lib");
-	assert(parentOf("/var/lib/file") == "\\var\\lib");
-	assert(parentOf("/var/lib/folder/") == "\\var\\lib");
-	assert(parentOf("/a/b/d/c/b/d/s/t.1.2.3.4") == "\\a\\b\\d\\c\\b\\d\\s");
+	assert(parentOf("/var/lib/file.txt") == "/var/lib");
+	assert(parentOf("\\var\\lib\\file") == "\\var\\lib");
+	assert(parentOf("/var/lib/folder/") == "/var/lib");
+	assert(parentOf("/a/b/d/c/b/d/s/t.1.2.3.4") == "/a/b/d/c/b/d/s");
 }
 
 void test_filenameOf()

@@ -9,6 +9,7 @@ namespace hirzel::path
 	{
 		char _buffer[4096];
 		size_t _length;
+		char _separator;
 		char _root;
 
 	private:
@@ -28,6 +29,7 @@ namespace hirzel::path
 		std::string extension() const;
 		std::string toString() const;
 
+		char separator() const;
 		bool isAbsolute() const { return !!_root; }
 		bool isRelative() const { return !_root; }
 	};

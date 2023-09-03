@@ -1,31 +1,24 @@
 #include <hirzel/path/Path.hpp>
 #include <hirzel/primitives.hpp>
 #include <cctype>
-#include <cassert>
 
 #ifdef _WIN32
-#define DIRECTORY_SEPARATOR	('\\')
+#define DEFAULT_SEPARATOR	('\\')
 #else
-#define DIRECTORY_SEPARATOR	('/')
+#define DEFAULT_SEPARATOR	('/')
 #endif
 
 namespace hirzel::path
 {
 	static inline bool isDirectorySeparator(char c)
 	{
-#ifdef _WIN32
 		return c == '\\' || c == '/';
-#else
-		return c == '/';
-#endif
 	}
 
 	static inline char rootOf(const char* path)
 	{
-#ifdef _WIN32
 		if (isalpha(path[0]) && path[1] == ':')
 			return (char)toupper(path[0]);
-#endif
 
 		if (isDirectorySeparator(path[0]))
 			return ' ';
@@ -36,6 +29,7 @@ namespace hirzel::path
 	Path::Path(const char* path) :
 	_buffer(""),
 	_length(0),
+	_separator('\0'),
 	_root(rootOf(path))
 	{
 		append(path);
@@ -49,9 +43,7 @@ namespace hirzel::path
 
 	void Path::append(const char* path)
 	{
-		assert(path != nullptr);
-
-		if (path[0] == '\0')
+		if (path == nullptr || path[0] == '\0')
 			return;
 
 		auto start = 0;
@@ -62,10 +54,8 @@ namespace hirzel::path
 			_root = pathRoot;
 			_length = 0;
 
-#ifdef _WIN32
 			if (isalpha(_root))
 				start = 2;
-#endif
 		}
 
 		auto needsSlash = _length > 0;
@@ -74,6 +64,9 @@ namespace hirzel::path
 		{
 			if (isDirectorySeparator(path[i]))
 			{
+				if (!_separator)
+					_separator = path[i];
+
 				if (_length == 0)
 					continue;
 
@@ -83,7 +76,7 @@ namespace hirzel::path
 
 			if (needsSlash)
 			{
-				append(DIRECTORY_SEPARATOR);
+				append(separator());
 				needsSlash = false;
 			}
 
@@ -100,7 +93,7 @@ namespace hirzel::path
 
 		for (usize i = _length; i-- > 0;)
 		{
-			if (_buffer[i] == DIRECTORY_SEPARATOR)
+			if (_buffer[i] == separator())
 			{
 				_length = i;
 				_buffer[_length] = '\0';
@@ -130,7 +123,7 @@ namespace hirzel::path
 				continue;
 			}
 
-			if (_buffer[i] == DIRECTORY_SEPARATOR)
+			if (_buffer[i] == separator())
 			{
 				slashIndex = i;
 				break;
@@ -151,7 +144,7 @@ namespace hirzel::path
 	{
 		for (usize i = _length; i-- > 0;)
 		{
-			if (_buffer[i] == DIRECTORY_SEPARATOR)
+			if (_buffer[i] == separator())
 				return toString(0, i);
 		}
 
@@ -170,7 +163,7 @@ namespace hirzel::path
 				continue;
 			}
 
-			if (_buffer[i] == DIRECTORY_SEPARATOR)
+			if (_buffer[i] == separator())
 				break;
 		}
 
@@ -191,17 +184,14 @@ namespace hirzel::path
 
 		out.reserve(3 + _length);
 
-#ifdef _WIN32
-
 		if (isalpha(_root))
 		{
 			out += _root;
 			out += ':';
 		}
-#endif
 
 		if (_root)
-			out += DIRECTORY_SEPARATOR;
+			out += separator();
 
 		out.append(&_buffer[start], length);
 
@@ -211,5 +201,13 @@ namespace hirzel::path
 	std::string Path::toString() const
 	{
 		return toString(0, _length);
+	}
+
+	char Path::separator() const
+	{
+		if (_separator)
+			return _separator;
+
+		return DEFAULT_SEPARATOR;
 	}
 }
