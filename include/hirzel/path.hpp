@@ -22,8 +22,7 @@ namespace hirzel::path
 	{
 		auto path = Path();
 
-		for (const auto& p : { paths... })
-			path.append(p);
+		(path.append(paths), ...);
 
 		return path.toString();
 	}
