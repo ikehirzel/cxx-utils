@@ -23,6 +23,7 @@ namespace hirzel::path
 
 		void append(char c);
 		void append(const char* path);
+		void append(const std::string& path) { return append(path.c_str()); }
 		void pop();
 
 		std::string filename(bool includeExtension = true) const;
