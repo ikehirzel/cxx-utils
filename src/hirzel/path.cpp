@@ -1,8 +1,9 @@
 #include <hirzel/path/Path.hpp>
+#include <cstring>
 
 #ifdef _WIN32
 #include <Windows.h>
-#define DEFAULT_SEPARATOR	('\\')
+#define DIRECTORY_SEPARATOR	('\\')
 #define PATH_SEPARATOR		(':')
 #define USER_HOME_DIR_ENV_VAR	"USERPROFILE"
 #define CONFIG_DIR_PATH			"\\AppData\\Roaming"
@@ -11,11 +12,12 @@
 #define PATH_SEPARATOR		(';')
 #define USER_HOME_DIR_ENV_VAR "HOME"
 #define CONFIG_DIR_PATH			"/.config"
+#include <unistd.h>
 #endif
 
 namespace hirzel::path
 {
-	const char directorySeparator = DEFAULT_SEPARATOR;
+	const char directorySeparator = DIRECTORY_SEPARATOR;
 	const char pathSeparator = PATH_SEPARATOR;
 
 	const char* homeDirectoryPath()
