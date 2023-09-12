@@ -1,4 +1,5 @@
 #include "hirzel/json.hpp"
+#include "hirzel/json/JsonValueType.hpp"
 #include <hirzel/json/JsonValue.hpp>
 #include <cassert>
 #include <cstdlib>
@@ -16,8 +17,8 @@ namespace hirzel::json
 	{
 		switch (type)
 		{
-			case JsonValueType::Decimal:
-				_decimal = 0.0;
+			case JsonValueType::Number:
+				_number = 0.0;
 				break;
 
 			case JsonValueType::Boolean:
@@ -82,13 +83,13 @@ namespace hirzel::json
 	{}
 
 	JsonValue::JsonValue(float d) :
-		_type(JsonValueType::Decimal),
-		_decimal(d)
+		_type(JsonValueType::Number),
+		_number(d)
 	{}
 
 	JsonValue::JsonValue(double d) :
-		_type(JsonValueType::Decimal),
-		_decimal(d)
+		_type(JsonValueType::Number),
+		_number(d)
 	{}
 
 	JsonValue::JsonValue(bool b) :
@@ -149,8 +150,8 @@ namespace hirzel::json
 			_integer = other._integer;
 			break;
 
-		case JsonValueType::Decimal:
-			_decimal = other._decimal;
+		case JsonValueType::Number:
+			_number = other._number;
 			break;
 
 		case JsonValueType::Boolean:
@@ -190,8 +191,8 @@ namespace hirzel::json
 			_integer = other._integer;
 			break;
 
-		case JsonValueType::Decimal:
-			_decimal = other._decimal;
+		case JsonValueType::Number:
+			_number = other._number;
 			break;
 
 		case JsonValueType::Boolean:
@@ -254,11 +255,8 @@ namespace hirzel::json
 		case JsonValueType::Null:
 			return "null";
 
-		case JsonValueType::Integer:
-			return "integer";
-
-		case JsonValueType::Decimal:
-			return "float";
+		case JsonValueType::Number:
+			return "number";
 
 		case JsonValueType::Boolean:
 			return "boolean";
@@ -270,7 +268,7 @@ namespace hirzel::json
 			return "array";
 
 		case JsonValueType::Object:
-			return "table";
+			return "object";
 
 		default:
 			return "invalid-type";
@@ -315,16 +313,76 @@ namespace hirzel::json
 		return iter->second;
 	}
 
+		auto& JsonValue::number()
+		{
+			assert(_type == JsonValueType::Number);
+			return _number;
+		}
+
+		const auto& number() const
+		{
+			assert(_type == JsonValueType::Number);
+			return _number;
+		}
+
+		auto& boolean()
+		{
+			assert(_type == JsonValueType::Boolean);
+			return _boolean;
+		}
+
+		const auto& boolean() const
+		{
+			assert(_type == JsonValueType::Boolean);
+			return _boolean;
+		}
+
+		auto& string()
+		{
+			assert(_type == JsonValueType::String);
+			return *_string;
+		}
+
+		const auto& string() const
+		{
+			assert(_type == JsonValueType::String);
+			return *_string;
+		}
+
+		auto& array()
+		{
+			assert(_type == JsonValueType::Array);
+			return *_array;
+		}
+
+		const auto& array() const
+		{
+			assert(_type == JsonValueType::Array);
+			return *_array;
+		}
+
+		auto& object()
+		{
+			assert(_type == JsonValueType::Object);
+			return *_object;
+		}
+
+		const auto& object() const
+		{
+			assert(_type == JsonValueType::Object);
+			return *_object;
+		}
+
 	int64_t JsonValue::asInteger() const
 	{
 		switch (_type)
 		{
-		case JsonValueType::Integer:
-			return _integer;
+		case JsonValueType::Number:
+			return (int64_t)_number;
 		case JsonValueType::Boolean:
 			return (long long)_boolean;
-		case JsonValueType::Decimal:
-			return (long long)_decimal;
+		case JsonValueType::Number:
+			return (long long)_number;
 		case JsonValueType::String:
 			try
 			{
@@ -343,12 +401,12 @@ namespace hirzel::json
 	{
 		switch (_type)
 		{
-		case JsonValueType::Integer:
-			return (double)_integer;
+		case JsonValueType::Number:
+			return _number;
 		case JsonValueType::Boolean:
 			return (double)_boolean;
-		case JsonValueType::Decimal:
-			return _decimal;
+		case JsonValueType::Number:
+			return _number;
 		case JsonValueType::String:
 			try
 			{
@@ -373,8 +431,8 @@ namespace hirzel::json
 		case JsonValueType::Boolean:
 			return _boolean;
 
-		case JsonValueType::Decimal:
-			return (bool)_decimal;
+		case JsonValueType::Number:
+			return (bool)_number;
 
 		case JsonValueType::String:
 			return !_string->empty();
@@ -445,8 +503,8 @@ namespace hirzel::json
 		case JsonValueType::Integer:
 			return _integer == other.integer();
 
-		case JsonValueType::Decimal:
-			return _decimal == other.decimal();
+		case JsonValueType::Number:
+			return _number == other.number();
 
 		case JsonValueType::Boolean:
 			return _boolean == other.boolean();

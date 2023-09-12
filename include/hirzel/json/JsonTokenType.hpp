@@ -12,7 +12,7 @@ namespace hirzel::json
 		Comma,
 		Colon,
 		String,
-		Decimal,
+		Number,
 		Integer,
 		True,
 		False,

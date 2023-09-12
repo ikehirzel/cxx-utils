@@ -20,14 +20,12 @@ namespace hirzel::json
 		JsonValueType _type;
 		union
 		{
-			int64_t _integer;
 			bool _boolean;
-			double _decimal;
+			double _number;
 			std::string* _string;
 			JsonArray* _array;
 			JsonObject* _object;
 		};
-
 
 	public:
 
@@ -80,11 +78,8 @@ namespace hirzel::json
 			return out;
 		}
 
-		auto& integer() { return _integer; }
-		const auto& integer() const { return _integer; }
-
-		auto& decimal() { return _decimal; }
-		const auto& decimal() const { return _decimal; }
+		auto& number() { return _number; }
+		const auto& number() const { return _number; }
 
 		auto& boolean() { return _boolean; }
 		const auto& boolean() const { return _boolean; }
@@ -112,9 +107,8 @@ namespace hirzel::json
 
 		bool isEmpty() const;
 		bool isNull() const { return _type == JsonValueType::Null; }
-		bool isInteger() const { return _type == JsonValueType::Integer; }
-		bool isDecimal() const { return _type == JsonValueType::Decimal; }
-		bool isNumber() const { return _type == JsonValueType::Integer || _type == JsonValueType::Decimal; }
+		bool isDecimal() const { return _type == JsonValueType::Number; }
+		bool isNumber() const { return _type == JsonValueType::Number; }
 		bool isBoolean() const { return _type == JsonValueType::Boolean; }
 		bool isString() const { return _type == JsonValueType::String; }
 		bool isArray() const { return _type == JsonValueType::Array; }

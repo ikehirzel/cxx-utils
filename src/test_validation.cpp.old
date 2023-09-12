@@ -245,7 +245,7 @@
 // int main()
 // {
 // 	test(integer);
-// 	test(decimal);
+// 	test(number);
 // 	test(boolean);
 // 	test(string);
 // 	test(array);

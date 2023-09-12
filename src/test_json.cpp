@@ -188,15 +188,9 @@ void assert_not_bool(const JsonValue& obj)
 	assert(!obj.isBoolean());
 }
 
-void assert_not_int(const JsonValue& obj)
+void assert_not_number(const JsonValue& obj)
 {
-	assert(obj.type() != JsonValueType::Integer);
-	assert(!obj.isInteger());
-}
-
-void assert_not_float(const JsonValue& obj)
-{
-	assert(obj.type() != JsonValueType::Decimal);
+	assert(obj.type() != JsonValueType::Number);
 	assert(!obj.isDecimal());
 }
 
@@ -240,8 +234,7 @@ void assert_null(const JsonValue& obj)
 	assert(obj.isNull());
 	assert(obj.length() == 0);
 	assert_cast_values(obj, 0, 0.0, false, "null");
-	assert_not_int(obj);
-	assert_not_float(obj);
+	assert_not_number(obj);
 	assert_not_bool(obj);
 	assert_not_string(obj);
 	assert_not_array(obj);
@@ -256,37 +249,20 @@ void assert_boolean(const JsonValue& obj, const V& value)
 	assert_primitive(obj, JsonValueType::Boolean);
 	assert_cast_values(obj, (int)value, (double)value, value, (value ? "true" : "false"));
 	assert_not_null(obj);
-	assert_not_int(obj);
-	assert_not_float(obj);
+	assert_not_number(obj);
 	assert_not_string(obj);
 	assert_not_array(obj);
 	assert_not_object(obj);
 	assert_equals(obj, JsonValue(value));
 }
 
-void assert_integer(const JsonValue& obj, int64_t value)
+void assert_number(const JsonValue& obj, double value)
 {
-	assert_primitive(obj, JsonValueType::Integer);
-	assert(obj.integer() == value);
-	assert(obj.isNumber());
-	assert_cast_values(obj, value, (double)value, (bool)value, std::to_string(value));
-	assert_not_null(obj);
-	assert_not_bool(obj);
-	assert_not_float(obj);
-	assert_not_string(obj);
-	assert_not_array(obj);
-	assert_not_object(obj);
-	assert_equals(obj, JsonValue(value));
-}
-
-void assert_decimal(const JsonValue& obj, double value)
-{
-	assert_primitive(obj, JsonValueType::Decimal);
-	assert(obj.decimal() == value);
+	assert_primitive(obj, JsonValueType::Number);
+	assert(obj.number() == value);
 	assert_cast_values(obj, (int)value, (double)value, (bool)value, std::to_string(value));
 	assert(obj.isNumber());
 	assert_not_null(obj);
-	assert_not_int(obj);
 	assert_not_bool(obj);
 	assert_not_string(obj);
 	assert_not_array(obj);
@@ -302,8 +278,7 @@ void assert_string(const JsonValue& obj, int64_t intValue, double floatValue, bo
 	assert(obj.length() == obj.asString().length());
 	assert_cast_values(obj, intValue, floatValue, boolValue, stringValue);
 	assert_not_null(obj);
-	assert_not_int(obj);
-	assert_not_float(obj);
+	assert_not_number(obj);
 	assert_not_bool(obj);
 	assert_not_array(obj);
 	assert_not_object(obj);
@@ -315,8 +290,7 @@ void assert_array(const JsonValue& obj, const JsonArray& value)
 	assert(obj.type() == JsonValueType::Array);
 	assert(obj.isArray());
 	assert_not_null(obj);
-	assert_not_int(obj);
-	assert_not_float(obj);
+	assert_not_number(obj);
 	assert_not_bool(obj);
 	assert_not_string(obj);
 	assert_not_object(obj);
@@ -329,8 +303,7 @@ void assert_object(const JsonValue& obj, const JsonObject& value)
 	assert(obj.isObject());
 	assert_not_null(obj);
 	assert_not_bool(obj);
-	assert_not_int(obj);
-	assert_not_float(obj);
+	assert_not_number(obj);
 	assert_not_string(obj);
 	assert_not_array(obj);
 	assert_equals(obj, JsonValue(value));
@@ -410,34 +383,34 @@ void test_null()
 	assert_parse_throws("nll");
 }
 
-void test_integer()
+void test_number()
 {
 	JsonValue init = 234;
-	assert_integer(init, 234);
+	assert_number(init, 234.0);
 
 	JsonValue copy(init);
-	assert_integer(copy, 234);
+	assert_number(copy, 234.0);
 	assert_equals(copy, init);
 	copy = init;
-	assert_integer(copy, 234);
+	assert_number(copy, 234.0);
 	assert_equals(copy, init);
 
 	JsonValue move(std::move(init));
-	assert_integer(move, 234);
+	assert_number(move, 234.0);
 	assert_equals(move, copy);
 	JsonValue clone = copy;
 	move = std::move(copy);
-	assert_integer(move, 234);
+	assert_number(move, 234);
 	assert_equals(move, clone);
 
-	assert_integer(JsonValue(0), 0);
-	assert_integer(JsonValue(-0), -0);
-	assert_integer(JsonValue(1), 1);
-	assert_integer(JsonValue(-1), -1);
-	assert_integer(JsonValue(4L), 4L);
-	assert_integer(JsonValue(4U), 4U);
-	assert_integer(JsonValue(-1023), -1023);
-	assert_integer(JsonValue(62), 62);
+	assert_number(JsonValue(0), 0);
+	assert_number(JsonValue(-0), -0);
+	assert_number(JsonValue(1), 1);
+	assert_number(JsonValue(-1), -1);
+	assert_number(JsonValue(4L), 4L);
+	assert_number(JsonValue(4U), 4U);
+	assert_number(JsonValue(-1023), -1023);
+	assert_number(JsonValue(62), 62);
 
 	assert_not_equals(move, JsonValue());
 	assert_not_equals(move, JsonValue(130));
@@ -448,48 +421,30 @@ void test_integer()
 	assert_not_equals(move, JsonValue(JsonValueType::Array));
 	assert_not_equals(move, JsonValue(JsonValueType::Object));
 
-	// valid
-	assert_json("1", 1);
-	assert_json("-1", -1);
-	assert_json("1526227", 1526227);
-	assert_json("-254", -254);
-	assert_json("-0", 0);
-	assert_json("0", 0);
+	init = 2.34;
+	assert_number(init, 2.34);
 
-	// invalid
-	assert_parse_throws("1526a");
-	assert_parse_throws("15a26");
-	assert_parse_not_throws("1e1");
-	assert_parse_not_throws("2e7");
-	assert_parse_not_throws("214e7");
-}
-
-void test_float()
-{
-	JsonValue init = 2.34;
-	assert_decimal(init, 2.34);
-
-	JsonValue copy(init);
-	assert_decimal(copy, 2.34);
+	new(&copy) auto(init);
+	assert_number(copy, 2.34);
 	assert_equals(copy, init);
 	copy = init;
-	assert_decimal(copy, 2.34);
+	assert_number(copy, 2.34);
 	assert_equals(copy, init);
 
-	JsonValue move(std::move(init));
-	assert_decimal(move, 2.34);
+	new (&move) auto(std::move(init));
+	assert_number(move, 2.34);
 	assert_equals(move, copy);
-	JsonValue clone = copy;
+	clone = copy;
 	move = std::move(copy);
-	assert_decimal(move, 2.34);
+	assert_number(move, 2.34);
 	assert_equals(move, clone);
 
-	assert_decimal(JsonValue(JsonValueType::Decimal), 0.0);
-	assert_decimal(JsonValue(1.34), 1.34);
-	assert_decimal(JsonValue(0.0f), 0.0f);
-	assert_decimal(JsonValue(-0.0), -0.0);
-	assert_decimal(JsonValue(-123592.235), -123592.235);
-	assert_decimal(JsonValue(2.0f), 2.0f);
+	assert_number(JsonValue(JsonValueType::Number), 0.0);
+	assert_number(JsonValue(1.34), 1.34);
+	assert_number(JsonValue(0.0f), 0.0f);
+	assert_number(JsonValue(-0.0), -0.0);
+	assert_number(JsonValue(-123592.235), -123592.235);
+	assert_number(JsonValue(2.0f), 2.0f);
 
 	assert_not_equals(move, JsonValue());
 	assert_not_equals(move, JsonValue(130));
@@ -506,8 +461,19 @@ void test_float()
 	assert_json("-1.2e1", -1.2e1);
 	assert_json("1.2e3", 1.2e3);
 	assert_json("23.1e12", 23.1e12);
+	assert_json("1", 1);
+	assert_json("-1", -1);
+	assert_json("1526227", 1526227);
+	assert_json("-254", -254);
+	assert_json("-0", 0);
+	assert_json("0", 0);
 
 	// invalid
+	assert_parse_throws("1526a");
+	assert_parse_throws("15a26");
+	assert_parse_not_throws("1e1");
+	assert_parse_not_throws("2e7");
+	assert_parse_not_throws("214e7");
 	assert_parse_throws(".234");
 	assert_parse_throws("1.");
 	assert_parse_throws("1.2.3");
@@ -656,27 +622,26 @@ void test_array()
 		assert(init.length() == 4);
 		assert(!init.isEmpty());
 		assert_string(init[0], 0, 0.0, true, "hello");
-		assert_integer(init[1], 1);
 		assert_boolean(init[2], true);
-		assert_decimal(init[3], 0.4);
+		assert_number(init[3], 0.4);
 
 		JsonValue copy(init);
 		assert_array(copy, JsonArray({ "hello", 1, true, 0.4 }));
 		assert(copy.length() == 4);
 		assert(!copy.isEmpty());
 		assert_string(copy[0], 0, 0.0, true, "hello");
-		assert_integer(copy[1], 1);
+		assert_number(copy[1], 1);
 		assert_boolean(copy[2], true);
-		assert_decimal(copy[3], 0.4);
+		assert_number(copy[3], 0.4);
 		assert_equals(copy, init);
 		copy = init;
 		assert_array(copy, JsonArray({ "hello", 1, true, 0.4 }));
 		assert(copy.length() == 4);
 		assert(!copy.isEmpty());
 		assert_string(copy[0], 0, 0.0, true, "hello");
-		assert_integer(copy[1], 1);
+		assert_number(copy[1], 1);
 		assert_boolean(copy[2], true);
-		assert_decimal(copy[3], 0.4);
+		assert_number(copy[3], 0.4);
 		assert_equals(copy, init);
 
 		JsonValue move(std::move(init));
@@ -684,9 +649,9 @@ void test_array()
 		assert(move.length() == 4);
 		assert(!move.isEmpty());
 		assert_string(move[0], 0, 0.0, true, "hello");
-		assert_integer(move[1], 1);
+		assert_number(move[1], 1);
 		assert_boolean(move[2], true);
-		assert_decimal(move[3], 0.4);
+		assert_number(move[3], 0.4);
 		assert_equals(move, copy);
 		JsonValue clone = copy;
 		move = std::move(copy);
@@ -694,9 +659,9 @@ void test_array()
 		assert(move.length() == 4);
 		assert(!move.isEmpty());
 		assert_string(move[0], 0, 0.0, true, "hello");
-		assert_integer(move[1], 1);
+		assert_number(move[1], 1);
 		assert_boolean(move[2], true);
-		assert_decimal(move[3], 0.4);
+		assert_number(move[3], 0.4);
 		assert_equals(move, clone);
 
 		assert_not_equals(move, JsonValue());
@@ -713,8 +678,8 @@ void test_array()
 	assert_array(array, JsonArray({ 1, 2.0f, "3", false, JsonValue() }));
 	assert(array.length() == 5);
 	assert(!array.isEmpty());
-	assert_integer(array[0], 1);
-	assert_decimal(array[1], 2.0f);
+	assert_number(array[0], 1);
+	assert_number(array[1], 2.0f);
 	assert_string(array[2], 3, 3.0, true, "3");
 	assert_boolean(array[3], false);
 	assert_null(array[4]);
@@ -797,7 +762,7 @@ void test_object()
 		{
 			{ "boolean", true },
 			{ "integer", 1362 },
-			{ "decimal", 235.125 },
+			{ "number", 235.125 },
 			{ "string", "this is text" },
 			{ "null", JsonValue() }
 		};
@@ -806,8 +771,8 @@ void test_object()
 		assert(init.length() == 5);
 		assert(!init.isEmpty());
 		assert_boolean(init["boolean"], true);
-		assert_integer(init["integer"], 1362);
-		assert_decimal(init["decimal"], 235.125);
+		assert_number(init["integer"], 1362);
+		assert_number(init["number"], 235.125);
 		assert_string(init["string"], 0, 0.0, true, "this is text");
 		assert_null(init["null"]);
 
@@ -1069,9 +1034,10 @@ void test_parse()
 
 int main()
 {
+	printf("WHAT\n");
+	assert(false);
 	test_null();
-	test_integer();
-	test_float();
+	test_number();
 	test_boolean();
 	test_string();
 	test_array();

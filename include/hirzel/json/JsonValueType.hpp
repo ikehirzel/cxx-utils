@@ -6,8 +6,7 @@ namespace hirzel::json
 	enum class JsonValueType
 	{
 		Null,
-		Integer,
-		Decimal,
+		Number,
 		Boolean,
 		String,
 		Array,

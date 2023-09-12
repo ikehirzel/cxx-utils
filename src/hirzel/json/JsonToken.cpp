@@ -185,7 +185,7 @@ namespace hirzel::json
 
 		auto length = i - start;
 		auto token = isDecimal
-			? JsonToken(src, start, length, JsonTokenType::Decimal)
+			? JsonToken(src, start, length, JsonTokenType::Number)
 			: JsonToken(src, start, length, JsonTokenType::Integer);
 
 		return token;
