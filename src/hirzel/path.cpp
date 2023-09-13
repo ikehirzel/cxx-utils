@@ -1,5 +1,8 @@
 #include <hirzel/path/Path.hpp>
+#include <string>
+#include <stdexcept>
 #include <cstring>
+#include <cstdlib>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -60,7 +63,11 @@ namespace hirzel::path
 #elif defined(__linux__)
 
 		char buf[512];
-		readlink("/proc/self/exe", buf, sizeof(buf) / sizeof(char) - 1);
+		auto result = readlink("/proc/self/exe", buf, sizeof(buf) / sizeof(char) - 1);
+
+		if (result == -1)
+			throw std::runtime_error("Failed to get executable location.");
+
 		return std::string(buf);
 
 #else

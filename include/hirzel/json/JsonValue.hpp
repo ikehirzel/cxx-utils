@@ -1,12 +1,13 @@
 #ifndef HIRZEL_JSON_JSON_VALUE_HPP
 #define HIRZEL_JSON_JSON_VALUE_HPP
 
-#include <cstdint>
 #include <hirzel/json/JsonValueType.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <cstdint>
+#include <cassert>
 
 namespace hirzel::json
 {
@@ -78,20 +79,20 @@ namespace hirzel::json
 			return out;
 		}
 
-		auto& number() { return _number; }
-		const auto& number() const { return _number; }
+		double& number() { assert(_type == JsonValueType::Number); return _number; }
+		const double& number() const { assert(_type == JsonValueType::Number); return _number; }
 
-		auto& boolean() { return _boolean; }
-		const auto& boolean() const { return _boolean; }
+		bool& boolean() { assert(_type == JsonValueType::Boolean); return _boolean; }
+		const bool& boolean() const { assert(_type == JsonValueType::Boolean); return _boolean; }
 
-		auto& string() { return *_string; }
-		const auto& string() const { return *_string; }
+		std::string& string() { assert(_type == JsonValueType::String); return *_string; }
+		const std::string& string() const { assert(_type == JsonValueType::String); return *_string; }
 
-		auto& array() { return *_array; }
-		const auto& array() const { return *_array; }
+		auto& array() { assert(_type == JsonValueType::Array); return *_array; }
+		const auto& array() const { assert(_type == JsonValueType::Array); return *_array; }
 
-		auto& object() { return *_object; }
-		const auto& object() const { return *_object; }
+		auto& object() { assert(_type == JsonValueType::Object); return *_object; }
+		const auto& object() const { assert(_type == JsonValueType::Object); return *_object; }
 
 		int64_t asInteger() const;
 		double asDecimal() const;

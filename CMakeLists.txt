@@ -11,6 +11,8 @@ else()
 	add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+include_directories("include")
 file(GLOB_RECURSE COMMON_SOURCES "src/hirzel/*.cpp")
 add_library(common OBJECT ${COMMON_SOURCES})
 list(APPEND TARGETS common)
@@ -23,7 +25,6 @@ foreach(TEST ${TEST_SOURCES})
 endforeach()
 
 foreach(TARGET ${TARGETS})
-	target_include_directories(${TARGET} PRIVATE "include")
 	set_target_properties(${TARGET} PROPERTIES
 		CXX_STANDARD 17
 		CXX_STANDARD_REQUIRED ON

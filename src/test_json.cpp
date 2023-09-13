@@ -1034,8 +1034,6 @@ void test_parse()
 
 int main()
 {
-	printf("WHAT\n");
-	assert(false);
 	test_null();
 	test_number();
 	test_boolean();

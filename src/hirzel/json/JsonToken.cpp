@@ -131,7 +131,6 @@ namespace hirzel::json
 		assert(isdigit(src[start]) || src[start] == '-');
 
 		auto i = start;
-		auto isDecimal = false;
 
 		if (src[i] == '-')
 		{
@@ -145,8 +144,6 @@ namespace hirzel::json
 
 		if (src[i] == '.')
 		{
-			isDecimal = true;
-
 			i += 1;
 
 			auto fractionLength = numberLength(&src[i]);
@@ -184,9 +181,7 @@ namespace hirzel::json
 		}
 
 		auto length = i - start;
-		auto token = isDecimal
-			? JsonToken(src, start, length, JsonTokenType::Number)
-			: JsonToken(src, start, length, JsonTokenType::Integer);
+		auto token =  JsonToken(src, start, length, JsonTokenType::Number);
 
 		return token;
 	}

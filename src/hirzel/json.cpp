@@ -104,20 +104,7 @@ namespace hirzel::json
 		return json;
 	}
 
-	static JsonValue deserializeInteger(JsonToken& token)
-	{
-		assert(token.type() == JsonTokenType::Integer);
-
-		auto text = token.text();
-		auto value = atoll(text.c_str());
-		auto json = JsonValue(value);
-
-		token.seekNext();
-
-		return json;
-	}
-
-	static JsonValue deserializeFloat(JsonToken& token)
+	static JsonValue deserializeNumber(JsonToken& token)
 	{
 		assert(token.type() == JsonTokenType::Number);
 
@@ -144,10 +131,7 @@ namespace hirzel::json
 				return deserializeString(token);
 
 			case JsonTokenType::Number:
-				return deserializeFloat(token);
-
-			case JsonTokenType::Integer:
-				return deserializeInteger(token);
+				return deserializeNumber(token);
 
 			case JsonTokenType::True:
 				token.seekNext();
@@ -299,10 +283,6 @@ namespace hirzel::json
 		{
 		case JsonValueType::Null:
 			out << "null";
-			break;
-
-		case JsonValueType::Integer:
-			out << json.integer();
 			break;
 
 		case JsonValueType::Boolean:

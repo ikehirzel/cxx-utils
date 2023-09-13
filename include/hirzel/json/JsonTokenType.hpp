@@ -13,7 +13,6 @@ namespace hirzel::json
 		Colon,
 		String,
 		Number,
-		Integer,
 		True,
 		False,
 		Null,

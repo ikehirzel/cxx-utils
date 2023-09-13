@@ -8,12 +8,12 @@ namespace hirzel::json
 {
 	JsonValue::JsonValue() :
 		_type(JsonValueType::Null),
-		_integer(0)
+		_number(0)
 	{}
 
 	JsonValue::JsonValue(JsonValueType type) :
 		_type(type),
-		_integer(0)
+		_number(0)
 	{
 		switch (type)
 		{
@@ -43,43 +43,43 @@ namespace hirzel::json
 	}
 
 	JsonValue::JsonValue(short i) :
-		_type(JsonValueType::Integer),
-		_integer(i)
+		_type(JsonValueType::Number),
+		_number(i)
 	{}
 
 	JsonValue::JsonValue(int i) :
-		_type(JsonValueType::Integer),
-		_integer(i)
+		_type(JsonValueType::Number),
+		_number(i)
 	{}
 
 	JsonValue::JsonValue(long i) :
-		_type(JsonValueType::Integer),
-		_integer(i)
+		_type(JsonValueType::Number),
+		_number(i)
 	{}
 
 	JsonValue::JsonValue(long long i) :
-		_type(JsonValueType::Integer),
-		_integer(i)
+		_type(JsonValueType::Number),
+		_number(i)
 	{}
 
 	JsonValue::JsonValue(unsigned short i) :
-		_type(JsonValueType::Integer),
-		_integer(i)
+		_type(JsonValueType::Number),
+		_number(i)
 	{}
 
 	JsonValue::JsonValue(unsigned int i) :
-		_type(JsonValueType::Integer),
-		_integer(i)
+		_type(JsonValueType::Number),
+		_number(i)
 	{}
 
 	JsonValue::JsonValue(unsigned long i) :
-		_type(JsonValueType::Integer),
-		_integer(i)
+		_type(JsonValueType::Number),
+		_number(i)
 	{}
 
 	JsonValue::JsonValue(unsigned long long i) :
-		_type(JsonValueType::Integer),
-		_integer(i)
+		_type(JsonValueType::Number),
+		_number(i)
 	{}
 
 	JsonValue::JsonValue(float d) :
@@ -139,15 +139,11 @@ namespace hirzel::json
 
 	JsonValue::JsonValue(JsonValue&& other) noexcept :
 		_type(other._type),
-		_integer(0)
+		_number(0)
 	{
 		switch (_type)
 		{
 		case JsonValueType::Null:
-			break;
-
-		case JsonValueType::Integer:
-			_integer = other._integer;
 			break;
 
 		case JsonValueType::Number:
@@ -179,16 +175,12 @@ namespace hirzel::json
 
 	JsonValue::JsonValue(const JsonValue& other) :
 		_type(other._type),
-		_integer(0)
+		_number(0)
 	{
 		switch (_type)
 		{
 		case JsonValueType::Null:
-			_integer = 0;
-			break;
-
-		case JsonValueType::Integer:
-			_integer = other._integer;
+			_number = 0;
 			break;
 
 		case JsonValueType::Number:
@@ -313,76 +305,16 @@ namespace hirzel::json
 		return iter->second;
 	}
 
-		auto& JsonValue::number()
-		{
-			assert(_type == JsonValueType::Number);
-			return _number;
-		}
-
-		const auto& number() const
-		{
-			assert(_type == JsonValueType::Number);
-			return _number;
-		}
-
-		auto& boolean()
-		{
-			assert(_type == JsonValueType::Boolean);
-			return _boolean;
-		}
-
-		const auto& boolean() const
-		{
-			assert(_type == JsonValueType::Boolean);
-			return _boolean;
-		}
-
-		auto& string()
-		{
-			assert(_type == JsonValueType::String);
-			return *_string;
-		}
-
-		const auto& string() const
-		{
-			assert(_type == JsonValueType::String);
-			return *_string;
-		}
-
-		auto& array()
-		{
-			assert(_type == JsonValueType::Array);
-			return *_array;
-		}
-
-		const auto& array() const
-		{
-			assert(_type == JsonValueType::Array);
-			return *_array;
-		}
-
-		auto& object()
-		{
-			assert(_type == JsonValueType::Object);
-			return *_object;
-		}
-
-		const auto& object() const
-		{
-			assert(_type == JsonValueType::Object);
-			return *_object;
-		}
-
 	int64_t JsonValue::asInteger() const
 	{
 		switch (_type)
 		{
 		case JsonValueType::Number:
 			return (int64_t)_number;
+
 		case JsonValueType::Boolean:
-			return (long long)_boolean;
-		case JsonValueType::Number:
-			return (long long)_number;
+			return (int64_t)_boolean;
+
 		case JsonValueType::String:
 			try
 			{
@@ -390,11 +322,14 @@ namespace hirzel::json
 			}
 			catch (const std::exception&)
 			{
-				return 0;
+				break;
 			}
+
 		default:
-			return 0;
+			break;
 		}
+
+		return 0;
 	}
 
 	double JsonValue::asDecimal() const
@@ -403,10 +338,10 @@ namespace hirzel::json
 		{
 		case JsonValueType::Number:
 			return _number;
+
 		case JsonValueType::Boolean:
 			return (double)_boolean;
-		case JsonValueType::Number:
-			return _number;
+			
 		case JsonValueType::String:
 			try
 			{
@@ -414,25 +349,25 @@ namespace hirzel::json
 			}
 			catch (const std::exception&)
 			{
-				return 0.0;
+				break;
 			}
+
 		default:
-			return 0.0;
+			break;
 		}
+
+		return 0.0;
 	}
 
 	bool JsonValue::asBoolean() const
 	{
 		switch (_type)
 		{
-		case JsonValueType::Integer:
-			return (bool)_integer;
+		case JsonValueType::Number:
+			return (bool)_number;
 
 		case JsonValueType::Boolean:
 			return _boolean;
-
-		case JsonValueType::Number:
-			return (bool)_number;
 
 		case JsonValueType::String:
 			return !_string->empty();
@@ -499,9 +434,6 @@ namespace hirzel::json
 		{
 		case JsonValueType::Null:
 			return true;
-
-		case JsonValueType::Integer:
-			return _integer == other.integer();
 
 		case JsonValueType::Number:
 			return _number == other.number();
