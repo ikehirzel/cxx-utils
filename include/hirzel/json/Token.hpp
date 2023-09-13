@@ -2,25 +2,25 @@
 #define HIRZEL_JSON_JSON_TOKEN_HPP
 
 #include "hirzel/primitives.hpp"
-#include "hirzel/json/JsonTokenType.hpp"
+#include "hirzel/json/TokenType.hpp"
 #include <string>
 
 namespace hirzel::json
 {
-	class JsonToken
+	class Token
 	{
 		const char* _src;
 		size_t _pos;
 		size_t _length;
-		JsonTokenType _type;
+		TokenType _type;
 
 	public:
 
-		JsonToken(const char* src, size_t pos, size_t length, JsonTokenType type);
-		JsonToken(JsonToken&&) = default;
-		JsonToken(const JsonToken&) = default;
+		Token(const char* src, size_t pos, size_t length, TokenType type);
+		Token(Token&&) = default;
+		Token(const Token&) = default;
 
-		static JsonToken initialFor(const char* src);
+		static Token initialFor(const char* src);
 
 		void seekNext();
 		std::string text() const;

@@ -3,7 +3,7 @@
 
 namespace hirzel::json
 {
-	enum class JsonTokenType
+	enum class TokenType
 	{
 		LeftBrace,
 		RightBrace,

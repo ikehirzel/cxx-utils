@@ -26,14 +26,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <hirzel/json/JsonValue.hpp>
+#include <hirzel/json/Value.hpp>
 
 namespace hirzel::json
 {
-	JsonValue deserialize(const char* json);
-	JsonValue deserialize(const std::string& json);
-	void serialize(std::ostream& out, const JsonValue& json, bool minimized = false);
-	std::string serialize(const JsonValue& json, bool minimized = false);
+	Value deserialize(const char* json);
+	Value deserialize(const std::string& json);
+	void serialize(std::ostream& out, const Value& json, bool minimized = false);
+	std::string serialize(const Value& json, bool minimized = false);
 }
 
 #endif

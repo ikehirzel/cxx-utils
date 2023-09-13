@@ -57,8 +57,8 @@ void test_filenameOf()
 	assert(filenameOf("/var/lib/file.txt", false) == "file");
 	assert(filenameOf("/var/lib/file.txt.bak", true) == "file.txt.bak");
 	assert(filenameOf("/var/lib/file.txt.bak", false) == "file");
-	assert(filenameOf("/JsonValue.json", true) == "JsonValue.json");
-	assert(filenameOf("/JsonValue.json", false) == "JsonValue");
+	assert(filenameOf("/Value.json", true) == "Value.json");
+	assert(filenameOf("/Value.json", false) == "Value");
 }
 
 void test_extensionOf()

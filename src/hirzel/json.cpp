@@ -1,7 +1,7 @@
 #include "hirzel/json.hpp"
-#include "hirzel/json/JsonToken.hpp"
+#include "hirzel/json/Token.hpp"
 #include "hirzel/file.hpp"
-#include "hirzel/json/JsonValueType.hpp"
+#include "hirzel/json/ValueType.hpp"
 #include "hirzel/print.hpp"
 #include <utility>
 #include <cassert>
@@ -11,28 +11,28 @@ namespace hirzel::json
 {
 	static int xIndex = std::ios::xalloc();
 
-	static JsonValue deserializeValue(JsonToken& token);
+	static Value deserializeValue(Token& token);
 
-	static JsonValue deserializeObject(JsonToken& token)
+	static Value deserializeObject(Token& token)
 	{
-		assert(token.type() == JsonTokenType::LeftBrace);
+		assert(token.type() == TokenType::LeftBrace);
 
 		token.seekNext();
 
-		auto object = JsonObject();
+		auto object = Object();
 
-		if (token.type() != JsonTokenType::RightBrace)
+		if (token.type() != TokenType::RightBrace)
 		{
 			while (true)
 			{
-				if (token.type() != JsonTokenType::String)
+				if (token.type() != TokenType::String)
 					throw std::runtime_error("Expected label, got '" + token.text() + "'.");
 
 				auto label = std::string(token.src() + token.pos() + 1, token.length() - 2);
 
 				token.seekNext();
 
-				if (token.type() != JsonTokenType::Colon)
+				if (token.type() != TokenType::Colon)
 					throw std::runtime_error("Expected ':' before '" + token.text() + "'.");
 
 				token.seekNext();
@@ -41,7 +41,7 @@ namespace hirzel::json
 
 				object.emplace(std::move(label), std::move(value));
 
-				if (token.type() == JsonTokenType::Comma)
+				if (token.type() == TokenType::Comma)
 				{
 					token.seekNext();
 					continue;
@@ -50,7 +50,7 @@ namespace hirzel::json
 				break;
 			}
 
-			if (token.type() != JsonTokenType::RightBrace)
+			if (token.type() != TokenType::RightBrace)
 				throw std::runtime_error("Expected '}' before '" + token.text() + "'.");
 		}
 
@@ -59,14 +59,14 @@ namespace hirzel::json
 		return object;
 	}
 
-	static JsonValue deserializeArray(JsonToken& token)
+	static Value deserializeArray(Token& token)
 	{
-		assert(token.type() == JsonTokenType::LeftBracket);
+		assert(token.type() == TokenType::LeftBracket);
 		token.seekNext();
 
-		auto arr = JsonArray();
+		auto arr = Array();
 
-		if (token.type() != JsonTokenType::RightBracket)
+		if (token.type() != TokenType::RightBracket)
 		{
 			while (true)
 			{
@@ -74,7 +74,7 @@ namespace hirzel::json
 
 				arr.emplace_back(std::move(value));
 
-				if (token.type() == JsonTokenType::Comma)
+				if (token.type() == TokenType::Comma)
 				{
 					token.seekNext();
 					continue;
@@ -83,7 +83,7 @@ namespace hirzel::json
 				break;
 			}
 
-			if (token.type() != JsonTokenType::RightBracket)
+			if (token.type() != TokenType::RightBracket)
 				throw std::runtime_error("Expected ']' before '" + token.text() + "'.");
 		}
 
@@ -92,60 +92,60 @@ namespace hirzel::json
 		return arr;
 	}
 
-	static JsonValue deserializeString(JsonToken& token)
+	static Value deserializeString(Token& token)
 	{
-		assert(token.type() == JsonTokenType::String);
+		assert(token.type() == TokenType::String);
 
 		auto text = std::string(token.src() + token.pos() + 1, token.length() - 2);
-		auto json = JsonValue(std::move(text));
+		auto json = Value(std::move(text));
 
 		token.seekNext();
 
 		return json;
 	}
 
-	static JsonValue deserializeNumber(JsonToken& token)
+	static Value deserializeNumber(Token& token)
 	{
-		assert(token.type() == JsonTokenType::Number);
+		assert(token.type() == TokenType::Number);
 
 		auto text = token.text();
 		auto value = atof(text.c_str());
-		auto json = JsonValue(value);
+		auto json = Value(value);
 
 		token.seekNext();
 
 		return json;
 	}
 
-	static JsonValue deserializeValue(JsonToken& token)
+	static Value deserializeValue(Token& token)
 	{
 		switch (token.type())
 		{
-			case JsonTokenType::LeftBrace:
+			case TokenType::LeftBrace:
 				return deserializeObject(token);
 
-			case JsonTokenType::LeftBracket:
+			case TokenType::LeftBracket:
 				return deserializeArray(token);
 
-			case JsonTokenType::String:
+			case TokenType::String:
 				return deserializeString(token);
 
-			case JsonTokenType::Number:
+			case TokenType::Number:
 				return deserializeNumber(token);
 
-			case JsonTokenType::True:
+			case TokenType::True:
 				token.seekNext();
-				return JsonValue(true);
+				return Value(true);
 
-			case JsonTokenType::False:
+			case TokenType::False:
 				token.seekNext();
-				return JsonValue(false);
+				return Value(false);
 
-			case JsonTokenType::Null:
+			case TokenType::Null:
 				token.seekNext();
-				return JsonValue();
+				return Value();
 
-			case JsonTokenType::EndOfFile:
+			case TokenType::EndOfFile:
 				throw std::runtime_error("Unexpected end of file.");
 
 			default:
@@ -153,18 +153,18 @@ namespace hirzel::json
 		}
 	}
 	
-	JsonValue deserialize(const char* json)
+	Value deserialize(const char* json)
 	{
-		auto token = JsonToken::initialFor(json);
+		auto token = Token::initialFor(json);
 		auto out = deserializeValue(token);
 
-		if (token.type() != JsonTokenType::EndOfFile)
+		if (token.type() != TokenType::EndOfFile)
 			throw std::runtime_error("Unexpected token: " + token.text());
 
 		return out;
 	}
 
-	JsonValue deserialize(const std::string& json)
+	Value deserialize(const std::string& json)
 	{
 		return deserialize(json.c_str());
 	}
@@ -179,10 +179,10 @@ namespace hirzel::json
 	}
 
 	template <bool minimized>
-	void serializeValue(std::ostream& out, const JsonValue& json);
+	void serializeValue(std::ostream& out, const Value& json);
 
 	template <bool minimized>
-	void serializeArray(std::ostream& out, const JsonValue& json)
+	void serializeArray(std::ostream& out, const Value& json)
 	{
 		if (json.array().empty())
 		{
@@ -226,7 +226,7 @@ namespace hirzel::json
 	}
 
 	template <bool minimized>
-	void serializeObject(std::ostream& out, const JsonValue& json)
+	void serializeObject(std::ostream& out, const Value& json)
 	{
 		if (json.object().empty())
 		{
@@ -277,31 +277,31 @@ namespace hirzel::json
 	}
 
 	template <bool minimized>
-	void serializeValue(std::ostream& out, const JsonValue& json)
+	void serializeValue(std::ostream& out, const Value& json)
 	{
 		switch (json.type())
 		{
-		case JsonValueType::Null:
+		case ValueType::Null:
 			out << "null";
 			break;
 
-		case JsonValueType::Boolean:
+		case ValueType::Boolean:
 			out << json.boolean();
 			break;
 
-		case JsonValueType::Number:
+		case ValueType::Number:
 			out << json.number();
 			break;
 
-		case JsonValueType::String:
+		case ValueType::String:
 			out << "\"" << json.string() << "\"";
 			break;
 
-		case JsonValueType::Array:
+		case ValueType::Array:
 			serializeArray<minimized>(out, json);
 			break;
 
-		case JsonValueType::Object:
+		case ValueType::Object:
 			serializeObject<minimized>(out, json);
 			break;
 
@@ -310,7 +310,7 @@ namespace hirzel::json
 		}
 	}
 
-	void serialize(std::ostream& out, const JsonValue& json, bool minimized)
+	void serialize(std::ostream& out, const Value& json, bool minimized)
 	{
 		if (minimized)
 		{
@@ -321,7 +321,7 @@ namespace hirzel::json
 		serializeValue<false>(out, json);
 	}
 
-	std::string serialize(const JsonValue& json, bool minimized)
+	std::string serialize(const Value& json, bool minimized)
 	{
 		std::ostringstream out;
 

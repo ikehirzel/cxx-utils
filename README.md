@@ -13,7 +13,7 @@ Included Utilities:
 - **json.hpp**
 	- JSON parser and deserializer
 - **plugin.hpp**
-	- Provides API for loading dynamic libraries and their associated global JsonValue and functions.
+	- Provides API for loading dynamic libraries and their associated global Value and functions.
 - **logger.hpp**
 	- Logger with urgency levels and consistent layout to allow for use with stream manipulator such as grep or select-string
 - **path.hpp**
@@ -31,7 +31,7 @@ Included Utilities:
 
 # Current Status
 
-As of right now, the JsonValue container itself as well as json parsing are effective
+As of right now, the Value container itself as well as json parsing are effective
 but still need further testing before being used in a production environment.
 The projects is currently still in active development
 

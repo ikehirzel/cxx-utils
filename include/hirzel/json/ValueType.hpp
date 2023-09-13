@@ -3,7 +3,7 @@
 
 namespace hirzel::json
 {
-	enum class JsonValueType
+	enum class ValueType
 	{
 		Null,
 		Number,

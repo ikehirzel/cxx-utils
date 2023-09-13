@@ -48,7 +48,7 @@ namespace hirzel::file
 
 		std::string line;
 
-		// copy JsonValue into buffer
+		// copy Value into buffer
 		while (std::getline(file, line))
 		{
 			// pop windows line ending
