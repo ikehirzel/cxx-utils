@@ -3,6 +3,7 @@
 #include "hirzel/file.hpp"
 #include "hirzel/json/ValueType.hpp"
 #include "hirzel/print.hpp"
+#include <stdexcept>
 #include <utility>
 #include <cassert>
 #include <cstdlib>
@@ -155,13 +156,20 @@ namespace hirzel::json
 	
 	Value deserialize(const char* json)
 	{
-		auto token = Token::initialFor(json);
-		auto out = deserializeValue(token);
+		try
+		{
+			auto token = Token::initialFor(json);
+			auto out = deserializeValue(token);
 
-		if (token.type() != TokenType::EndOfFile)
-			throw std::runtime_error("Unexpected token: " + token.text());
+			if (token.type() != TokenType::EndOfFile)
+				throw std::runtime_error("Unexpected token: " + token.text());
 
-		return out;
+			return out;
+		}
+		catch (const std::exception& e)
+		{
+			throw std::runtime_error("Failed to deserialize JSON: " + std::string(e.what()));
+		}
 	}
 
 	Value deserialize(const std::string& json)
