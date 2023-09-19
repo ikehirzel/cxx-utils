@@ -1034,6 +1034,7 @@ void test_parse()
 
 int main()
 {
+	// TODO: Add testing for new exceptions and 'at' functions
 	test_null();
 	test_number();
 	test_boolean();

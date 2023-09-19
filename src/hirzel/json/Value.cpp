@@ -1,8 +1,8 @@
 #include "hirzel/json.hpp"
 #include "hirzel/json/ValueType.hpp"
 #include <hirzel/json/Value.hpp>
-#include <cassert>
 #include <cstdlib>
+#include <stdexcept>
 
 namespace hirzel::json
 {
@@ -267,40 +267,92 @@ namespace hirzel::json
 		}
 	}
 
-	Value& Value::at(size_t i)
+	Value *Value::at(const std::string& key)
 	{
-		assert(_type == ValueType::Array);
-		assert(i < _array->size());
+		if (_type != ValueType::Object)
+			return nullptr;
+
+		auto iter = _object->find(key);
+		auto *ptr = iter != _object->end()
+			? &iter->second
+			: nullptr;
+
+		return ptr;
+	}
+
+	const Value *Value::at(const std::string& key) const
+	{
+		if (_type != ValueType::Object)
+			return nullptr;
+
+		auto iter = _object->find(key);
+		auto *ptr = iter != _object->end()
+			? &iter->second
+			: nullptr;
+
+		return ptr;
+	}
+
+	Value *Value::at(size_t i)
+	{
+		if (_type != ValueType::Array || i >= _array->size())
+			return nullptr;
+
+		return &(*_array)[i];
+	}
+
+	const Value *Value::at(size_t i) const
+	{
+		if (_type != ValueType::Array || i >= _array->size())
+			return nullptr;
+
+		return &(*_array)[i];
+	}
+
+	Value& Value::operator[](size_t i)
+	{
+		if (_type != ValueType::Array)
+			throw std::runtime_error("Value is not an array.");
+
+		if (i >= _array->size())
+			throw std::runtime_error("Index " + std::to_string(i) + " is out of bounds.");
 
 		return (*_array)[i];
 	}
 
-	const Value& Value::at(size_t i) const
+	const Value& Value::operator[](size_t i) const
 	{
-		assert(_type == ValueType::Array);
-		assert(i < _array->size());
+		if (_type != ValueType::Array)
+			throw std::runtime_error("Value is not an array.");
+
+		if (i >= _array->size())
+			throw std::runtime_error("Index " + std::to_string(i) + " is out of bounds.");
 
 		return (*_array)[i];
 	}
 
-	Value& Value::at(const std::string& key)
+	Value& Value::operator[](const std::string& key)
 	{
-		assert(_type == ValueType::Object);
+		if (_type != ValueType::Object)
+			throw std::runtime_error("Value is not an object.");
 
 		auto iter = _object->find(key);
 
-		assert(iter != _object->end());
+		if (iter == _object->end())
+			throw std::runtime_error("No member with key '" + key + "' exists.");
 
 		return iter->second;
 	}
 
-	const Value& Value::at(const std::string& key) const
+	const Value& Value::operator[](const std::string& key) const
 	{
-		assert(_type == ValueType::Object);
+		if (_type != ValueType::Object)
+			throw std::runtime_error("Value is not an object.");
 
 		auto iter = _object->find(key);
 
-		assert(iter != _object->end());
+		if (iter == _object->end())
+			throw std::runtime_error("No member with key '" + key + "' exists.");
 
 		return iter->second;
 	}

@@ -122,15 +122,15 @@ namespace hirzel::json
 		Value& operator=(Value&& other);
 		Value& operator=(const Value& other);
 
-		Value& at(size_t i);
-		Value& operator[](size_t i) { return at(i); }
-		const Value& at(size_t i) const;
-		const Value& operator[](size_t i) const { return at(i); }
+		Value *at(size_t i);
+		const Value *at(size_t i) const;
+		Value& operator[](size_t i);
+		const Value& operator[](size_t i) const;
 
-		Value& at(const std::string& key);
-		Value& operator[](const std::string& key) { return at(key); }
-		const Value& at(const std::string& key) const;
-		const Value& operator[](const std::string& key) const { return at(key); }
+		Value *at(const std::string& key);
+		const Value *at(const std::string& key) const;
+		Value& operator[](const std::string& key);
+		const Value& operator[](const std::string& key) const;
 
 		bool operator==(const Value& other) const;
 		bool operator!=(const Value& other) const { return !(*this == other); }
