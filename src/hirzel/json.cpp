@@ -304,7 +304,7 @@ namespace hirzel::json
 			break;
 
 		case ValueType::Number:
-			out << json.number();
+			out << std::fixed << json.number();
 			break;
 
 		case ValueType::String:
