@@ -228,7 +228,10 @@ namespace hirzel::json
 		depth -= 1;
 
 		if constexpr (minimized == false)
+		{
 			out << "\n";
+			indent(out);
+		}
 
 		out << "]";
 	}
@@ -279,7 +282,10 @@ namespace hirzel::json
 		depth -= 1;
 
 		if constexpr (minimized == false)
+		{
 			out << "\n";
+			indent(out);
+		}
 
 		out << "}";
 	}
