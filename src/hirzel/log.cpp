@@ -44,6 +44,14 @@ namespace hirzel::log
 	//		throw std::runtime_error("Failed to open log file: " + std::string(filepath) + ".");
 	//}
 
+	static inline void printNumber(int num)
+	{
+		if (num < 10)
+			std::cout << "0";
+
+		std::cout << num;
+	}
+
 	void printHeader(LogLevel level)
 	{
 		const char* header;
@@ -92,7 +100,19 @@ namespace hirzel::log
 		auto now = time(nullptr);
 		auto* time = localtime(&now);
 
-		std::cout << color << "\r[" << time->tm_hour << ":" << time->tm_min << ":" << time->tm_sec << " " << color << header << "]" << COLOR_RESET << ": ";
+		std::cout << color << "\r[";
+		
+		printNumber(time->tm_hour);
+
+		std::cout << ":";
+
+		printNumber(time->tm_min);
+		
+		std::cout << ":";
+
+		printNumber(time->tm_sec);
+
+		std::cout << " " << color << header << "]" << COLOR_RESET << ": ";
 	}
 
 	void setDebugColor(const char* color)
